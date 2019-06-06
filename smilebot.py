@@ -9,7 +9,6 @@ import os
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, BaseFilter
 
-# Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
@@ -24,7 +23,7 @@ class _Admin(BaseFilter):
     name = 'Filters.admin'
 
     def filter(self, message) -> bool:
-        return message.from_user.id in [a.user.id for a in message.chat.get_administrators()]
+        return message.from_user.id in set([a.user.id for a in message.chat.get_administrators()])
 
 
 def start(update, context):
@@ -92,10 +91,7 @@ def main():
     # on non sticker or gif message - delete the message
     dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile))
 
-    # log all errors
     dp.add_error_handler(error)
-
-    # Start the Bot
     updater.start_polling()
 
     # Run the bot until you press Ctrl-C or the process receives SIGINT,

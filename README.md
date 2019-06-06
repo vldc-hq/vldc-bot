@@ -1,7 +1,4 @@
 # smile-bot
-SmileMode for telegram chats
-
-![build status](https://img.shields.io/docker/build/egregors/smilebot.svg)
 
 Inspired by Twitch SmileMode this bot may bring you a remarkable new way to conversation ;)
 
