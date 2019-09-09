@@ -28,7 +28,7 @@ User should replay the Bot message during the hour otherwise user will ban.
 Replace `BOT_TOKEN` by your bot token, `YOUR_CHAT_ID` by your chat  id and run command:
 
 ```
-docker run --name vldc_bot -d --restart=always -e "TOKEN=BOT_TOKEN" -e "CHAT_ID=YOUR_CHAT_ID" egregors/vldcbot
+docker run --name vldc_bot -d --restart=always -e "TOKEN=BOT_TOKEN" -e "CHAT_ID=YOUR_CHAT_ID" egregors/vldc_bot
 ```
 
 ## Build local image
