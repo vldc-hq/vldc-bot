@@ -9,4 +9,4 @@ install:
 
 # start bot from venv (TOKEN should by in ENV)
 start:
-	export DEBUG=True && ./env/bin/python smilebot.py
+	export DEBUG=True && ./env/bin/python bot.py

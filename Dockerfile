@@ -6,4 +6,4 @@ WORKDIR /app
 #RUN pip install -r requirements.txt
 RUN python setup.py install
 
-CMD ["python", "smilebot.py"]
+CMD ["python", "bot.py"]

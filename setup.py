@@ -13,13 +13,13 @@ def requirements():
 
 
 setup(
-    name='smile-mode-bot',
+    name='vldc-bot',
     version='0.1',
     packages=[''],
-    url='https://github.com/egregors/smile-bot',
+    url='https://github.com/egregors/vldc-bot',
     license='MIT',
     author='Vadim Iskuchekov (@egregors)',
     author_email='root@egregors.com',
-    description='SmileMode bot for Telegram',
+    description='The official VLDC bot',
     install_requires=requirements(),
 )

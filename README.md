@@ -1,4 +1,13 @@
-# smile-bot
+# VLCD nyan bot ^_^
+
+The official [VLDC](https://vldc.org) telegram group bot. 
+
+![nyan](img/VLDC_nyan-tiger-in-anaglyph-glasses.png)
+
+
+## Skills
+
+### Smile Mode
 
 Inspired by Twitch SmileMode this bot may bring you a remarkable new way to conversation ;)
 
@@ -9,18 +18,23 @@ and `/off` to turn it off.
 
 On SmileMode all messages exclude **stickers** of **GIFs** will be deleted.
 
+### Bot Gate
+
+By default any new guests of the group will recipe message from the Bot. 
+User should replay the Bot message during the hour otherwise user will ban.
+
 
 ## Usage
 Replace `BOT_TOKEN` by your bot token, `YOUR_CHAT_ID` by your chat  id and run command:
 
 ```
-docker run --name smilebot -d --restart=always -e "TOKEN=BOT_TOKEN" -e "CHAT_ID=YOUR_CHAT_ID" egregors/smilebot
+docker run --name vldc_bot -d --restart=always -e "TOKEN=BOT_TOKEN" -e "CHAT_ID=YOUR_CHAT_ID" egregors/vldcbot
 ```
 
 ## Build local image
 
 ```
-docker build -t smilebot .
+docker build -t vldcbot .
 ```
 
 ## Developing
