@@ -204,7 +204,7 @@ def main():
 
     # remove messages from users in quarantine
     dp.add_handler(MessageHandler(
-        Filters.group & Filters.text,
+        Filters.group & ~Filters.status_update,
         welcome))
 
     # on non sticker or gif message - delete the message
