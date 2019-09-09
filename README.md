@@ -11,10 +11,10 @@ On SmileMode all messages exclude **stickers** of **GIFs** will be deleted.
 
 
 ## Usage
-Replace `BOT_TOKEN` by your bot token and run command:
+Replace `BOT_TOKEN` by your bot token, `YOUR_CHAT_ID` by your chat  id and run command:
 
 ```
-docker run --name smilebot -d --restart=always -e "TOKEN=BOT_TOKEN" egregors/smilebot
+docker run --name smilebot -d --restart=always -e "TOKEN=BOT_TOKEN" -e "CHAT_ID=YOUR_CHAT_ID" egregors/smilebot
 ```
 
 ## Build local image
