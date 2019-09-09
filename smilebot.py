@@ -4,30 +4,37 @@
     @egregors, @cpro29a 2019
     https://github.com/egregors/smile-bot
 """
-import logging
-import os
 import datetime
 import functools
+import logging
+import os
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, BaseFilter
 from telegram.ext.dispatcher import run_async
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+DEBUG = os.getenv("DEBUG", False)
 
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger(__name__)
 
 # OFF by default
 SMILE_MODE = False
-
 # map of users in quarantine
 QUARANTINE = {}
 # list of users in quarantine joined in a particular minute
 QUARANTINE_MIN = [[] for x in range(60)]
 
-GROUP_CHAT_ID = '@dev_smile_test'
-BOT_NAME = 'smile_bot_dev'
-LOG_ALL_CALLS = True
+
+def get_chat_id() -> str:
+    chat_id = os.getenv("CHAT_ID", None)
+    if chat_id is None:
+        raise ValueError("can't get CHAT_ID")
+    return chat_id
+
+
+GROUP_CHAT_ID = '@dev_smile_test' if DEBUG else get_chat_id()
+LOG_ALL_CALLS = True if DEBUG else False
 
 
 class _Admin(BaseFilter):
@@ -50,9 +57,8 @@ def log_call(f):
 
 @run_async
 @log_call
-def quarantine_user(user, chat_id, context):
-    global QUARANTINE
-    global QUARANTINE_MIN
+def quarantine_user(user, chat_id, context) -> None:
+    global QUARANTINE, QUARANTINE_MIN
     minute = datetime.datetime.utcnow().minute
     QUARANTINE[user.id] = minute
     QUARANTINE_MIN[minute].append(user.id)
@@ -90,8 +96,7 @@ def kick(chat_id, user_id, bot):
 
 @log_call
 def kick_users(chat_id, bot):
-    global QUARANTINE
-    global QUARANTINE_MIN
+    global QUARANTINE, QUARANTINE_MIN
     minute = (datetime.datetime.utcnow().minute + 1) % len(QUARANTINE_MIN)
     slowpokes = list([x for x in QUARANTINE_MIN[minute]])
     for user_id in slowpokes:
@@ -115,12 +120,11 @@ def callback_minute(context):
 @run_async
 @log_call
 def welcome(update, context):
-    global QUARANTINE
-    global QUARANTINE_MIN
+    global QUARANTINE, QUARANTINE_MIN
     minute = QUARANTINE.get(update.effective_user.id)
-    if minute == None:
+    if minute is None:
         return
-    if update.effective_message.reply_to_message != None and \
+    if update.effective_message.reply_to_message is not None and \
             update.effective_message.reply_to_message.from_user.id == context.bot.get_me().id:
         del(QUARANTINE[update.effective_user.id])
         QUARANTINE_MIN[minute].remove(update.effective_user.id)
@@ -128,7 +132,8 @@ def welcome(update, context):
     else:
         context.bot.delete_message(
             update.effective_chat.id,
-            update.effective_message.message_id, 10)
+            update.effective_message.message_id, 10
+        )
 
 
 @run_async
@@ -179,13 +184,17 @@ def handle_new_chat_members(update, context):
         quarantine_user(user, update.effective_chat.id, context)
 
 
+def get_token() -> str:
+    token = os.getenv("TOKEN", None)
+    if token is None:
+        raise ValueError("can't get tg token")
+    return token
+
+
 @log_call
 def main():
     """ Start the Smile! 😊."""
-    TOKEN = os.getenv("TOKEN", None)
-    if TOKEN is None:
-        logger.error(msg="bad tg token")
-        exit(1)
+    TOKEN = get_token()
 
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
@@ -213,8 +222,7 @@ def main():
         smile))
 
     dp.add_error_handler(error)
-    j = updater.job_queue
-    job_minute = j.run_repeating(callback_minute, interval=60, first=60)
+    updater.job_queue.run_repeating(callback_minute, interval=60, first=60)
 
     updater.start_polling()
 
