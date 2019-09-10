@@ -1,8 +1,10 @@
 """
-    SmileBot
+    VLDC Nyan bot
+    =============
 
-    @egregors, @cpro29a 2019
-    https://github.com/egregors/smile-bot
+    ~=[,,_,,]:3
+
+    https://github.com/egregors/vldc-bot
 """
 import datetime
 import functools
@@ -11,6 +13,8 @@ import os
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, BaseFilter
 from telegram.ext.dispatcher import run_async
+
+from bot.filters import AdminFilter
 
 DEBUG = os.getenv("DEBUG", False)
 
@@ -35,14 +39,6 @@ def get_chat_id() -> str:
 
 GROUP_CHAT_ID = '@dev_smile_test' if DEBUG else get_chat_id()
 LOG_ALL_CALLS = True if DEBUG else False
-
-
-class _Admin(BaseFilter):
-    """ Filter for messages only from admins """
-    name = 'Filters.admin'
-
-    def filter(self, message) -> bool:
-        return message.from_user.id in set([a.user.id for a in message.chat.get_administrators()])
 
 
 def log_call(f):
@@ -199,12 +195,12 @@ def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
-    admin = _Admin()
+    admin_filter = AdminFilter()
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_))
-    dp.add_handler(CommandHandler("on", sml_mode_on, filters=admin))
-    dp.add_handler(CommandHandler("off", sml_mode_off, filters=admin))
+    dp.add_handler(CommandHandler("on", sml_mode_on, filters=admin_filter))
+    dp.add_handler(CommandHandler("off", sml_mode_off, filters=admin_filter))
 
     # on user join start quarantine mode
     dp.add_handler(MessageHandler(

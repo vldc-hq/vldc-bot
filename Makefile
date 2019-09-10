@@ -1,9 +1,9 @@
-.PHONY: install start
+.PHONY: dev start
 
-all: install start
+all: dev start
 
 # create new venv and install deps
-install:
+dev:
 	python3 -m venv env
 	./env/bin/python setup.py install
 
