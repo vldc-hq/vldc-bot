@@ -1,4 +1,4 @@
-from telegram.ext import run_async, Dispatcher, CommandHandler, MessageHandler, Filters
+from telegram.ext import run_async, CommandHandler, MessageHandler, Filters, Updater
 
 from bot.filters import admin_filter
 
@@ -6,8 +6,9 @@ SMILE_MODE_STORE_KEY = "is_smile_mode_on"
 ON, OFF = True, False
 
 
-def add_smile_mode_handlers(dp: Dispatcher):
+def add_smile_mode_handlers(upd: Updater):
     """ Set up all handler for SmileMode """
+    dp = upd.dispatcher
     dp.add_handler(CommandHandler("smile_mode_on", smile_mode_on, filters=admin_filter))
     dp.add_handler(CommandHandler("smile_mode_off", smile_mode_off, filters=admin_filter))
     dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile))

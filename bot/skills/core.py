@@ -1,7 +1,12 @@
-from telegram.ext import run_async, Dispatcher, CommandHandler
+import logging
+
+from telegram.ext import run_async, CommandHandler, Updater
+
+logger = logging.getLogger(__name__)
 
 
-def add_core_handlers(dp: Dispatcher):
+def add_core_handlers(upd: Updater):
+    dp = upd.dispatcher
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_))
 
@@ -32,3 +37,6 @@ def help_(update, context):
     )
 
 
+def error(update, context):
+    """ Log Errors caused by Updates """
+    logger.warning('Update "%s" caused error "%s"', update, context.error)
