@@ -9,3 +9,6 @@ class AdminFilter(BaseFilter):
         return message.from_user.id in {
             a.user.id for a in message.chat.get_administrators()
         }
+
+
+admin_filter = AdminFilter()

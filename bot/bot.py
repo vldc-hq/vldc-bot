@@ -11,10 +11,11 @@ import functools
 import logging
 import os
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, BaseFilter
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
 
-from bot.filters import AdminFilter
+from bot.skills.core import start, help_
+from bot.skills.smile_mode import add_smile_mode_handlers
 
 DEBUG = os.getenv("DEBUG", False)
 
@@ -22,8 +23,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger(__name__)
 
-# OFF by default
-SMILE_MODE = False
 # map of users in quarantine
 QUARANTINE = {}
 # list of users in quarantine joined in a particular minute
@@ -48,6 +47,7 @@ def log_call(f):
         if LOG_ALL_CALLS:
             logging.debug("calling {}".format(f.__name__))
         return f(*args, **kwargs)
+
     return inner
 
 
@@ -66,24 +66,6 @@ Sorry for the inconvenience, we have zero tolerance for unsolicited bots.""".for
     ))
 
 
-@run_async
-def start(update, context):
-    update.message.reply_text("I'm a Smile Bot.\n\nInspired by Twitch 'SmileMode'\n"
-                              "I may bring you a remarkable new way to conversation 😉\n\n"
-                              "If you an admin of this Group just send '/on' to set SmileMode ON,\n"
-                              "and '/off' to turn it off.\n\n"
-                              "Keep it in mind, you should make me an admin and allow delete and pin messages\n"
-                              "On SmileMode all messages exclude stickers of GIFs will be deleted.\n\n"
-                              "Bot source: https://github.com/egregors/smile-bot")
-
-
-@run_async
-def help_(update, context):
-    update.message.reply_text("The bot should be an admin with delete messages and pin messages permissions\n\n"
-                              "'/on' – smile mode ON\n"
-                              "'/off' – smile mode OFF\n")
-
-
 @log_call
 def kick(chat_id, user_id, bot):
     if not bot.kick_chat_member(chat_id, user_id):
@@ -98,7 +80,7 @@ def kick_users(chat_id, bot):
     for user_id in slowpokes:
         try:
             kick(chat_id, user_id, bot)
-            del(QUARANTINE, user_id)
+            del (QUARANTINE, user_id)
             QUARANTINE_MIN[minute].remove(user_id)
         except Exception as e:
             logger.exception(e)
@@ -122,7 +104,7 @@ def welcome(update, context):
         return
     if update.effective_message.reply_to_message is not None and \
             update.effective_message.reply_to_message.from_user.id == context.bot.get_me().id:
-        del(QUARANTINE[update.effective_user.id])
+        del (QUARANTINE[update.effective_user.id])
         QUARANTINE_MIN[minute].remove(update.effective_user.id)
         update.message.reply_text("Welcome to VLDC!")
     else:
@@ -130,41 +112,6 @@ def welcome(update, context):
             update.effective_chat.id,
             update.effective_message.message_id, 10
         )
-
-
-@run_async
-def sml_mode_on(update, context):
-    """ SmileMode ON"""
-    global SMILE_MODE
-    if not SMILE_MODE:
-        SMILE_MODE = True
-        msg = context.bot.send_message(
-            update.effective_chat.id, "SmileMode is ON 🙊")
-        context.bot.pin_chat_message(
-            update.effective_chat.id,
-            msg.message_id,
-            disable_notification=True)
-
-
-@run_async
-def sml_mode_off(update, context):
-    """ SmileMode OFF"""
-    global SMILE_MODE
-    if SMILE_MODE:
-        SMILE_MODE = False
-        context.bot.send_message(
-            update.effective_chat.id, "SmileMode is OFF 🙈")
-        context.bot.unpin_chat_message(update.effective_chat.id)
-
-
-@run_async
-def smile(update, context):
-    """ Delete all messages except stickers or GIFs """
-    global SMILE_MODE
-    if SMILE_MODE:
-        context.bot.delete_message(
-            update.effective_chat.id,
-            update.effective_message.message_id, 10)
 
 
 def error(update, context):
@@ -195,13 +142,15 @@ def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
-    admin_filter = AdminFilter()
-
+    # core
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help_))
-    dp.add_handler(CommandHandler("on", sml_mode_on, filters=admin_filter))
-    dp.add_handler(CommandHandler("off", sml_mode_off, filters=admin_filter))
 
+    # smile-mode
+    add_smile_mode_handlers(dp)
+    # dp.add_handler(CommandHandler("on", sml_mode_on, filters=admin_filter))
+
+    # towel-mode
     # on user join start quarantine mode
     dp.add_handler(MessageHandler(
         Filters.status_update.new_chat_members,
@@ -211,11 +160,6 @@ def main():
     dp.add_handler(MessageHandler(
         Filters.group & ~Filters.status_update,
         welcome))
-
-    # on non sticker or gif message - delete the message
-    dp.add_handler(MessageHandler(
-        ~Filters.sticker & ~Filters.animation,
-        smile))
 
     dp.add_error_handler(error)
     updater.job_queue.run_repeating(callback_minute, interval=60, first=60)
