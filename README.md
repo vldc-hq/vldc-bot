@@ -20,12 +20,12 @@ On SmileMode all messages exclude **stickers** of **GIFs** will be deleted.
 
 ### Bot Gate
 
-By default any new guests of the group will recipe message from the Bot. 
-User should replay the Bot message during the hour otherwise user will ban.
+By default any new guests of the group will receive message from the Bot. 
+User should reply the Bot message in the next hour otherwise user would be blacklisted.
 
 
 ## Usage
-Replace `BOT_TOKEN` by your bot token, `YOUR_CHAT_ID` by your chat  id and run command:
+Replace `BOT_TOKEN` with your bot token, `YOUR_CHAT_ID` with your chat id and run command:
 
 ```
 docker run --name vldc_bot -d --restart=always -e "TOKEN=BOT_TOKEN" -e "CHAT_ID=YOUR_CHAT_ID" egregors/vldc_bot
