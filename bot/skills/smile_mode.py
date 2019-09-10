@@ -14,12 +14,14 @@ def add_smile_mode_handlers(dp: Dispatcher):
 
 
 def get_smile_mode(ctx) -> bool:
+    """ Get global value of SmileMode """
     return False \
         if SMILE_MODE_STORE_KEY not in ctx.chat_data \
         else ctx.chat_data[SMILE_MODE_STORE_KEY]
 
 
 def set_smile_mode(is_on: bool, ctx):
+    """ Get global value of SmileMode """
     ctx[SMILE_MODE_STORE_KEY] = is_on
 
 

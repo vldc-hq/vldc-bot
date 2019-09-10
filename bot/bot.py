@@ -11,10 +11,10 @@ import functools
 import logging
 import os
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
 
-from bot.skills.core import start, help_
+from bot.skills.core import add_core_handlers
 from bot.skills.smile_mode import add_smile_mode_handlers
 
 DEBUG = os.getenv("DEBUG", False)
@@ -143,8 +143,7 @@ def main():
     dp = updater.dispatcher
 
     # core
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help_))
+    add_core_handlers(dp)
 
     # smile-mode
     add_smile_mode_handlers(dp)
