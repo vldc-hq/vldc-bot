@@ -32,7 +32,6 @@ def set_smile_mode(mode: bool, context: CallbackContext):
     context.chat_data[SMILE_MODE_STORE_KEY] = mode
 
 
-# command handlers
 @run_async
 def smile_mode_on(update: Update, context: CallbackContext):
     """ SmileMode ON"""

@@ -5,10 +5,13 @@ from typing import List, Dict
 from telegram import Update, User
 from telegram.ext import run_async, MessageHandler, Filters, Updater, CallbackContext
 
+from config import get_config
+
 logger = logging.getLogger(__name__)
 
-QUARANTINE_STORE_KEY = "quarantine"
-QUARANTINE_MIN_STORE_KEY = "quarantine_min"
+QUARANTINE_STORE_KEY = "towel_mode__quarantine"
+QUARANTINE_MIN_STORE_KEY = "towel_mode__quarantine_min"
+VLDC_CHAT_ID_STORE_KEY = "towel_mode__vldc_chat_id"
 
 
 def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
@@ -23,11 +26,11 @@ def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
 
     # remove messages from users in quarantine
     dp.add_handler(MessageHandler(
-        Filters.group & ~Filters.status_update, welcome),
+        Filters.group & ~Filters.status_update, check_for_reply),
         towel_mode_handlers_group
     )
 
-    # upd.job_queue.run_repeating(callback_minute, interval=60, first=60, context=True)
+    upd.job_queue.run_repeating(callback_minute, interval=60, first=60, context=True)
 
 
 def get_quarantine_and_quarantine_min(context: CallbackContext) -> (Dict, List):
@@ -67,7 +70,7 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext) -> None:
 
 
 @run_async
-def welcome(update: Update, context: CallbackContext):
+def check_for_reply(update: Update, context: CallbackContext):
     quarantine, quarantine_min = get_quarantine_and_quarantine_min(context)
     minute = quarantine.get(update.effective_user.id)
     if minute is None:
@@ -86,34 +89,45 @@ def welcome(update: Update, context: CallbackContext):
             update.effective_message.message_id, 10
         )
 
-#
-# def callback_minute(context: telegram.ext.CallbackContext):
-#     logger.debug(context)
-#     logger.debug(context.user_data)
-#     logger.debug(context.chat_data)
-#     GROUP_CHAT_ID = '@dev_smile_test'
-#     try:
-#         kick_users(GROUP_CHAT_ID, context)
-#     except Exception as e:
-#         logger.exception(e)
-#
-#
-# def kick(chat_id, user_id, bot):
-#     if not bot.kick_chat_member(chat_id, user_id):
-#         logger.log(logging.INFO, "failed to kick user {}".format(user_id))
-#
-#
-# def kick_users(chat_id, context: telegram.ext.CallbackContext):
-#     bot = context.bot
-#     QUARANTINE, QUARANTINE_MIN = get_quarantine_and_quarantine_min(context)
-#     minute = (datetime.datetime.utcnow().minute + 1) % len(QUARANTINE_MIN)
-#     slowpokes = list([x for x in QUARANTINE_MIN[minute]])
-#     for user_id in slowpokes:
-#         try:
-#             kick(chat_id, user_id, bot)
-#             del (QUARANTINE, user_id)
-#             QUARANTINE_MIN[minute].remove(user_id)
-#         except Exception as e:
-#             logger.exception(e)
-#
-#
+
+def get_chat_id(context: CallbackContext):
+    if VLDC_CHAT_ID_STORE_KEY not in context.chat_data:
+        logger.debug("get GROUP_CHAT_ID from conf")
+        context.chat_data[VLDC_CHAT_ID_STORE_KEY] = get_config()["GROUP_CHAT_ID"]
+
+    return context.chat_data[VLDC_CHAT_ID_STORE_KEY]
+
+
+@run_async
+def callback_minute(context: CallbackContext):
+    # @dev_smile_test
+    chat_id = get_chat_id(context)
+    logger.debug(f"get chat.id: {chat_id}")
+    try:
+        kick_users(chat_id, context)
+    except Exception as e:
+        logger.exception(e)
+
+
+@run_async
+def kick(chat_id, user_id, bot):
+    logger.debug(f"kick user: {user_id}")
+    if not bot.kick_chat_member(chat_id, user_id):
+        logger.info(f"failed to kick user {user_id}")
+
+
+@run_async
+def kick_users(chat_id, context: CallbackContext):
+    bot = context.bot
+    quarantine, quarantine_min = get_quarantine_and_quarantine_min(context)
+    minute = (datetime.datetime.utcnow().minute + 1) % len(quarantine_min)
+    slowpokes = list([x for x in quarantine_min[minute]])
+    for user_id in slowpokes:
+        try:
+            logger.debug(f"kick user: {user_id}")
+            kick(chat_id, user_id, bot)
+            logger.debug(f"remove user: {user_id} from quarantine")
+            del (quarantine, user_id)
+            quarantine_min[minute].remove(user_id)
+        except Exception as e:
+            logger.exception(e)

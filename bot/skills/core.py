@@ -1,24 +1,26 @@
 import logging
 
-from telegram.ext import run_async, CommandHandler, Updater
+from telegram import Update
+from telegram.ext import run_async, CommandHandler, Updater, CallbackContext
 
 logger = logging.getLogger(__name__)
 
 
 def add_core_handlers(upd: Updater, core_handlers_group: int):
+    logger.debug("register smile-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("start", start), core_handlers_group)
     dp.add_handler(CommandHandler("help", help_), core_handlers_group)
 
 
 @run_async
-def start(update, context):
+def start(update: Update, context: CallbackContext):
     update.message.reply_text("I'm a VLDC Bot. 😼\n\n"
                               "My source: https://github.com/egregors/vldc-bot")
 
 
 @run_async
-def help_(update, context):
+def help_(update: Update, context: CallbackContext):
     """ List of ALL commands """
     update.message.reply_text(
         "The bot should be an admin with all admins permissions\n\n"
@@ -37,6 +39,6 @@ def help_(update, context):
     )
 
 
-def error(update, context):
+def error(update: Update, context: CallbackContext):
     """ Log Errors caused by Updates """
     logger.warning('Update "%s" caused error "%s"', update, context.error)
