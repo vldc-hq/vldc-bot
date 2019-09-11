@@ -1,6 +1,5 @@
 import datetime
 import logging
-from typing import List, Dict
 
 from telegram import Update, User
 from telegram.ext import run_async, MessageHandler, Filters, Updater, CallbackContext
@@ -33,7 +32,7 @@ def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
     upd.job_queue.run_repeating(callback_minute, interval=60, first=60, context=True)
 
 
-def get_quarantine_and_quarantine_min(context: CallbackContext) -> (Dict, List):
+def get_quarantine_and_quarantine_min(context: CallbackContext):
     logger.debug("get quarantine and quarantine_min from context.chat_data")
     if QUARANTINE_STORE_KEY not in context.chat_data:
         context.chat_data[QUARANTINE_STORE_KEY] = {}
@@ -127,7 +126,7 @@ def kick_users(chat_id, context: CallbackContext):
             logger.debug(f"kick user: {user_id}")
             kick(chat_id, user_id, bot)
             logger.debug(f"remove user: {user_id} from quarantine")
-            del (quarantine, user_id)
             quarantine_min[minute].remove(user_id)
+            del (quarantine, user_id)
         except Exception as e:
             logger.exception(e)

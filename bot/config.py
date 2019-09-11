@@ -1,8 +1,8 @@
 import os
-from typing import Dict
+from typing import Dict, Union
 
 
-def get_debug() -> bool:
+def get_debug() -> Union[str, bool]:
     return os.getenv("DEBUG", False)
 
 
