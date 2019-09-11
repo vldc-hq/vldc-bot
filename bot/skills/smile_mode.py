@@ -1,6 +1,7 @@
-from telegram.ext import run_async, CommandHandler, MessageHandler, Filters, Updater
+from telegram import Update
+from telegram.ext import run_async, CommandHandler, MessageHandler, Filters, Updater, CallbackContext
 
-from bot.filters import admin_filter
+from filters import admin_filter
 
 SMILE_MODE_STORE_KEY = "is_smile_mode_on"
 ON, OFF = True, False
@@ -14,21 +15,21 @@ def add_smile_mode_handlers(upd: Updater):
     dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile))
 
 
-def get_smile_mode(ctx) -> bool:
+def get_smile_mode(context: CallbackContext) -> bool:
     """ Get global value of SmileMode """
-    return False \
-        if SMILE_MODE_STORE_KEY not in ctx.chat_data \
-        else ctx.chat_data[SMILE_MODE_STORE_KEY]
+    return OFF \
+        if SMILE_MODE_STORE_KEY not in context.chat_data \
+        else context.chat_data[SMILE_MODE_STORE_KEY]
 
 
-def set_smile_mode(is_on: bool, ctx):
+def set_smile_mode(mode: bool, context: CallbackContext):
     """ Get global value of SmileMode """
-    ctx[SMILE_MODE_STORE_KEY] = is_on
+    context.chat_data[SMILE_MODE_STORE_KEY] = mode
 
 
 # command handlers
 @run_async
-def smile_mode_on(update, context):
+def smile_mode_on(update: Update, context: CallbackContext):
     """ SmileMode ON"""
     is_on = get_smile_mode(context)
     if is_on is False:
@@ -42,7 +43,7 @@ def smile_mode_on(update, context):
 
 
 @run_async
-def smile_mode_off(update, context):
+def smile_mode_off(update: Update, context: CallbackContext):
     """ SmileMode OFF """
     is_on = get_smile_mode(context)
     if is_on is True:
@@ -52,7 +53,7 @@ def smile_mode_off(update, context):
 
 
 @run_async
-def smile(update, context):
+def smile(update: Update, context: CallbackContext):
     """ Delete all messages except stickers or GIFs """
     is_on = get_smile_mode(context)
     if is_on:
