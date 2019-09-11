@@ -5,10 +5,10 @@ from telegram.ext import run_async, CommandHandler, Updater
 logger = logging.getLogger(__name__)
 
 
-def add_core_handlers(upd: Updater):
+def add_core_handlers(upd: Updater, core_handlers_group: int):
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help_))
+    dp.add_handler(CommandHandler("start", start), core_handlers_group)
+    dp.add_handler(CommandHandler("help", help_), core_handlers_group)
 
 
 @run_async

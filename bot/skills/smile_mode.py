@@ -7,12 +7,12 @@ SMILE_MODE_STORE_KEY = "is_smile_mode_on"
 ON, OFF = True, False
 
 
-def add_smile_mode_handlers(upd: Updater):
+def add_smile_mode_handlers(upd: Updater, smile_mode_handlers_group: int):
     """ Set up all handler for SmileMode """
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("smile_mode_on", smile_mode_on, filters=admin_filter))
-    dp.add_handler(CommandHandler("smile_mode_off", smile_mode_off, filters=admin_filter))
-    dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile))
+    dp.add_handler(CommandHandler("smile_mode_on", smile_mode_on, filters=admin_filter), smile_mode_handlers_group)
+    dp.add_handler(CommandHandler("smile_mode_off", smile_mode_off, filters=admin_filter), smile_mode_handlers_group)
+    dp.add_handler(MessageHandler(Filters.all, smile), smile_mode_handlers_group)
 
 
 def get_smile_mode(context: CallbackContext) -> bool:
