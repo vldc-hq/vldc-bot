@@ -4,6 +4,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 
 ![nyan](img/VLDC_nyan-tiger-in-anaglyph-glasses.png)
 
+![docker_hub](https://img.shields.io/docker/cloud/build/egregors/vldc_bot)
 
 ## Skills
 
@@ -11,8 +12,8 @@ The official [VLDC](https://vldc.org) telegram group bot.
 
 Inspired by Twitch SmileMode this bot may bring you a remarkable new way to conversation ;)
 
-If you an admin of Telegram Group just send `/on` to set SmileMode ON,
-and `/off` to turn it off.
+If you an admin of Telegram Group just send `/smile_mode-on` to set SmileMode ON,
+and `/smile_mode_off` to turn it off.
 
 **Keep it in mind, you should make bot an admin and allow delete and pin messages**
 
@@ -38,12 +39,34 @@ docker build -t vldcbot .
 ```
 
 ## Developing
-Create VENV and install deps:
+Create test Telegram bot, and store TOKEN and chat id, you will need it for developing.
+
+Make VENV and install dev deps:
+
 ```
 make dev
 ```
 
+Run tests
+
+```
+make test
+```
+
+Run linters
+
+```
+make lint
+```
+
+Build docker image
+
+```
+make build
+```
+
 Start bot from VENV:
+
 ```
 make start
 ```

@@ -5,4 +5,4 @@ WORKDIR /app
 
 RUN python setup.py install
 
-CMD ["python", "bot.py"]
+CMD ["python", "bot/main.py"]
