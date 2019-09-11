@@ -1,3 +1,5 @@
+import logging
+
 from telegram import Update
 from telegram.ext import run_async, CommandHandler, MessageHandler, Filters, Updater, CallbackContext
 
@@ -6,9 +8,12 @@ from filters import admin_filter
 SMILE_MODE_STORE_KEY = "is_smile_mode_on"
 ON, OFF = True, False
 
+logger = logging.getLogger(__name__)
+
 
 def add_smile_mode_handlers(upd: Updater, smile_mode_handlers_group: int):
     """ Set up all handler for SmileMode """
+    logger.debug("register smile-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("smile_mode_on", smile_mode_on, filters=admin_filter), smile_mode_handlers_group)
     dp.add_handler(CommandHandler("smile_mode_off", smile_mode_off, filters=admin_filter), smile_mode_handlers_group)
@@ -31,6 +36,7 @@ def set_smile_mode(mode: bool, context: CallbackContext):
 @run_async
 def smile_mode_on(update: Update, context: CallbackContext):
     """ SmileMode ON"""
+    logger.debug("smile-mode switch to ON")
     is_on = get_smile_mode(context)
     if is_on is False:
         msg = context.bot.send_message(update.effective_chat.id, "SmileMode is ON 🙊")
@@ -45,6 +51,7 @@ def smile_mode_on(update: Update, context: CallbackContext):
 @run_async
 def smile_mode_off(update: Update, context: CallbackContext):
     """ SmileMode OFF """
+    logger.debug("smile-mode switch to OFF")
     is_on = get_smile_mode(context)
     if is_on is True:
         context.bot.send_message(update.effective_chat.id, "SmileMode is OFF 🙈")
