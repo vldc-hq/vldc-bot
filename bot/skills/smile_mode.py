@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def add_smile_mode_handlers(upd: Updater, smile_mode_handlers_group: int):
     """ Set up all handler for SmileMode """
-    logger.debug("register smile-mode handlers")
+    logger.info("register smile-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("smile_mode_on", smile_mode_on, filters=admin_filter), smile_mode_handlers_group)
     dp.add_handler(CommandHandler("smile_mode_off", smile_mode_off, filters=admin_filter), smile_mode_handlers_group)

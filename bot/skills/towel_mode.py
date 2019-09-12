@@ -14,7 +14,7 @@ conf = get_config()
 
 
 def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
-    logger.debug("register towel-mode handlers")
+    logger.info("register towel-mode handlers")
     dp = upd.dispatcher
 
     # catch all new users and drop the towel

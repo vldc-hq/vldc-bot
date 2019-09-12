@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def add_core_handlers(upd: Updater, core_handlers_group: int):
-    logger.debug("register smile-mode handlers")
+    logger.info("register smile-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("start", start), core_handlers_group)
     dp.add_handler(CommandHandler("help", help_), core_handlers_group)
