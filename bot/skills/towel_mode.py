@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from telegram import Update, User
+from telegram import Update, User, Bot
 from telegram.ext import run_async, MessageHandler, Filters, Updater, CallbackContext
 
 from config import get_config
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 QUARANTINE_STORE_KEY = "towel_mode__quarantine"
 QUARANTINE_MIN_STORE_KEY = "towel_mode__quarantine_min"
-VLDC_CHAT_ID_STORE_KEY = "towel_mode__vldc_chat_id"
+conf = get_config()
 
 
 def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
@@ -29,7 +29,9 @@ def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
         towel_mode_handlers_group
     )
 
-    upd.job_queue.run_repeating(callback_minute, interval=60, first=60, context=True)
+    upd.job_queue.run_repeating(callback_minute, interval=20, first=10, context={
+        "chat_name": conf["GROUP_CHAT_ID"]
+    })
 
 
 def get_quarantine_and_quarantine_min(context: CallbackContext):
@@ -89,34 +91,39 @@ def check_for_reply(update: Update, context: CallbackContext):
         )
 
 
-def get_chat_id(context: CallbackContext):
-    if VLDC_CHAT_ID_STORE_KEY not in context.chat_data:
-        logger.debug("get GROUP_CHAT_ID from conf")
-        context.chat_data[VLDC_CHAT_ID_STORE_KEY] = get_config()["GROUP_CHAT_ID"]
-
-    return context.chat_data[VLDC_CHAT_ID_STORE_KEY]
-
-
 @run_async
 def callback_minute(context: CallbackContext):
-    # @dev_smile_test
-    chat_id = get_chat_id(context)
+    chat_id = context.bot.get_chat(chat_id=context.job.context["chat_name"]).id
     logger.debug(f"get chat.id: {chat_id}")
-    try:
-        kick_users(chat_id, context)
-    except Exception as e:
-        logger.exception(e)
+
+    # sorry about that
+    chat_data = context._dispatcher.chat_data.get(chat_id)  # noqa
+
+    if chat_data is not None:
+        context.chat_data = {
+            QUARANTINE_STORE_KEY: chat_data[QUARANTINE_STORE_KEY],
+            QUARANTINE_MIN_STORE_KEY: chat_data[QUARANTINE_MIN_STORE_KEY]
+        }
+
+        try:
+            kick_users(chat_id, context)
+        except Exception as e:
+            logger.exception(e)
+        return
+
+    logger.debug("chat_data context is emply, skipped")
 
 
 @run_async
-def kick(chat_id, user_id, bot):
+def kick(chat_id: int, user_id: int, bot: Bot):
     logger.debug(f"kick user: {user_id}")
     if not bot.kick_chat_member(chat_id, user_id):
         logger.info(f"failed to kick user {user_id}")
 
 
 @run_async
-def kick_users(chat_id, context: CallbackContext):
+def kick_users(chat_id: int, context: CallbackContext):
+    logger.debug(f"kick users context: {context.chat_data}")
     bot = context.bot
     quarantine, quarantine_min = get_quarantine_and_quarantine_min(context)
     minute = (datetime.datetime.utcnow().minute + 1) % len(quarantine_min)
