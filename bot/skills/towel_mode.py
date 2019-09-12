@@ -23,13 +23,14 @@ def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
         towel_mode_handlers_group
     )
 
-    # remove messages from users in quarantine
+    # remove messages from users from quarantine
     dp.add_handler(MessageHandler(
         Filters.group & ~Filters.status_update, check_for_reply),
         towel_mode_handlers_group
     )
 
-    upd.job_queue.run_repeating(callback_minute, interval=20, first=10, context={
+    # kick all not replied users (check every minutes)
+    upd.job_queue.run_repeating(callback_minute, interval=60, first=60, context={
         "chat_name": conf["GROUP_CHAT_ID"]
     })
 
@@ -54,7 +55,7 @@ def put_new_users_in_quarantine(update: Update, context: CallbackContext):
 @run_async
 def quarantine_user(user: User, chat_id: str, context: CallbackContext) -> None:
     """ Show welcome msg and put user into quarantine """
-    logger.debug(f"put {user} in quarantine")
+    logger.info(f"put {user} in quarantine")
     quarantine, quarantine_min = get_quarantine_and_quarantine_min(context)
     minute = datetime.datetime.utcnow().minute
     quarantine[user.id] = minute
@@ -79,7 +80,7 @@ def check_for_reply(update: Update, context: CallbackContext):
 
     if update.effective_message.reply_to_message is not None and \
             update.effective_message.reply_to_message.from_user.id == context.bot.get_me().id:
-        logger.debug(f"remove user: {update.effective_user} from quarantine")
+        logger.info(f"remove user: {update.effective_user} from quarantine")
         del (quarantine[update.effective_user.id])
         quarantine_min[minute].remove(update.effective_user.id)
         update.message.reply_text("Welcome to VLDC! 😼")
@@ -130,10 +131,9 @@ def kick_users(chat_id: int, context: CallbackContext):
     slowpokes = list([x for x in quarantine_min[minute]])
     for user_id in slowpokes:
         try:
-            logger.debug(f"kick user: {user_id}")
             kick(chat_id, user_id, bot)
-            logger.debug(f"remove user: {user_id} from quarantine")
+            logger.info(f"remove user: {user_id} from quarantine")
             quarantine_min[minute].remove(user_id)
-            del (quarantine, user_id)
+            quarantine.pop(user_id)
         except Exception as e:
             logger.exception(e)

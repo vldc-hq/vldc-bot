@@ -35,7 +35,7 @@ def set_smile_mode(mode: bool, context: CallbackContext):
 @run_async
 def smile_mode_on(update: Update, context: CallbackContext):
     """ SmileMode ON"""
-    logger.debug("smile-mode switch to ON")
+    logger.info("smile-mode switch to ON")
     is_on = get_smile_mode(context)
     if is_on is False:
         msg = context.bot.send_message(update.effective_chat.id, "SmileMode is ON 🙊")
@@ -50,7 +50,7 @@ def smile_mode_on(update: Update, context: CallbackContext):
 @run_async
 def smile_mode_off(update: Update, context: CallbackContext):
     """ SmileMode OFF """
-    logger.debug("smile-mode switch to OFF")
+    logger.info("smile-mode switch to OFF")
     is_on = get_smile_mode(context)
     if is_on is True:
         context.bot.send_message(update.effective_chat.id, "SmileMode is OFF 🙈")
@@ -61,6 +61,7 @@ def smile_mode_off(update: Update, context: CallbackContext):
 @run_async
 def smile(update: Update, context: CallbackContext):
     """ Delete all messages except stickers or GIFs """
+    logger.debug(f"remove msg: {update.effective_message}")
     is_on = get_smile_mode(context)
     if is_on:
         context.bot.delete_message(
