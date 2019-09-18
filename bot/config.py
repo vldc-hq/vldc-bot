@@ -22,9 +22,25 @@ def get_token() -> str:
     return token
 
 
+def get_mongo_user():
+    user = os.getenv("MONGO_INITDB_ROOT_USERNAME", None)
+    if user is None:
+        raise ValueError("can't get mongodb username")
+    return user
+
+
+def get_mongo_pass():
+    user = os.getenv("MONGO_INITDB_ROOT_PASSWORD", None)
+    if user is None:
+        raise ValueError("can't get mongodb password")
+    return user
+
+
 def get_config() -> Dict:
     return {
         "DEBUG": get_debug(),
         "TOKEN": get_token(),
-        "GROUP_CHAT_ID": get_group_chat_id()
+        "GROUP_CHAT_ID": get_group_chat_id(),
+        "MONGO_USER": get_mongo_user(),
+        "MONGO_PASS": get_mongo_pass()
     }
