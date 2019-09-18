@@ -3,7 +3,11 @@ version: '3.1'
 services:
 
   bot:
-    image: egregors/vldc_bot:latest
+    build:
+      context: .
+      dockerfile: ./compose/dev/Dockerfile
+    volumes:
+      - .:/app
     depends_on:
       - mongo
     env_file:

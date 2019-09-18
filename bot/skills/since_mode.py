@@ -27,6 +27,7 @@ def since_callback(update, context):
     t = coll.find_one({'topic': topic})
     logger.info(t)
 
+    # todo: extract
     if t:
         coll.update_one(
             {"topic": topic.lower()},
@@ -45,7 +46,7 @@ def since_callback(update, context):
 
     delta = datetime.now() - t['since_datetime']
 
+    # todo: replace seconds by pretty time
     update.message.reply_text(
-        f"This is are {delta.seconds} seconds since «{t['topic']}» discussion\n"
-        f"This is are {t['count']} time we are talking about «{t['topic']}»"
+        f"«{t['topic']}» was last discussed {delta.seconds} seconds ago. This is {t['count']}th mention of this topic"
     )

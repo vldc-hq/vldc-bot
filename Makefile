@@ -1,12 +1,26 @@
-.PHONY: dev start
+.PHONY: dev test lint start dev_build dev_start dev_test
 
-all: dev start
+all: dev_start
 
-# create new venv and install deps
-dev:
-	python3 -m venv env
-	./env/bin/pip install -r requirements-dev.txt
+# docker stuff
+dev_build:
+	docker-compose -f docker-compose-dev.yml build
 
+dev_start:
+	docker-compose -f docker-compose-dev.yml up -d && docker-compose -f docker-compose-dev.yml logs -f --tail=10
+#	python3 -m venv env
+#	./env/bin/pip install -r requirements-dev.txt
+
+dev_stop:
+	docker-compose -f docker-compose-dev.yml stop
+
+dev_down:
+	docker-compose -f docker-compose-dev.yml down
+
+dev_test:
+	docker-compose -f docker-compose-dev.yml run --rm bot pytest
+
+# venv stuff
 test:
 	export PYTHONPATH=./bot && pytest
 
@@ -18,6 +32,3 @@ lint:
 # start bot from venv (TOKEN and CHAT_ID should by in ENV)
 start:
 	export DEBUG=True && ./env/bin/python bot.py
-
-build:
-	docker build -t vldcbot .
