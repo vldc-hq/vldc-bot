@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 QUARANTINE_STORE_KEY = "towel_mode__quarantine"
 QUARANTINE_MIN_STORE_KEY = "towel_mode__quarantine_min"
 MAGIC_NUMBER = "42"
+
 conf = get_config()
 
 
@@ -101,7 +102,7 @@ def butt_press(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     user = update.effective_user
     query = update.callback_query
-    if str(query.data) == MAGIC_NUMBER:
+    if query.data == MAGIC_NUMBER:
         logger.info(
             f"remove user: {user.name} from quarantine")
         del (quarantine[user.id])
