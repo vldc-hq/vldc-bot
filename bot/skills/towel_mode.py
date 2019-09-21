@@ -131,7 +131,7 @@ def callback_minute(context: CallbackContext):
             logger.exception(e)
         return
 
-    logger.debug("chat_data context is emply, skipped")
+    logger.debug("chat_data context is empty, skipped")
 
 
 @run_async

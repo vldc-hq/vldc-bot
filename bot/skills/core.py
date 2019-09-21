@@ -29,6 +29,8 @@ def help_(update: Update, context: CallbackContext):
         "`/smile_mode_on` – smile mode ON\n"
         "`/smile_mode_off` – smile mode OFF\n"
         "\n\n"
+        "Version:\n"
+        "`/version` – show current version of the bot\n"
         "Skills (for all):\n"
         "🤔 nothing yet, suggest something!\n"
         "https://github.com/egregors/vldc-bot/issues\n"
