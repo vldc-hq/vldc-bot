@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 QUARANTINE_STORE_KEY = "towel_mode__quarantine"
 QUARANTINE_MIN_STORE_KEY = "towel_mode__quarantine_min"
+MAGIC_NUMBER = "42"
 conf = get_config()
 
 
@@ -65,7 +66,7 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext) -> None:
     quarantine_min[minute].append(user.id)
 
     markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Я не бот!", callback_data=42)]])
+        [InlineKeyboardButton("Я не бот!", callback_data=MAGIC_NUMBER)]])
     context.bot.send_message(
         chat_id,
         f"{user.name} Нажми кнопку ниже, чтобы доказать, что ты не бот.\n"
@@ -100,8 +101,7 @@ def butt_press(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     user = update.effective_user
     query = update.callback_query
-    logger.info(query.data)
-    if query.data == 42 or True:
+    if str(query.data) == MAGIC_NUMBER:
         logger.info(
             f"remove user: {user.name} from quarantine")
         del (quarantine[user.id])
