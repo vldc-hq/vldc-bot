@@ -1,4 +1,5 @@
 *
 !requirements.txt
+!requirements-dev.txt
 !setup.py
 !bot/*

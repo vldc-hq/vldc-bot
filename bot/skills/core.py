@@ -24,17 +24,30 @@ def help_(update: Update, context: CallbackContext):
     """ List of ALL commands """
     update.message.reply_text(
         "The bot should be an admin with all admins permissions\n\n"
-        "Skills (for admins):\n"
+
+        "Skills for admins:\n"
         "SmileMode: allows only not text messages (stickers, GIFs)\n"
         "`/smile_mode_on` – smile mode ON\n"
         "`/smile_mode_off` – smile mode OFF\n"
         "\n\n"
-        "Version:\n"
-        "`/version` – show current version of the bot\n"
-        "Skills (for all):\n"
-        "🤔 nothing yet, suggest something!\n"
-        "https://github.com/egregors/vldc-bot/issues\n"
+
+        "Skills for all:\n"
+        "SinceMode: when the last time we ware discuss this topic?\n"
+        "`/since TOPIC` – update topic counter\n"
+        "`/since_list` – list off all hot topics\n"
+        "for example:\n"
+        "   >>> alice: нет, ну современный пхп вполне нормальный язык\n"
+        "   >>> bob: /since современный пыхыпы\n"
+        "   >>> Nayn: 0 days without «современный пыхыпы»! Already was discussed 47 times\n"
+        "   >>> alice: -__-\n"
+      
+        "Version: just version\n"
+        "`/version` – show current version of the bot\n\n"
+      
+        "Feel free to add more stuff!\n"
+        "\nhttps://github.com/egregors/vldc-bot/issues\n"
         "\n\n"
+
         "Passive:\n"
         "TowelMode: required reply from new users otherwise blacklisted them\n"
         "TowelMode is ON by default\n"

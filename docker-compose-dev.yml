@@ -1,0 +1,21 @@
+version: '3.1'
+
+services:
+
+  bot:
+    build:
+      context: .
+      dockerfile: ./compose/dev/Dockerfile
+    volumes:
+      - .:/app
+    depends_on:
+      - mongo
+    env_file:
+      - ./.env
+
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+    env_file:
+      - ./.env

@@ -1,0 +1,17 @@
+version: '3.1'
+
+services:
+
+  bot:
+    image: egregors/vldc_bot:latest
+    depends_on:
+      - mongo
+    env_file:
+      - ./.env
+
+  mongo:
+    image: mongo
+    volumes:
+      - /opt/mongo/data/db:/data/db
+    env_file:
+      - ./.env
