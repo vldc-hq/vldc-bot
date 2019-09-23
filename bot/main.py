@@ -33,7 +33,6 @@ def main():
         tower_mode = 3
         since_mode = 4
 
-     
     # init all skills
     add_core_handlers(updater, HandlersGroups.core)
     add_version_handlers(updater, HandlersGroups.version)

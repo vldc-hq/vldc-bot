@@ -25,13 +25,16 @@ def help_(update: Update, context: CallbackContext):
     update.message.reply_text(
         "The bot should be an admin with all admins permissions\n\n"
 
-        "Skills for admins:\n"
+        "Skills for admins:\n\n"
         "SmileMode: allows only not text messages (stickers, GIFs)\n"
         "`/smile_mode_on` – smile mode ON\n"
         "`/smile_mode_off` – smile mode OFF\n"
+        "\n"
+        "Version: just version\n"
+        "`/version` – show current version of the bot\n"
         "\n\n"
 
-        "Skills for all:\n"
+        "Skills for all:\n\n"
         "SinceMode: when the last time we ware discuss this topic?\n"
         "`/since TOPIC` – update topic counter\n"
         "`/since_list` – list off all hot topics\n"
@@ -40,17 +43,15 @@ def help_(update: Update, context: CallbackContext):
         "   >>> bob: /since современный пыхыпы\n"
         "   >>> Nayn: 0 days without «современный пыхыпы»! Already was discussed 47 times\n"
         "   >>> alice: -__-\n"
-      
-        "Version: just version\n"
-        "`/version` – show current version of the bot\n\n"
-      
-        "Feel free to add more stuff!\n"
-        "\nhttps://github.com/egregors/vldc-bot/issues\n"
         "\n\n"
 
         "Passive:\n"
         "TowelMode: required reply from new users otherwise blacklisted them\n"
-        "TowelMode is ON by default\n"
+        "TowelMode is ON by default\n\n"
+
+        "Feel free to add more stuff!\n"
+        "\nhttps://github.com/egregors/vldc-bot/issues\n"
+        "\n\n"
     )
 
 
