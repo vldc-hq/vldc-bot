@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import reduce
 from typing import Dict, List
 
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient
 from pymongo.collection import Collection
 from telegram.ext import Updater, CommandHandler
 
@@ -80,16 +80,16 @@ def since_callback(update, context):
 
 
 def _get_all_topics(limit: int) -> List[Dict]:
-    return list(topics_coll.find({}).sort("-count"))[:limit]
+    return list(topics_coll.find({}).sort("-count").limit(limit))
 
 
 def since_list_callback(update, context):
     # todo: need make it msg more pretty
     ts = reduce(
-        lambda acc, el: acc + f"{el['topic']} "
-                              f"since {_get_delta(el['since_datetime'])} secs ago "
+        lambda acc, el: acc + f"{el['topic']}: "
+                              f"was last discussed {_get_delta(el['since_datetime'])} secs ago "
                               f"{el['count']} times \n",
         _get_all_topics(20),
         ""
     )
-    update.message.reply_text(ts)
+    update.message.reply_text(ts or "nothing yet 😿")
