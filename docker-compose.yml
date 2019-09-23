@@ -11,5 +11,7 @@ services:
 
   mongo:
     image: mongo
+    volumes:
+      - /opt/mongo/data/db:/data/db
     env_file:
       - ./.env
