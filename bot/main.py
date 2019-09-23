@@ -28,7 +28,7 @@ def main():
     class HandlersGroups:
         core = 0
         version = 1
-        
+
         smile_mode = 2
         tower_mode = 3
         since_mode = 4

@@ -1,5 +1,7 @@
 from setuptools import setup
 
+from main import __version__
+
 
 def requirements():
     """Build the requirements list for this project"""
@@ -14,7 +16,7 @@ def requirements():
 
 setup(
     name='vldc-bot',
-    version='0.1',
+    version=__version__,
     packages=[''],
     url='https://github.com/egregors/vldc-bot',
     license='MIT',
