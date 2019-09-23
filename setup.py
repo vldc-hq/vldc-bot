@@ -1,6 +1,6 @@
 from setuptools import setup
 
-from main import __version__
+from skills.version import __version__
 
 
 def requirements():
