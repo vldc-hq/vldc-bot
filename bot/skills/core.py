@@ -40,8 +40,11 @@ def help_(update: Update, context: CallbackContext):
         "   >>> bob: /since современный пыхыпы\n"
         "   >>> Nayn: 0 days without «современный пыхыпы»! Already was discussed 47 times\n"
         "   >>> alice: -__-\n"
+      
+        "Version: just version\n"
+        "`/version` – show current version of the bot\n\n"
+      
         "Feel free to add more stuff!\n"
-
         "\nhttps://github.com/egregors/vldc-bot/issues\n"
         "\n\n"
 
