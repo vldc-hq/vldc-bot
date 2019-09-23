@@ -7,7 +7,7 @@ dev_build:
 	docker-compose -f docker-compose-dev.yml build
 
 dev_start:
-	docker-compose -f docker-compose-dev.yml up -d && docker-compose -f docker-compose-dev.yml logs -f --tail=10ls
+	docker-compose -f docker-compose-dev.yml up -d && docker-compose -f docker-compose-dev.yml logs -f --tail=10
 
 dev_stop:
 	docker-compose -f docker-compose-dev.yml stop
@@ -19,6 +19,10 @@ dev_test:
 	docker-compose -f docker-compose-dev.yml run --rm bot pytest
 
 # venv stuff
+dev:
+	python3 -m venv env
+	./env/bin/pip install -r requirements-dev.txt
+
 test:
 	export PYTHONPATH=./bot && pytest
 

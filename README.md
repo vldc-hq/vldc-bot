@@ -26,49 +26,58 @@ User should reply the Bot message in the next hour otherwise user would be black
 
 
 ## Usage
-Replace `BOT_TOKEN` with your bot token, `YOUR_CHAT_ID` with your chat id and run command:
+Setup your env vars in `example.env` and rename it to `.env`. Don't push `.env` to public repos!
 
 ```
-docker run --name vldc_bot -d --restart=always -e "TOKEN=BOT_TOKEN" -e "CHAT_ID=YOUR_CHAT_ID" egregors/vldc_bot
+docker-compose up -d && docker-compose logs -f --tail=10
 ```
 
 ## Build local image
 
 ```
-docker build -t vldcbot .
+docker-compose -f docker-compose-dev.yml build
 ```
 
 ## Developing
 Create test Telegram bot, and store TOKEN and chat id, you will need it for developing.
 
-Make VENV and install dev deps:
+### In VENV:
 
+Create `venv` and install dependencies
 ```
 make dev
 ```
 
 Run tests
-
 ```
 make test
 ```
 
 Run linters
-
 ```
 make lint
 ```
 
-Build docker image
-
-```
-make build
-```
-
-Start bot from VENV:
-
+Run bot (required vars should be in ENV)
 ```
 make start
+```
+
+### In Docker:
+
+Build local container
+```
+make dev_build
+```
+
+Run local dev bot (with mongo)
+```
+dev_start
+```
+
+Run tests
+```
+make dev_test
 ```
 
 # Contributing
