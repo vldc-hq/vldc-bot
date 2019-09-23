@@ -17,10 +17,10 @@ def add_version_handlers(upd: Updater, version_handlers_group: int):
 
 @run_async
 def version(update: Update, context: CallbackContext):
-    """ Reply current bot version """
+    """ Show current version of bot """
     logger.info(f"current ver.: {__version__}")
 
     chat_id = update.effective_chat.id
 
     context.bot.send_message(
-        chat_id, f"Current version: {__version__} 😽😽")
+        chat_id, f"😽 ver.: {__version__}")
