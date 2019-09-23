@@ -35,10 +35,9 @@ def _get_topic(t: str) -> Dict:
     }
 
 
-def _get_delta(t: datetime) -> str:
-    # todo: replace it with pretty natural time
+def _get_delta_days(t: datetime) -> str:
     d = datetime.now() - t
-    return f"{d.seconds}"
+    return f"{d.days}"
 
 
 def _update_topic(t: Dict):
@@ -78,8 +77,8 @@ def since_callback(update, context):
 
     current_topic = _get_topic(topic_title)
     update.message.reply_text(
-        f"«{current_topic['topic']}» was last discussed {_get_delta(current_topic['since_datetime'])} seconds ago. "
-        f"This is {current_topic['count']}th mention of this topic"
+        f"{_get_delta_days(current_topic['since_datetime'])} days without «{current_topic['topic']}»! "
+        f"Already was discussed {current_topic['count']} times\n",
     )
 
     _update_topic(current_topic)
@@ -92,9 +91,8 @@ def _get_all_topics(limit: int) -> List[Dict]:
 def since_list_callback(update, context):
     # todo: need make it msg more pretty
     ts = reduce(
-        lambda acc, el: acc + f"{el['topic']}: "
-                              f"was last discussed {_get_delta(el['since_datetime'])} secs ago "
-                              f"{el['count']} times \n",
+        lambda acc, el: acc + f"{_get_delta_days(el['since_datetime'])} days without «{el['topic']}»! "
+                              f"Already was discussed {el['count']} times\n",
         _get_all_topics(20),
         ""
     )
