@@ -60,7 +60,7 @@ def since_callback(update, context):
     since scheme:
         {
             topic: "topic title",
-            since: "datetime topic was last discussed",
+            since_datetime: "datetime topic was last discussed",
             count: "how many times we discuss it"
         }
 
@@ -68,6 +68,12 @@ def since_callback(update, context):
     topic_title = " ".join(context.args)
     if len(topic_title) == 0:
         logging.warning(f"topic is empty")
+        update.message.reply_text("topic is empty 😿")
+        return
+
+    if len(topic_title) > 64:
+        logging.warning(f"topic too long")
+        update.message.reply_text("topic too long 😿")
         return
 
     current_topic = _get_topic(topic_title)
