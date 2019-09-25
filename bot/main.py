@@ -31,14 +31,12 @@ def main():
 
         smile_mode = 2
         tower_mode = 3
-        since_mode = 4
 
     # init all skills
     add_core_handlers(updater, HandlersGroups.core)
     add_version_handlers(updater, HandlersGroups.version)
     add_smile_mode_handlers(updater, HandlersGroups.smile_mode)
     add_towel_mode_handlers(updater, HandlersGroups.tower_mode)
-    add_since_mode_handlers(updater, HandlersGroups.since_mode)
 
     # let's go dude
     updater.start_polling()
