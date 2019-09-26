@@ -7,7 +7,7 @@ from mode import Mode
 
 logger = logging.getLogger(__name__)
 
-mode = Mode(mode_name="smile_mode", default=False)
+mode = Mode(mode_name="smile_mode", default=False, pin_info_msg=True)
 
 
 @mode.add

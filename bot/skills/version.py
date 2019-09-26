@@ -9,7 +9,7 @@ from filters import admin_filter
 logger = logging.getLogger(__name__)
 
 
-def add_version_handlers(upd: Updater, version_handlers_group: int):
+def add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("version", version, filters=admin_filter), version_handlers_group)

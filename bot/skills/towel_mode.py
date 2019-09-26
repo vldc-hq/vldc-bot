@@ -15,7 +15,7 @@ MAGIC_NUMBER = "42"
 conf = get_config()
 
 
-def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
+def add_towel_mode(upd: Updater, towel_mode_handlers_group: int):
     logger.info("register towel-mode handlers")
     dp = upd.dispatcher
 
