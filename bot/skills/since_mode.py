@@ -8,6 +8,7 @@ from pymongo.collection import Collection
 from telegram.ext import Updater, CommandHandler
 
 from config import get_config
+from mode import Mode
 
 conf = get_config()
 
@@ -16,12 +17,15 @@ topics_coll: Collection = client.since_mode.topics
 
 logger = logging.getLogger(__name__)
 
+mode = Mode(mode_name="since_mode", default=False, pin_info_msg=False)
 
-def add_since_mode_handlers(upd: Updater, since_mode_handlers_group: int):
+
+@mode.add
+def add_since_mode(upd: Updater, handlers_group: int):
     logger.info("register since-mode handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("since", since_callback), since_mode_handlers_group)
-    dp.add_handler(CommandHandler("since_list", since_list_callback), since_mode_handlers_group)
+    dp.add_handler(CommandHandler("since", since_callback), handlers_group)
+    dp.add_handler(CommandHandler("since_list", since_list_callback), handlers_group)
 
 
 def _get_topic(t: str) -> Dict:
@@ -53,6 +57,7 @@ def _update_topic(t: Dict):
         topics_coll.insert_one(t)
 
 
+@mode.handler
 def since_callback(update, context):
     """  https://github.com/egregors/vldc-bot/issues/11
     todo: normal doc, not this trash
@@ -88,6 +93,7 @@ def _get_all_topics(limit: int) -> List[Dict]:
     return list(topics_coll.find({}).sort("-count").limit(limit))
 
 
+@mode.handler
 def since_list_callback(update, context):
     # todo: need make it msg more pretty
     ts = reduce(
