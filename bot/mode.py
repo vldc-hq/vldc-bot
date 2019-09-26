@@ -37,13 +37,13 @@ class Mode:
         def wrapper(upd: Updater, handlers_group: int):
             dp = upd.dispatcher
             dp.add_handler(CommandHandler(f"{self.name}_on", self.mode_on, filters=admin_filter), handlers_group)
-            dp.add_handler(CommandHandler(f"{self.name}_on", self.mode_off, filters=admin_filter), handlers_group)
+            dp.add_handler(CommandHandler(f"{self.name}_off", self.mode_off, filters=admin_filter), handlers_group)
             func(upd, handlers_group)
 
         return wrapper
 
-    @run_async
     def handler(self, func) -> Callable:
+        @run_async
         @wraps(func)
         def wrapper(update: Update, context: CallbackContext):
             mode_is_on = self._get_mode_state(context)
@@ -57,7 +57,7 @@ class Mode:
         logger.info(f"{self.name} switch to ON")
         mode = self._get_mode_state(context)
         if mode is OFF:
-            msg = context.bot.send_message(update.effective_chat.id, f"{self.name} is ON 🙊")
+            msg = context.bot.send_message(update.effective_chat.id, f"{self.name} is ON")
             if self.pin_info_msg is True:
                 context.bot.pin_chat_message(
                     update.effective_chat.id,
@@ -71,7 +71,7 @@ class Mode:
         logger.info(f"{self.name} switch to OFF")
         mode = self._get_mode_state(context)
         if mode is ON:
-            context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF 🙊")
+            context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
             if self.pin_info_msg is True:
                 context.bot.unpin_chat_message(update.effective_chat.id)
             self._set_mode(OFF, context)

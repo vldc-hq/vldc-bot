@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import MessageHandler, Filters, Updater, CallbackContext
 
-from decorators import Mode
+from mode import Mode
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +15,10 @@ def add_smile_mode(upd: Updater, handlers_group: int):
     """ Set up all handler for SmileMode """
     logger.info("register smile-mode handlers")
     dp = upd.dispatcher
-    dp.add_handler(MessageHandler(Filters.all, smile), handlers_group)
+    dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile), handlers_group)
 
 
-@mode.handler()
+@mode.handler
 def smile(update: Update, context: CallbackContext):
     """ Delete all messages except stickers or GIFs """
     logger.debug(f"remove msg: {update.effective_message}")
