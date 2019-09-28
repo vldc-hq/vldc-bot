@@ -5,6 +5,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 ![nyan](img/VLDC_nyan-tiger-in-anaglyph-glasses.png)
 
 ![docker_hub](https://img.shields.io/docker/cloud/build/egregors/vldc_bot)
+[![Maintainability](https://api.codeclimate.com/v1/badges/baa6fa307ee9f8411c5d/maintainability)](https://codeclimate.com/github/egregors/vldc-bot/maintainability)
 
 ## Skills
 
