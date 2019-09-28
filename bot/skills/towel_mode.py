@@ -15,20 +15,22 @@ MAGIC_NUMBER = "42"
 conf = get_config()
 
 
-def add_towel_mode_handlers(upd: Updater, towel_mode_handlers_group: int):
-    logger.info("register towel-mode handlers")
+# todo: make it by Mode decorator
+
+def add_towel_mode(upd: Updater, handlers_group: int):
+    logger.info("registering towel-mode handlers")
     dp = upd.dispatcher
 
     # catch all new users and drop the towel
     dp.add_handler(MessageHandler(
         Filters.status_update.new_chat_members, put_new_users_in_quarantine),
-        towel_mode_handlers_group
+        handlers_group
     )
 
     # remove messages from users from quarantine
     dp.add_handler(MessageHandler(
         Filters.group & ~Filters.status_update, check_for_reply),
-        towel_mode_handlers_group
+        handlers_group
     )
 
     # catch "I am not a bot" button press

@@ -8,6 +8,7 @@ from pymongo.collection import Collection
 from telegram.ext import Updater, CommandHandler
 
 from config import get_config
+from mode import Mode
 
 conf = get_config()
 
@@ -16,12 +17,15 @@ topics_coll: Collection = client.since_mode.topics
 
 logger = logging.getLogger(__name__)
 
+mode = Mode(mode_name="since_mode", default=False, pin_info_msg=False)
 
-def add_since_mode_handlers(upd: Updater, since_mode_handlers_group: int):
+
+@mode.add
+def add_since_mode(upd: Updater, handlers_group: int):
     logger.info("register since-mode handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("since", since_callback), since_mode_handlers_group)
-    dp.add_handler(CommandHandler("since_list", since_list_callback), since_mode_handlers_group)
+    dp.add_handler(CommandHandler("since", since_callback), handlers_group)
+    dp.add_handler(CommandHandler("since_list", since_list_callback), handlers_group)
 
 
 def _get_topic(t: str) -> Dict:

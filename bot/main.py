@@ -9,11 +9,11 @@ import logging
 from telegram.ext import Updater
 
 from config import get_config
-from skills.core import add_core_handlers
-from skills.since_mode import add_since_mode_handlers
-from skills.smile_mode import add_smile_mode_handlers
-from skills.towel_mode import add_towel_mode_handlers
-from skills.version import add_version_handlers
+from skills.core import add_core
+from skills.since_mode import add_since_mode
+from skills.smile_mode import add_smile_mode
+from skills.towel_mode import add_towel_mode
+from skills.version import add_version
 
 
 def main():
@@ -31,12 +31,16 @@ def main():
 
         smile_mode = 2
         tower_mode = 3
+        since_mode = 4
 
     # init all skills
-    add_core_handlers(updater, HandlersGroups.core)
-    add_version_handlers(updater, HandlersGroups.version)
-    add_smile_mode_handlers(updater, HandlersGroups.smile_mode)
-    add_towel_mode_handlers(updater, HandlersGroups.tower_mode)
+    add_core(updater, HandlersGroups.core)
+    add_version(updater, HandlersGroups.version)
+
+    # modes
+    add_smile_mode(updater, HandlersGroups.smile_mode)
+    add_since_mode(updater, HandlersGroups.since_mode)
+    add_towel_mode(updater, HandlersGroups.tower_mode)
 
     # let's go dude
     updater.start_polling()

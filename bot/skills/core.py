@@ -6,7 +6,7 @@ from telegram.ext import run_async, CommandHandler, Updater, CallbackContext
 logger = logging.getLogger(__name__)
 
 
-def add_core_handlers(upd: Updater, core_handlers_group: int):
+def add_core(upd: Updater, core_handlers_group: int):
     logger.info("register smile-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("start", start), core_handlers_group)
