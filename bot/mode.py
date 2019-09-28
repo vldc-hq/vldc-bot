@@ -47,6 +47,7 @@ class Mode:
     def _add_on_off_handlers(self):
         self._dp.add_handler(CommandHandler(f"{self.name}_on", self._mode_on, filters=admin_filter), self.handlers_gr)
         self._dp.add_handler(CommandHandler(f"{self.name}_off", self._mode_off, filters=admin_filter), self.handlers_gr)
+        self._dp.add_handler(CommandHandler(f"{self.name}", self._mode_status), self.handlers_gr)
 
     def _remove_mode_handlers(self):
         for h in self._mode_handlers:
@@ -79,6 +80,13 @@ class Mode:
             context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
             if self.pin_info_msg is True:
                 context.bot.unpin_chat_message(update.effective_chat.id)
+
+    @run_async
+    def _mode_status(self, update: Update, context: CallbackContext):
+        status = "ON" if self._get_mode_state(context) is ON else "OFF"
+        msg = f"{self.name} status is {status}"
+        logger.info(msg)
+        context.bot.send_message(update.effective_chat.id, msg)
 
     def add(self, func) -> Callable:
         @wraps(func)
