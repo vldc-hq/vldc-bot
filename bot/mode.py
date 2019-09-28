@@ -104,7 +104,6 @@ class Mode:
 
             if self.default is False:
                 self._remove_mode_handlers()
-
         return wrapper
 
 

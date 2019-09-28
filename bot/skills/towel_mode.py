@@ -5,7 +5,6 @@ from telegram import Update, User, Bot, InlineKeyboardButton, InlineKeyboardMark
 from telegram.ext import run_async, MessageHandler, Filters, Updater, CallbackContext, CallbackQueryHandler
 
 from config import get_config
-from mode import Mode
 
 logger = logging.getLogger(__name__)
 
@@ -15,24 +14,23 @@ MAGIC_NUMBER = "42"
 
 conf = get_config()
 
-# mode = Mode(mode_name="towel_mode", default=True, pin_info_msg=False)
-#
-#
-# @mode.add
-def add_towel_mode(upd: Updater, towel_mode_handlers_group: int):
+
+# todo: make it by Mode decorator
+
+def add_towel_mode(upd: Updater, handlers_group: int):
     logger.info("registering towel-mode handlers")
     dp = upd.dispatcher
 
     # catch all new users and drop the towel
     dp.add_handler(MessageHandler(
         Filters.status_update.new_chat_members, put_new_users_in_quarantine),
-        towel_mode_handlers_group
+        handlers_group
     )
 
     # remove messages from users from quarantine
     dp.add_handler(MessageHandler(
         Filters.group & ~Filters.status_update, check_for_reply),
-        towel_mode_handlers_group
+        handlers_group
     )
 
     # catch "I am not a bot" button press
