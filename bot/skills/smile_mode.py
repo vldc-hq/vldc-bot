@@ -13,12 +13,11 @@ mode = Mode(mode_name="smile_mode", default=False, pin_info_msg=True)
 @mode.add
 def add_smile_mode(upd: Updater, handlers_group: int):
     """ Set up all handler for SmileMode """
-    logger.info("register smile-mode handlers")
+    logger.info("registering smile-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile), handlers_group)
 
 
-@mode.handler
 def smile(update: Update, context: CallbackContext):
     """ Delete all messages except stickers or GIFs """
     logger.debug(f"remove msg: {update.effective_message}")

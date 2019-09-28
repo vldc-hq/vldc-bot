@@ -57,7 +57,6 @@ def _update_topic(t: Dict):
         topics_coll.insert_one(t)
 
 
-@mode.handler
 def since_callback(update, context):
     """  https://github.com/egregors/vldc-bot/issues/11
     todo: normal doc, not this trash
@@ -93,7 +92,6 @@ def _get_all_topics(limit: int) -> List[Dict]:
     return list(topics_coll.find({}).sort("-count").limit(limit))
 
 
-@mode.handler
 def since_list_callback(update, context):
     # todo: need make it msg more pretty
     ts = reduce(

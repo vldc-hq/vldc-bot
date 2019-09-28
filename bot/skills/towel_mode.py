@@ -5,6 +5,7 @@ from telegram import Update, User, Bot, InlineKeyboardButton, InlineKeyboardMark
 from telegram.ext import run_async, MessageHandler, Filters, Updater, CallbackContext, CallbackQueryHandler
 
 from config import get_config
+from mode import Mode
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,12 @@ MAGIC_NUMBER = "42"
 
 conf = get_config()
 
-
+# mode = Mode(mode_name="towel_mode", default=True, pin_info_msg=False)
+#
+#
+# @mode.add
 def add_towel_mode(upd: Updater, towel_mode_handlers_group: int):
-    logger.info("register towel-mode handlers")
+    logger.info("registering towel-mode handlers")
     dp = upd.dispatcher
 
     # catch all new users and drop the towel
