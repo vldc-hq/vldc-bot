@@ -14,6 +14,7 @@ from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
 from skills.still import add_still
 from skills.towel_mode import add_towel_mode
+from skills.uwu import add_uwu
 from skills.version import add_version
 
 
@@ -30,15 +31,17 @@ def main():
         core = 0
         version = 1
         still = 3
+        uwu = 4
 
-        smile_mode = 4
-        tower_mode = 5
-        since_mode = 6
+        smile_mode = 5
+        tower_mode = 6
+        since_mode = 7
 
     # init all skills
     add_core(updater, HandlersGroups.core)
     add_version(updater, HandlersGroups.version)
     add_still(updater, HandlersGroups.still)
+    add_uwu(updater, HandlersGroups.uwu)
 
     # modes
     add_smile_mode(updater, HandlersGroups.smile_mode)
