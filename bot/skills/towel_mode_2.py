@@ -160,3 +160,6 @@ def ban_user(context: CallbackContext):
         for user in db.find_all_users():
             if _is_time_gone(user):
                 context.bot.kick_chat_member(chat_id, user['_id'])
+                db.delete_user(user['_id'])
+                logger.debug(f"user banned: {user['_id']}")
+                logger.debug(f"user banned: {user['_id']}")
