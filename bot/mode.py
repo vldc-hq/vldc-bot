@@ -6,7 +6,6 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async, Dispatcher
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
-from db.mongo import get_db
 from filters import admin_filter
 
 logger = logging.getLogger(__name__)

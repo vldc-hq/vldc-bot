@@ -13,7 +13,7 @@ from skills.core import add_core
 from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
 from skills.still import add_still
-from skills.towel_mode_2 import add_towel_mode
+from skills.towel_mode import add_towel_mode
 from skills.uwu import add_uwu
 from skills.version import add_version
 
