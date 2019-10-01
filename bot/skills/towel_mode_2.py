@@ -1,14 +1,30 @@
 import logging
 from datetime import datetime
+from random import choice
 
 from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
 
 from db.mongo import get_db
 from mode import Mode
 
-MAGIC_NUMBER = 42
+MAGIC_NUMBER = "42"
+QUARANTINE_TIME = 10
+I_AM_BOT = [
+    "I am a bot!",
+    "Я бот!",
+    "私はボットです！",
+    "Ma olen bot!",
+    "मैं एक बॉट हूँ!",
+    "Je suis un bot!",
+    "Unë jam një bot!",
+    "أنا بوت!",
+    "אני בוט!",
+    "Sono un robot!",
+    "我是機器人！"
+]
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,19 +34,85 @@ class DB:
         self._coll: Collection = get_db(db_name).quarantine
 
     def add_user(self, user_id: str):
-        self._coll.insert_one({
-            "user_id": user_id,
+        return self._coll.insert_one({
+            "_id": user_id,
             "datetime": datetime.now()
-        })
+        }) if self.find_user(user_id) is None else None
 
     def find_user(self, user_id: str):
-        return self._coll.find_one({"user_id": user_id})
+        return self._coll.find_one({"_id": user_id})
+
+    def delete_user(self, user_id: str):
+        return self._coll.delete_one({"_id": user_id})
 
 
 db = DB("towel_mode")
 mode = Mode(mode_name="towel_mode", default=True)
 
 
+@mode.add
+def add_towel_mode(upd: Updater, handlers_group: int):
+    logger.info("registering towel-mode handlers")
+    dp = upd.dispatcher
+
+    # catch all new users and drop the towel
+    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, catch_new_user),
+                   handlers_group)
+
+    # check for reply or remove messages
+    dp.add_handler(MessageHandler(
+        Filters.group & ~Filters.status_update, catch_reply)
+    )
+
+    # "i am a bot button"
+    dp.add_handler(CallbackQueryHandler(i_am_a_bot_btn))
+
+
+@run_async
+def quarantine_user(user: User, chat_id: str, context: CallbackContext):
+    logger.info(f"put {user} in quarantine")
+    db.add_user(user.id)
+
+    markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]])
+    context.bot.send_message(
+        chat_id,
+        f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
+        "Просто ответь (replay) на это сообщение что-нибудь."
+        "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
+        f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
+        "Ничего личного, просто боты одолели.\n",
+        reply_markup=markup
+    )
+
+
+@run_async
+def catch_new_user(update: Update, context: CallbackContext):
+    for user in update.message.new_chat_members:
+        quarantine_user(user, update.effective_chat.id, context)
+
+
+@run_async
+def catch_reply(update: Update, context: CallbackContext):
+    # todo: cache it
+    user_id = update.effective_user.id
+    user = db.find_user(user_id)
+
+    if user is None:
+        return
+
+    if update.effective_message.reply_to_message is not None and \
+            update.effective_message.reply_to_message.from_user.id == context.bot.get_me().id:
+        db.delete_user(user_id=user['_id'])
+        update.message.reply_text("Welcome to VLDC!")
+    else:
+        context.bot.delete_message(
+            update.effective_chat.id,
+            update.effective_message.message_id, 10
+        )
+
+
+@run_async
 def quarantine_filter(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     # todo: cache it
@@ -43,42 +125,11 @@ def quarantine_filter(update: Update, context: CallbackContext):
         )
 
 
-@mode.add
-def add_towel_mode(upd: Updater, handlers_group: int):
-    logger.info("registering towel-mode handlers")
-    dp = upd.dispatcher
-
-    # catch all new users and drop the towel
-    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, catch_new_user),
-                   handlers_group)
-
-    # remove messages from users from quarantine
-    dp.add_handler(MessageHandler(
-        Filters.group & ~Filters.status_update, quarantine_filter),
-        handlers_group
-    )
-
-    # catch "I am a bot" button press and instantly ban!
-    # kick all not replied users (check every minutes)
-
-
-def quarantine_user(user: User, chat_id: str, context: CallbackContext):
-    logger.info(f"put {user} in quarantine")
-    db.add_user(user.id)
-
-    markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Я не бот!", callback_data=MAGIC_NUMBER)]])
-    context.bot.send_message(
-        chat_id,
-        # todo: rewrite test
-        f"{user.name} Нажми кнопку ниже, чтобы доказать, что ты не бот.\n"
-        "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
-        "А коли не сделаешь, через час выкину из чата.\n"
-        "Ничего личного, просто боты одолели.\n",
-        reply_markup=markup
-    )
-
-
-def catch_new_user(update: Update, context: CallbackContext):
-    for user in update.message.new_chat_members:
-        quarantine_user(user, update.effective_chat.id, context)
+@run_async
+def i_am_a_bot_btn(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    query = update.callback_query
+    if query.data == MAGIC_NUMBER:
+        context.bot.send_message(
+            chat_id, f"{user.name}, попробуй прочитать мое сообщение внимательней :3")
