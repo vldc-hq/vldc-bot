@@ -1,16 +1,18 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import choice
+from typing import Dict
 
 from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
 
+from config import get_config
 from db.mongo import get_db
 from mode import Mode
 
 MAGIC_NUMBER = "42"
-QUARANTINE_TIME = 10
+QUARANTINE_TIME = 60
 I_AM_BOT = [
     "I am a bot!",
     "Я бот!",
@@ -36,11 +38,14 @@ class DB:
     def add_user(self, user_id: str):
         return self._coll.insert_one({
             "_id": user_id,
-            "datetime": datetime.now()
+            "datetime": datetime.now() + timedelta(minutes=QUARANTINE_TIME)
         }) if self.find_user(user_id) is None else None
 
     def find_user(self, user_id: str):
         return self._coll.find_one({"_id": user_id})
+
+    def find_all_users(self):
+        return self._coll.find({})
 
     def delete_user(self, user_id: str):
         return self._coll.delete_one({"_id": user_id})
@@ -66,6 +71,11 @@ def add_towel_mode(upd: Updater, handlers_group: int):
 
     # "i am a bot button"
     dp.add_handler(CallbackQueryHandler(i_am_a_bot_btn))
+
+    # ban quarantine users, if time is gone
+    upd.job_queue.run_repeating(ban_user, interval=60, first=60, context={
+        "chat_id": get_config()["GROUP_CHAT_ID"]
+    })
 
 
 @run_async
@@ -133,3 +143,20 @@ def i_am_a_bot_btn(update: Update, context: CallbackContext):
     if query.data == MAGIC_NUMBER:
         context.bot.send_message(
             chat_id, f"{user.name}, попробуй прочитать мое сообщение внимательней :3")
+
+
+def _is_time_gone(user: Dict) -> bool:
+    return user["datetime"] < datetime.now()
+
+
+@run_async
+def ban_user(context: CallbackContext):
+    chat_id = context.bot.get_chat(chat_id=context.job.context["chat_id"]).id
+    logger.debug(f"get chat.id: {chat_id}")
+
+    # sorry about that
+    chat_data = context._dispatcher.chat_data.get(chat_id)  # noqa
+    if chat_data is not None:
+        for user in db.find_all_users():
+            if _is_time_gone(user):
+                context.bot.kick_chat_member(chat_id, user['_id'])
