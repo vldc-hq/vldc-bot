@@ -140,7 +140,8 @@ def i_am_a_bot_btn(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     user = update.effective_user
     query = update.callback_query
-    if query.data == MAGIC_NUMBER:
+
+    if query.data == MAGIC_NUMBER and db.find_user(user.id) is not None:
         context.bot.send_message(
             chat_id, f"{user.name}, попробуй прочитать мое сообщение внимательней :3")
 
