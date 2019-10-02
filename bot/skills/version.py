@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 
-__version__ = "0.3"
+__version__ = "0.4"
 from filters import admin_filter
 
 logger = logging.getLogger(__name__)
