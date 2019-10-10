@@ -88,7 +88,7 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
     context.bot.send_message(
         chat_id,
         f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
-        "Просто ответь (reply) на это сообщение что-нибудь."
+        "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято)."
         "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
         f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
         "Ничего личного, просто боты одолели.\n",
@@ -114,7 +114,7 @@ def catch_reply(update: Update, context: CallbackContext):
     if update.effective_message.reply_to_message is not None and \
             update.effective_message.reply_to_message.from_user.id == context.bot.get_me().id:
         db.delete_user(user_id=user['_id'])
-        update.message.reply_text("Welcome to VLDC!")
+        update.message.reply_text("Добро пожаловать в VLDC!")
     else:
         context.bot.delete_message(
             update.effective_chat.id,
