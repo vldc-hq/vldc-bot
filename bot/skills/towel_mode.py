@@ -5,7 +5,8 @@ from typing import Dict
 
 from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler, \
+    CommandHandler
 
 from config import get_config
 from db.mongo import get_db
@@ -38,6 +39,7 @@ class DB:
     def add_user(self, user_id: str):
         return self._coll.insert_one({
             "_id": user_id,
+            "rel_messages": [],
             "datetime": datetime.now() + timedelta(minutes=QUARANTINE_TIME)
         }) if self.find_user(user_id) is None else None
 
@@ -46,6 +48,9 @@ class DB:
 
     def find_all_users(self):
         return self._coll.find({})
+
+    def add_user_rel_message(self, user_id: str, message_id: str):
+        self._coll.update_one({"_id": user_id}, {"$addToSet": {"rel_messages": message_id}})
 
     def delete_user(self, user_id: str):
         return self._coll.delete_one({"_id": user_id})
@@ -66,11 +71,12 @@ def add_towel_mode(upd: Updater, handlers_group: int):
 
     # check for reply or remove messages
     dp.add_handler(MessageHandler(
-        Filters.group & ~Filters.status_update, catch_reply)
+        Filters.group & ~Filters.status_update, catch_reply),
+        handlers_group
     )
 
     # "i am a bot button"
-    dp.add_handler(CallbackQueryHandler(i_am_a_bot_btn))
+    dp.add_handler(CallbackQueryHandler(i_am_a_bot_btn), handlers_group)
 
     # ban quarantine users, if time is gone
     upd.job_queue.run_repeating(ban_user, interval=60, first=60, context={
@@ -85,7 +91,9 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
 
     markup = InlineKeyboardMarkup([
         [InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]])
-    context.bot.send_message(
+
+    # messages from `rel_message` will be deleted after greeting or ban
+    db.add_user_rel_message(user.id, context.bot.send_message(
         chat_id,
         f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
         "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
@@ -93,7 +101,7 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
         f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
         "Ничего личного, просто боты одолели.\n",
         reply_markup=markup
-    )
+    ).message_id)
 
 
 @run_async
@@ -107,13 +115,16 @@ def catch_reply(update: Update, context: CallbackContext):
     # todo: cache it
     user_id = update.effective_user.id
     user = db.find_user(user_id)
-
     if user is None:
         return
 
     if update.effective_message.reply_to_message is not None and \
             update.effective_message.reply_to_message.from_user.id == context.bot.get_me().id:
-        db.delete_user(user_id=user['_id'])
+
+        for msg_id in db.find_user(user_id=user["_id"])["rel_messages"]:
+            context.bot.delete_message(update.effective_chat.id, msg_id)
+
+        db.delete_user(user_id=user["_id"])
         update.message.reply_text("Добро пожаловать в VLDC!")
     else:
         context.bot.delete_message(
