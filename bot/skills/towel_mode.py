@@ -148,13 +148,15 @@ def quarantine_filter(update: Update, context: CallbackContext):
 
 @run_async
 def i_am_a_bot_btn(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
     user = update.effective_user
     query = update.callback_query
 
     if query.data == MAGIC_NUMBER and db.find_user(user.id) is not None:
-        context.bot.send_message(
-            chat_id, f"{user.name}, попробуй прочитать мое сообщение внимательней :3")
+        context.bot.answer_callback_query(
+            query.id,
+            f"{user.name}, попробуй прочитать сообщение от бота внимательней :3",
+            show_alert=True
+        )
 
 
 def _is_time_gone(user: Dict) -> bool:
