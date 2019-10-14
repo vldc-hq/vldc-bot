@@ -5,8 +5,7 @@ from typing import Dict
 
 from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler, \
-    CommandHandler
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
 
 from config import get_config
 from db.mongo import get_db
@@ -58,6 +57,15 @@ class DB:
 
 db = DB("towel_mode")
 mode = Mode(mode_name="towel_mode", default=True)
+
+
+def _is_time_gone(user: Dict) -> bool:
+    return user["datetime"] < datetime.now()
+
+
+def _delete_user_rel_messages(chat_id: int, user_id: str, context: CallbackContext):
+    for msg_id in db.find_user(user_id=user_id)["rel_messages"]:
+        context.bot.delete_message(chat_id, msg_id)
 
 
 @mode.add
@@ -121,10 +129,9 @@ def catch_reply(update: Update, context: CallbackContext):
     if update.effective_message.reply_to_message is not None and \
             update.effective_message.reply_to_message.from_user.id == context.bot.get_me().id:
 
-        for msg_id in db.find_user(user_id=user["_id"])["rel_messages"]:
-            context.bot.delete_message(update.effective_chat.id, msg_id)
-
+        _delete_user_rel_messages(update.effective_chat.id, user_id, context)
         db.delete_user(user_id=user["_id"])
+
         update.message.reply_text("Добро пожаловать в VLDC!")
     else:
         context.bot.delete_message(
@@ -151,16 +158,13 @@ def i_am_a_bot_btn(update: Update, context: CallbackContext):
     user = update.effective_user
     query = update.callback_query
 
-    if query.data == MAGIC_NUMBER and db.find_user(user.id) is not None:
-        context.bot.answer_callback_query(
-            query.id,
-            f"{user.name}, попробуй прочитать сообщение от бота внимательней :3",
-            show_alert=True
-        )
+    if query.data == MAGIC_NUMBER:
+        if db.find_user(user.id) is not None:
+            msg = f"{user.name}, попробуй прочитать сообщение от бота внимательней :3"
+        else:
+            msg = f"Любопытство сгубило кошку, {user.name} :3"
 
-
-def _is_time_gone(user: Dict) -> bool:
-    return user["datetime"] < datetime.now()
+        context.bot.answer_callback_query(query.id, msg, show_alert=True)
 
 
 @run_async
@@ -168,11 +172,11 @@ def ban_user(context: CallbackContext):
     chat_id = context.bot.get_chat(chat_id=context.job.context["chat_id"]).id
     logger.debug(f"get chat.id: {chat_id}")
 
-    # sorry about that
-    chat_data = context._dispatcher.chat_data.get(chat_id)  # noqa
-    if chat_data is not None:
-        for user in db.find_all_users():
-            if _is_time_gone(user):
-                context.bot.kick_chat_member(chat_id, user['_id'])
-                db.delete_user(user['_id'])
-                logger.debug(f"user banned: {user['_id']}")
+    for user in db.find_all_users():
+        if _is_time_gone(user):
+            context.bot.kick_chat_member(chat_id, user['_id'])
+
+            _delete_user_rel_messages(chat_id, user["_id"], context)
+            db.delete_user(user['_id'])
+
+            logger.info(f"user banned: {user}")
