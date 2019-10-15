@@ -10,6 +10,7 @@ from telegram.ext import Updater
 
 from config import get_config
 from skills.core import add_core
+from skills.mute import add_mute
 from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
 from skills.still import add_still
@@ -32,16 +33,18 @@ def main():
         version = 1
         still = 3
         uwu = 4
+        mute = 5
 
-        smile_mode = 5
-        tower_mode = 6
-        since_mode = 7
+        smile_mode = 6
+        tower_mode = 7
+        since_mode = 8
 
     # init all skills
     add_core(updater, HandlersGroups.core)
     add_version(updater, HandlersGroups.version)
     add_still(updater, HandlersGroups.still)
     add_uwu(updater, HandlersGroups.uwu)
+    add_mute(updater, HandlersGroups.mute)
 
     # modes
     add_smile_mode(updater, HandlersGroups.smile_mode)
