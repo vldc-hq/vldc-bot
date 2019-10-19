@@ -18,14 +18,16 @@ def add_mute(upd: Updater, handlers_group: int):
 
 def _get_minutes(args: List[str]):
     # cmd should be a reply for going to mute user message like "/mute 90"
+    if len(args) < 1:
+        raise Exception("mute cmd should be a reply for going to mute user message like '/mute 90', "
+                        "where '90' is duration of the mute")
     return int(args[0])
 
 
 def mute(update: Update, context: CallbackContext):
-    mute_minutes = _get_minutes(context.args)
-    until = datetime.now() + timedelta(minutes=mute_minutes)
-
     try:
+        mute_minutes = _get_minutes(context.args)
+        until = datetime.now() + timedelta(minutes=mute_minutes)
         user: User = update.message.reply_to_message.from_user
         logger.info(f"user: {user.full_name}[{user.id}] will be muted for {mute_minutes} min")
 
@@ -36,4 +38,4 @@ def mute(update: Update, context: CallbackContext):
                                          can_send_other_messages=False,
                                          can_send_messages=False)
     except Exception as err:
-        update.message.reply_text(f"Не вышло :\\ Я точно админ?  \n\n: {err}")
+        update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
