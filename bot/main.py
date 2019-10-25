@@ -7,16 +7,12 @@
 import logging
 
 from telegram.ext import Updater
+from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from config import get_config
-from skills.core import add_core
-from skills.since_mode import add_since_mode
-from skills.smile_mode import add_smile_mode
-from skills.still import add_still
-from skills.towel_mode import add_towel_mode
-from skills.uwu import add_uwu
-from skills.version import add_version
-from skills.askci import add_askci
+from skills import skills
+
+__version__ = "0.7"
 
 
 def main():
@@ -27,29 +23,8 @@ def main():
 
     updater = Updater(conf["TOKEN"], use_context=True)
 
-    # put each skill in the different group
-    class HandlersGroups:
-        core = 0
-        version = 1
-        still = 3
-        uwu = 4
-        askci = 8
-
-        smile_mode = 5
-        tower_mode = 6
-        since_mode = 7
-
-    # init all skills
-    add_core(updater, HandlersGroups.core)
-    add_version(updater, HandlersGroups.version)
-    add_still(updater, HandlersGroups.still)
-    add_uwu(updater, HandlersGroups.uwu)
-    add_askci(updater, HandlersGroups.askci)
-
-    # modes
-    add_smile_mode(updater, HandlersGroups.smile_mode)
-    add_since_mode(updater, HandlersGroups.since_mode)
-    add_towel_mode(updater, HandlersGroups.tower_mode)
+    for handler_group, skill in enumerate(skills, DEFAULT_GROUP + 1):
+        skill["add_handlers"](updater, handler_group)
 
     # let's go dude
     updater.start_polling()

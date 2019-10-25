@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-from typing import Callable, Optional, List
+from typing import Callable, List
 
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async, Dispatcher
@@ -14,15 +14,16 @@ ON, OFF = True, False
 
 
 class Mode:
+    _dp: Dispatcher
+    _mode_handlers: List[CommandHandler] = []
+
     def __init__(self, mode_name: str, default: bool = True, pin_info_msg: bool = False) -> None:
         self.name = mode_name
         self.default = default
         self.chat_data_key = self._gen_chat_data_key(mode_name)
         self.pin_info_msg = pin_info_msg
 
-        self._dp: Optional[Dispatcher] = None
         self.handlers_gr = DEFAULT_GROUP
-        self._mode_handlers: List[CommandHandler] = []
 
     @staticmethod
     def _gen_chat_data_key(mode_name: str) -> str:
