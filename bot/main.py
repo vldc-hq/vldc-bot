@@ -16,6 +16,7 @@ from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.uwu import add_uwu
 from skills.version import add_version
+from skills.askci import add_askci
 
 
 def main():
@@ -32,6 +33,7 @@ def main():
         version = 1
         still = 3
         uwu = 4
+        askci = 8
 
         smile_mode = 5
         tower_mode = 6
@@ -42,6 +44,7 @@ def main():
     add_version(updater, HandlersGroups.version)
     add_still(updater, HandlersGroups.still)
     add_uwu(updater, HandlersGroups.uwu)
+    add_askci(updater, HandlersGroups.askci)
 
     # modes
     add_smile_mode(updater, HandlersGroups.smile_mode)
