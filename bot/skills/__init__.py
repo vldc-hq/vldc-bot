@@ -11,6 +11,7 @@ from skills.smile_mode import add_smile_mode
 from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.uwu import add_uwu
+from skills.askci import add_askci
 
 __version__ = "0.7"
 from filters import admin_filter
@@ -51,6 +52,7 @@ skills: List[Dict] = [
     _make_skill(add_still, "😻 still", "do u remember it?"),
     _make_skill(add_uwu, "😾 uwu", " don't uwu!"),
     _make_skill(add_mute, "🤭 mute", " mute user for N minutes"),
+    _make_skill(add_askci, "😡 ask cpro", " ask cpro29a if CI is ready"),
 
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),

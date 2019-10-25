@@ -16,6 +16,7 @@ __version__ = "0.7"
 
 
 def main():
+    """ Start the Smile! 😊."""
     conf = get_config()
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         level=logging.DEBUG if conf["DEBUG"] else logging.INFO)
