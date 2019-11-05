@@ -5,6 +5,7 @@ from typing import Dict
 
 from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.error import BadRequest
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
 
 from config import get_config
@@ -65,7 +66,10 @@ def _is_time_gone(user: Dict) -> bool:
 
 def _delete_user_rel_messages(chat_id: int, user_id: str, context: CallbackContext):
     for msg_id in db.find_user(user_id=user_id)["rel_messages"]:
-        context.bot.delete_message(chat_id, msg_id)
+        try:
+            context.bot.delete_message(chat_id, msg_id)
+        except BadRequest as err:
+            logger.info(f"can't delete msg: {err}")
 
 
 @mode.add
