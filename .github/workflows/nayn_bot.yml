@@ -37,5 +37,5 @@ jobs:
         DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
       run: |
-        curl -s --insecure https://$DEPLOY_HOST/deploy/bot?secret=$DEPLOY_KEY
+        curl --insecure https://$DEPLOY_HOST/deploy/bot?secret=$DEPLOY_KEY
 
