@@ -12,8 +12,6 @@ from telegram.ext.dispatcher import DEFAULT_GROUP
 from config import get_config
 from skills import skills
 
-__version__ = "0.7"
-
 
 def main():
     """ Start the Smile! 😊."""

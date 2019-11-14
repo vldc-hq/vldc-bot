@@ -13,7 +13,7 @@ from skills.towel_mode import add_towel_mode
 from skills.uwu import add_uwu
 from skills.askci import add_askci
 
-__version__ = "0.8"
+__version__ = "0.8.1"
 from filters import admin_filter
 
 logger = logging.getLogger(__name__)
