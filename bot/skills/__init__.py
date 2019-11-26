@@ -6,13 +6,14 @@ from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 
 from skills.core import add_core
 from skills.mute import add_mute
+from skills.roll import add_roll
 from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
 from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.uwu import add_uwu
 
-__version__ = "0.8.3"
+__version__ = "0.8.5"
 from filters import admin_filter
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ skills: List[Dict] = [
     _make_skill(add_still, "😻 still", "do u remember it?"),
     _make_skill(add_uwu, "😾 uwu", " don't uwu!"),
     _make_skill(add_mute, "🤭 mute", " mute user for N minutes"),
+    _make_skill(add_roll, "🔫 roll", " life is so cruel... isn't it?"),
 
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
