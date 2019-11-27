@@ -5,6 +5,7 @@ from threading import Lock
 
 from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
+from typing import List, NewType
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,8 @@ def add_roll(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("roll", roll), handlers_group)
 
 
-barrel = []
+Bullet = NewType("Bullet", bool)
+barrel: List[Bullet] = []
 barrel_lock = Lock()
 
 
@@ -27,7 +29,7 @@ def _reload():
     global barrel_lock
 
     barrel_lock.acquire()
-    empty, bullet = False, True
+    empty, bullet = Bullet(False), Bullet(True)
     barrel = [empty] * NUM_BULLETS
     lucky_number = randint(0, NUM_BULLETS - 1)
     barrel[lucky_number] = bullet
