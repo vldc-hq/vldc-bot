@@ -1,6 +1,11 @@
 name: Nyan Bot
 
-on: push
+on: 
+  push:
+    branches:
+      - master
+    tags:
+      - v*
 
 jobs:
   build:
@@ -40,6 +45,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         registry: docker.pkg.github.com
         dockerfile: compose/prod/Dockerfile
+        tag_names: true
     - name: Trigger deploy
       env:
         DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
