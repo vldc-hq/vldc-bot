@@ -24,7 +24,7 @@ barrel: List[Bullet] = []
 barrel_lock = Lock()
 
 
-def _reload():
+def _reload(chat_id: str, context: CallbackContext):
     global barrel
     global barrel_lock
 
@@ -34,19 +34,20 @@ def _reload():
     lucky_number = randint(0, NUM_BULLETS - 1)
     barrel[lucky_number] = bullet
     barrel_lock.release()
+    context.bot.send_message(chat_id, "reloading 🔫")
 
 
-def _shot():
+def _shot(chat_id: str, context: CallbackContext):
     global barrel
     global barrel_lock
     barrel_lock.acquire()
 
     if len(barrel) == 0:
-        _reload()
+        _reload(chat_id, context)
 
     fate = barrel.pop(-1)
     if fate:
-        _reload()
+        _reload(chat_id, context)
     barrel_lock.release()
     return fate
 
@@ -54,7 +55,7 @@ def _shot():
 @run_async
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
-    is_miss = _shot()
+    is_miss = _shot(update.effective_chat.id, context)
     logger.info(f"user: {user.full_name}[{user.id}] is rolling and... "
                 f"{'miss!' if is_miss else 'he is dead!'}")
     if is_miss:
