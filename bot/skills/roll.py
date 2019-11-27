@@ -29,7 +29,8 @@ def _reload():
     barrel_lock.acquire()
     empty, bullet = False, True
     barrel = [empty] * NUM_BULLETS
-    barrel[randint(0, NUM_BULLETS - 1)] = bullet
+    lucky_number = randint(0, NUM_BULLETS - 1)
+    barrel[lucky_number] = bullet
     barrel_lock.release()
 
 
@@ -41,8 +42,9 @@ def _shot():
     if len(barrel) == 0:
         _reload()
 
-    lucky_number = randint(0, len(barrel) - 1)
-    fate = barrel.pop(lucky_number)
+    fate = barrel.pop(-1)
+    if fate:
+        _reload()
     barrel_lock.release()
     return fate
 
