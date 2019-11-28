@@ -3,6 +3,7 @@ from datetime import datetime
 
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, run_async, CallbackContext
+from telegram.error import BadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,11 @@ def to_2k_year(year: int):
 def still(update: Update, context: CallbackContext):
     text = " ".join(context.args)
     chat_id = update.effective_chat.id
+    try:
+        context.bot.delete_message(chat_id, update.effective_message.message_id)
+    except BadRequest as err:
+        logger.info(f"can't delete msg: {err}")
+
     if text:
         context.bot.delete_message(chat_id, update.effective_message.message_id)
         context.bot.send_message(chat_id, f"Вот бы сейчас {text} в {to_2k_year(datetime.now().year)} лул 😹😹😹")
