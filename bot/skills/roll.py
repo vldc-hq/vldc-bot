@@ -16,7 +16,6 @@ MUTE_MINUTES = 8 * 60  # 8h
 NUM_BULLETS = 6
 
 
-
 def add_roll(upd: Updater, handlers_group: int):
     logger.info("registering roll handlers")
     dp = upd.dispatcher
@@ -69,7 +68,6 @@ def _shot(chat_id: str, context: CallbackContext) -> Tuple[bool, int]:
     return (fate, shots_remained)
 
 
-
 @run_async
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
@@ -81,8 +79,8 @@ def roll(update: Update, context: CallbackContext):
     if is_shot:
         mute_min = get_mute_minutes(shots_remained)
         until = datetime.now() + timedelta(minutes=mute_min)
-        update.message.reply_text(
-            f"💥 boom! headshot 😵 [{mute_min//60}h mute]")
+        context.bot.send_message(update.effective_chat.id,
+                                 f"💥 boom! {user.full_name} 😵 [{mute_min//60}h mute]")
 
         try:
             context.bot.restrict_chat_member(update.effective_chat.id, user.id, until,
@@ -93,4 +91,5 @@ def roll(update: Update, context: CallbackContext):
         except Exception as err:
             update.message.reply_text(f"😿 не вышло, потому что: {err}")
     else:
-        update.message.reply_text(get_miss_string(shots_remained))
+        context.bot.send_message(update.effective_chat.id,
+                                 f"{user.full_name}: {get_miss_string(shots_remained)}")
