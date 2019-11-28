@@ -33,5 +33,4 @@ def still(update: Update, context: CallbackContext):
         logger.info(f"can't delete msg: {err}")
 
     if text:
-        context.bot.delete_message(chat_id, update.effective_message.message_id)
         context.bot.send_message(chat_id, f"Вот бы сейчас {text} в {to_2k_year(datetime.now().year)} лул 😹😹😹")
