@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime, timedelta
+
 from random import choice, randint, seed
 from threading import Lock
+
 
 from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
@@ -9,8 +11,10 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
+
 MUTE_MINUTES = 8 * 60  # 8h
 NUM_BULLETS = 6
+
 
 
 def add_roll(upd: Updater, handlers_group: int):
@@ -65,9 +69,11 @@ def _shot(chat_id: str, context: CallbackContext) -> Tuple[bool, int]:
     return (fate, shots_remained)
 
 
+
 @run_async
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
+
     is_shot, shots_remained = _shot(update.effective_chat.id, context)
     logger.info(f"user: {user.full_name}[{user.id}] is rolling and... "
                 f"{'he is dead!' if is_shot else 'miss!'}")
@@ -77,6 +83,7 @@ def roll(update: Update, context: CallbackContext):
         until = datetime.now() + timedelta(minutes=mute_min)
         update.message.reply_text(
             f"💥 boom! headshot 😵 [{mute_min//60}h mute]")
+
         try:
             context.bot.restrict_chat_member(update.effective_chat.id, user.id, until,
                                              can_add_web_page_previews=False,

@@ -107,3 +107,6 @@ venv.bak/
 .vscode
 .history
 .env
+
+# idea
+.idea/
