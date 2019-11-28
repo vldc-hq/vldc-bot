@@ -39,7 +39,7 @@ def get_miss_string(shots_remain: int) -> str:
     chances = ["?"] * shots_remain
     barrel_str = ",".join(misses + chances)
     h = get_mute_minutes(shots_remain - 1) // 60
-    return f"🔫 MISS! {S[NUM_BULLETS - shots_remain-1]}. Current barrel: ({barrel_str}), {h}h"
+    return f"MISS! {S[NUM_BULLETS - shots_remain-1]}🔫. Current barrel: ({barrel_str}), {h}h"
 
 
 def get_mute_minutes(shots_remain: int) -> int:
