@@ -9,7 +9,7 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
-MUTE_MINUTES = 1440  # 24h
+MUTE_MINUTES = 8 * 60  # 8h
 NUM_BULLETS = 6
 
 
@@ -38,11 +38,12 @@ def get_miss_string(shots_remain: int) -> str:
     misses = ["x"] * (NUM_BULLETS - shots_remain)
     chances = ["?"] * shots_remain
     barrel_str = ",".join(misses + chances)
-    return f"🔫 MISS! {S[NUM_BULLETS - shots_remain-1]}. Current barrel: ({barrel_str})"
+    h = get_mute_minutes(shots_remain - 1) // 60
+    return f"🔫 MISS! {S[NUM_BULLETS - shots_remain-1]}. Current barrel: ({barrel_str}), {h}h"
 
 
 def get_mute_minutes(shots_remain: int) -> int:
-    return 1440 * (NUM_BULLETS - shots_remain)
+    return MUTE_MINUTES * (NUM_BULLETS - shots_remain)
 
 
 def _shot(chat_id: str, context: CallbackContext) -> Tuple[bool, int]:
@@ -70,6 +71,7 @@ def roll(update: Update, context: CallbackContext):
     is_shot, shots_remained = _shot(update.effective_chat.id, context)
     logger.info(f"user: {user.full_name}[{user.id}] is rolling and... "
                 f"{'he is dead!' if is_shot else 'miss!'}")
+    mute_min = get_mute_minutes(shots_remained)
     if is_shot:
         mute_min = get_mute_minutes(shots_remained)
         until = datetime.now() + timedelta(minutes=mute_min)
