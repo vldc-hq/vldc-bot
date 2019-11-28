@@ -5,7 +5,7 @@ from threading import Lock
 
 from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
-from typing import List
+from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -33,18 +33,19 @@ def _reload(chat_id: str, context: CallbackContext) -> List[bool]:
     return barrel
 
 
-def get_miss_string(context: CallbackContext) -> str:
+def get_miss_string(shots_remain: int) -> str:
     S = ['😕', '😟', '😥', '😫', '😱']
-    barrel = context.chat_data.get("barrel")
-    if barrel is None:
-        return "[?,?,?,?,?,?]"
-    misses = ["x"] * (NUM_BULLETS - len(barrel))
-    chances = ["?"] * len(barrel)
+    misses = ["x"] * (NUM_BULLETS - shots_remain)
+    chances = ["?"] * shots_remain
     barrel_str = ",".join(misses + chances)
-    return f"🔫 MISS! {S[NUM_BULLETS - len(barrel)-1]}. Current barrel: ({barrel_str})"
+    return f"🔫 MISS! {S[NUM_BULLETS - shots_remain-1]}. Current barrel: ({barrel_str})"
 
 
-def _shot(chat_id: str, context: CallbackContext):
+def get_mute_minutes(shots_remain: int) -> int:
+    return 1440 * (NUM_BULLETS - shots_remain)
+
+
+def _shot(chat_id: str, context: CallbackContext) -> Tuple[bool, int]:
     global barrel_lock
     barrel_lock.acquire()
 
@@ -56,22 +57,24 @@ def _shot(chat_id: str, context: CallbackContext):
 
     fate = barrel.pop()
     context.chat_data["barrel"] = barrel
+    shots_remained = len(barrel)  # number before reload
     if fate:
         _reload(chat_id, context)
     barrel_lock.release()
-    return fate
+    return (fate, shots_remained)
 
 
 @run_async
 def roll(update: Update, context: CallbackContext):
-
     user: User = update.effective_user
-    is_shot = _shot(update.effective_chat.id, context)
+    is_shot, shots_remained = _shot(update.effective_chat.id, context)
     logger.info(f"user: {user.full_name}[{user.id}] is rolling and... "
                 f"{'he is dead!' if is_shot else 'miss!'}")
     if is_shot:
-        until = datetime.now() + timedelta(minutes=MUTE_MINUTES)
-        update.message.reply_text(f"💥 boom! headshot 😵 [24h mute]")
+        mute_min = get_mute_minutes(shots_remained)
+        until = datetime.now() + timedelta(minutes=mute_min)
+        update.message.reply_text(
+            f"💥 boom! headshot 😵 [{mute_min//60}h mute]")
         try:
             context.bot.restrict_chat_member(update.effective_chat.id, user.id, until,
                                              can_add_web_page_previews=False,
@@ -81,4 +84,4 @@ def roll(update: Update, context: CallbackContext):
         except Exception as err:
             update.message.reply_text(f"😿 не вышло, потому что: {err}")
     else:
-        update.message.reply_text(get_miss_string(context))
+        update.message.reply_text(get_miss_string(shots_remained))
