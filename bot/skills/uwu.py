@@ -25,4 +25,4 @@ def uwu(update: Update, context: CallbackContext):
 
     chat_id = update.effective_chat.id
     fairly_random_pic = random.choice(well_prepared_anti_UwU_imgs)
-    context.bot.send_photo(chat_id, photo=fairly_random_pic, "don't uwu! 😡")
+    context.bot.send_photo(chat_id, photo=fairly_random_pic, caption="don't uwu! 😡")
