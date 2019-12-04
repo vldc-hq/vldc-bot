@@ -1,5 +1,5 @@
 from functools import wraps
-from telegram import Message
+from telegram import Message, Bot
 from telegram.ext import CallbackContext
 
 import logging
@@ -7,20 +7,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _hook_function(obj, func_name, callback_before=None, callback_after=None):
-    logger.debug(f"Hooking {func_name}")
-    orig_fn = getattr(obj, func_name)
+def _hook_message(bot: Bot, callback_after=lambda x: x):
+    orig_fn = getattr(bot, '_message')
 
     def wrapped_fn(*args, **kwargs):
-        callback_before(*args, **kwargs)
         result = orig_fn(*args, **kwargs)
-        callback_after(result, *args, **kwargs)
-        return result
-    setattr(obj, func_name, wrapped_fn)
+        callback_after(result)
+    setattr(bot, '_message', wrapped_fn)
 
 
-def _remove_Message_after_timer(message: Message, context: CallbackContext,
-                                seconds: int):
+def _remove_message_after(message: Message, context: CallbackContext,
+                          seconds: int):
     logger.debug(f'''Scheduling cleanup of message {message.message_id}
                  in {seconds} seconds''')
     context.job_queue.run_once(lambda _: message.delete(), seconds,
@@ -37,11 +34,8 @@ def cleanup(seconds: int):
         def cleanup_wrapper(*args, **kwargs):
             for arg in args:
                 if isinstance(arg, CallbackContext):
-                    _hook_function(arg.bot, '_message',
-                                   lambda *args, **kwargs: 1,
-                                   lambda msg, *args, **kwargs:
-                                   (_remove_Message_after_timer(msg, arg,
-                                    seconds)))
+                    _hook_message(arg.bot, lambda msg:
+                                  _remove_message_after(msg, arg, seconds))
 
             return func(*args, **kwargs)
         return cleanup_wrapper
