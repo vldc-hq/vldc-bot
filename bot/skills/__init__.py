@@ -4,7 +4,7 @@ from typing import List, Dict, Callable
 from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 
-from mode import cleanup
+from filters import admin_filter
 from skills.core import add_core
 from skills.mute import add_mute
 from skills.roll import add_roll
@@ -15,9 +15,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-from filters import admin_filter
-
-__version__ = "0.9"
+__version__ = "0.9.1"
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +27,6 @@ def _add_version(upd: Updater, version_handlers_group: int):
 
 
 @run_async
-@cleanup(seconds=2)
 # https://github.com/egregors/vldc-bot/issues/80
 def _version(update: Update, context: CallbackContext):
     """ Show current version of bot """
