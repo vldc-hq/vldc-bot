@@ -122,12 +122,9 @@ def _hook_message(bot: Bot, callback_after=lambda x: x):
     return orig_fn
 
 
-def _remove_message_after(message: Message, context: CallbackContext,
-                          seconds: int):
-    logger.debug(f'''Scheduling cleanup of message {message.message_id}
-                 in {seconds} seconds''')
-    context.job_queue.run_once(lambda _: message.delete(), seconds,
-                               context=message.chat_id)
+def _remove_message_after(message: Message, context: CallbackContext, seconds: int):
+    logger.debug(f"Scheduling cleanup of message {message.message_id} in {seconds} seconds")
+    context.job_queue.run_once(lambda _: message.delete(), seconds, context=message.chat_id)
 
 
 def cleanup(seconds: int):
@@ -144,15 +141,14 @@ def cleanup(seconds: int):
             for arg in args:
                 if isinstance(arg, CallbackContext):
                     bot = arg.bot
-                    orig_fn = _hook_message(arg.bot, lambda msg:
-                                            _remove_message_after(
-                                                msg, arg, seconds))
+                    orig_fn = _hook_message(arg.bot, lambda msg: _remove_message_after(msg, arg, seconds))
             result = func(*args, **kwargs)
             setattr(bot, '_message', orig_fn)
             return result
+
         return cleanup_wrapper
 
     return cleanup_decorator
 
 
-__all__ = ["Mode"]
+__all__ = ["Mode", "cleanup"]

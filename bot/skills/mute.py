@@ -24,15 +24,12 @@ def _get_minutes(args: List[str]):
     return int(args[0])
 
 
-def mute_user_for_time(update: Update, context: CallbackContext,
-                       user: User, minutes: int):
+def mute_user_for_time(update: Update, context: CallbackContext, user: User, minutes: int):
     try:
         until = datetime.now() + timedelta(minutes=minutes)
-        logger.info(f"user: {user.full_name}[{user.id}] will be"
-                    "muted for {minutes} min")
+        logger.info(f"user: {user.full_name}[{user.id}] will be muted for {minutes} min")
 
-        update.message.reply_text(f"Таймаут для {user.full_name}"
-                                  "на {minutes} минут")
+        update.message.reply_text(f"Таймаут для {user.full_name} на {minutes} минут")
         context.bot.restrict_chat_member(update.effective_chat.id, user.id,
                                          until,
                                          can_add_web_page_previews=False,
