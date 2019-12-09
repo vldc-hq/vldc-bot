@@ -127,7 +127,7 @@ def _remove_message_after(message: Message, context: CallbackContext, seconds: i
     context.job_queue.run_once(lambda _: message.delete(), seconds, context=message.chat_id)
 
 
-def cleanup(seconds: int):
+def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
     """ Remove messages emitted by decorated function """
     logger.debug(f"Removing message from bot in {seconds}")
 
@@ -137,11 +137,32 @@ def cleanup(seconds: int):
         @wraps(func)
         def cleanup_wrapper(*args, **kwargs):
             orig_fn = None
-            bot = None
+
+            bot: Bot = None
+            context: CallbackContext = None
+            update: Update = None
+
+            message: Message = None
+
             for arg in args:
                 if isinstance(arg, CallbackContext):
-                    bot = arg.bot
-                    orig_fn = _hook_message(arg.bot, lambda msg: _remove_message_after(msg, arg, seconds))
+                    context = arg
+                    bot = context.bot
+
+                    orig_fn = _hook_message(bot, lambda msg: (
+                        _remove_message_after(msg, context, seconds)
+                    ))
+                if isinstance(arg, Update):
+                    update = arg
+                    message = update.message
+
+            if bot and update:
+                if remove_cmd:
+                    _remove_message_after(message, context, seconds)
+                if remove_reply and message.reply_to_message:
+                    reply: Message = message.reply_to_message
+                    _remove_message_after(reply, context, seconds)
+
             result = func(*args, **kwargs)
             setattr(bot, '_message', orig_fn)
             return result
