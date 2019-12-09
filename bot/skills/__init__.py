@@ -17,7 +17,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.9.3"
+__version__ = "0.10"
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def _add_version(upd: Updater, version_handlers_group: int):
 
 
 @run_async
-@cleanup(10)
+@cleanup(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
     """ Show current version of bot """
     logger.info(f"current ver.: {__version__}")
@@ -57,7 +57,7 @@ skills: List[Dict] = [
     _make_skill(add_uwu, "😾 uwu", " don't uwu!"),
     _make_skill(add_mute, "🤭 mute", " mute user for N minutes"),
     _make_skill(add_roll, "🔫 roll", " life is so cruel... isn't it?"),
-    _make_skill(add_banme, "🔫 banme", " commit sudoku"),
+    _make_skill(add_banme, "⚔️ banme", " commit sudoku"),
     _make_skill(add_tree, "🎄 tree", " advent of code time!"),
 
     # modes

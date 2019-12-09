@@ -7,7 +7,7 @@ from skills.mute import mute_user_for_time
 
 from random import randint
 
-MUTE_MINUTES = 24 * 60  # 8h
+MUTE_MINUTES = 24 * 60  # 24h
 MIN_MULT = 1
 MAX_MULT = 7
 

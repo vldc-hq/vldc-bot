@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 from telegram import Update, Bot, Message
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async, Dispatcher
@@ -132,17 +132,18 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
     logger.debug(f"Removing message from bot in {seconds}")
 
     def cleanup_decorator(func):
-        logger.debug(func)
+        logger.debug(f"cleanup_decorator func: {func}")
 
         @wraps(func)
         def cleanup_wrapper(*args, **kwargs):
             orig_fn = None
 
-            bot: Bot = None
-            context: CallbackContext = None
-            update: Update = None
-
-            message: Message = None
+            # todo:
+            #  don't sure about that 😕😕😕
+            bot: Optional[Bot] = None
+            context: Optional[CallbackContext] = None
+            update: Optional[Update] = None
+            message: Optional[Message] = None
 
             for arg in args:
                 if isinstance(arg, CallbackContext):
@@ -159,8 +160,11 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
             if bot and update:
                 if remove_cmd:
                     _remove_message_after(message, context, seconds)
-                if remove_reply and message.reply_to_message:
-                    reply: Message = message.reply_to_message
+                # todo:
+                #  should be refactored someday:
+                #  > error: Item "None" of "Optional[Any]" has no attribute "reply_to_message"
+                if remove_reply and message.reply_to_message:  # type: ignore
+                    reply: Message = message.reply_to_message  # type: ignore
                     _remove_message_after(reply, context, seconds)
 
             result = func(*args, **kwargs)
