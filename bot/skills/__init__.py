@@ -8,7 +8,7 @@ from filters import admin_filter
 from skills.core import add_core
 from skills.mute import add_mute
 from skills.roll import add_roll
-from skills.banme import add_banme
+# from skills.banme import add_banme
 from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
 from skills.still import add_still
@@ -16,7 +16,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ skills: List[Dict] = [
     _make_skill(add_uwu, "😾 uwu", " don't uwu!"),
     _make_skill(add_mute, "🤭 mute", " mute user for N minutes"),
     _make_skill(add_roll, "🔫 roll", " life is so cruel... isn't it?"),
-    _make_skill(add_banme, "🔫 banme", " commit sudoku"),
+    # _make_skill(add_banme, "🔫 banme", " commit sudoku"),
     _make_skill(add_tree, "🎄 tree", " advent of code time!"),
 
     # modes
