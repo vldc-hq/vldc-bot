@@ -29,7 +29,7 @@ def _add_version(upd: Updater, version_handlers_group: int):
 
 
 @run_async
-@cleanup(2)
+@cleanup(10)
 def _version(update: Update, context: CallbackContext):
     """ Show current version of bot """
     logger.info(f"current ver.: {__version__}")
