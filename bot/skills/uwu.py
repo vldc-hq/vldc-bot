@@ -18,9 +18,9 @@ def add_uwu(upd: Updater, handlers_group: int):
 @run_async
 def uwu(update: Update, context: CallbackContext):
     well_prepared_anti_UwU_imgs = [
-        'AgADAgADiqwxG2pVAAFJ2TIJLoDENOSxBcEOAAQBAAMCAANtAAO1lQEAARYE',
-        'AgADAgADiawxG2pVAAFJU823IoEQJvfOpcIPAAQBAAMCAANtAAOpKwMAARYE',
-        'AgADAgADiqwxG2pVAAFJ2TIJLoDENOSxBcEOAAQBAAMCAANtAAO1lQEAARYE'
+        'AgADAgADKqwxG9gDCEk48KXBcoIEgkpOyw4ABAEAAwIAA20AA6DsAAIWBA',
+        'AgADAgADQKwxG2TDCElWC03ITmP10r5fyw4ABAEAAwIAA20AA73rAAIWBA',
+        'AgADAgADQawxG2TDCEm-OKVgXYSOoxUawQ4ABAEAAwIAA20AA-aVAQABFgQ'
     ]
     chat_id = update.effective_chat.id
     message_id = update.message.message_id

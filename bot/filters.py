@@ -19,8 +19,8 @@ class UwuFilter(BaseFilter):
     def filter(self, message) -> bool:
         if message.text:
             return bool(re.search(r'u(w+|v+)u', message.text, re.IGNORECASE))
-        else:
-            return False
+
+        return False
 
 
 admin_filter = AdminFilter()
