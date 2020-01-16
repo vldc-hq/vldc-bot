@@ -31,6 +31,6 @@ lint:
 	flake8 ./bot --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 	mypy --config-file mypy.ini ./bot
 
-# start bot from venv (TOKEN and CHAT_ID should by in ENV)
+# start bot from venv (TOKEN and CHAT_ID should be in ENV)
 start:
 	export DEBUG=True && ./env/bin/python bot.py
