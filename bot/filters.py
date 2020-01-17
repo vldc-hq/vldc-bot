@@ -18,7 +18,7 @@ class UwuFilter(BaseFilter):
 
     def filter(self, message) -> bool:
         if message.text:
-            return bool(re.search(r'u(w+|v+)u', message.text, re.IGNORECASE))
+            return bool(re.search(r'\bu[wv]+u\b', message.text, re.IGNORECASE))
 
         return False
 
