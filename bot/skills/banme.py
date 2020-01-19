@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext
@@ -14,8 +15,8 @@ MAX_MULT = 7
 logger = logging.getLogger(__name__)
 
 
-def get_mute_minutes() -> int:
-    return randint(MIN_MULT, MAX_MULT) * MUTE_MINUTES
+def get_mute_minutes() -> timedelta:
+    return timedelta(minutes=randint(MIN_MULT, MAX_MULT) * MUTE_MINUTES)
 
 
 def add_banme(upd: Updater, handlers_group: int):

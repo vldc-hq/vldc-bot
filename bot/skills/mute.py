@@ -6,6 +6,7 @@ from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 from filters import admin_filter
+from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +22,15 @@ def _get_minutes(args: List[str]):
     if len(args) < 1:
         raise Exception("mute cmd should be a reply for going to mute user message like '/mute 90', "
                         "where '90' is duration of the mute")
-    return int(args[0])
+    return get_duration(args[0])
 
 
-def mute_user_for_time(update: Update, context: CallbackContext, user: User, minutes: int):
+def mute_user_for_time(update: Update, context: CallbackContext, user: User, mute_duration: timedelta):
     try:
-        until = datetime.now() + timedelta(minutes=minutes)
-        logger.info(f"user: {user.full_name}[{user.id}] will be muted for {minutes} min")
+        until = datetime.now() + mute_duration
+        logger.info(f"user: {user.full_name}[{user.id}] will be muted for {mute_duration}")
 
-        update.message.reply_text(f"Таймаут для {user.full_name} на {minutes} минут")
+        update.message.reply_text(f"Таймаут для {user.full_name} на {mute_duration}")
         context.bot.restrict_chat_member(update.effective_chat.id, user.id,
                                          until,
                                          can_add_web_page_previews=False,
