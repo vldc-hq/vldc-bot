@@ -16,8 +16,9 @@ from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
+from skills.coc import add_coc
 
-__version__ = "0.11"
+__version__ = "0.12"
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,8 @@ logger = logging.getLogger(__name__)
 def _add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("version", _version, filters=admin_filter), version_handlers_group)
+    dp.add_handler(CommandHandler("version", _version,
+                                  filters=admin_filter), version_handlers_group)
 
 
 @run_async
@@ -59,9 +61,11 @@ skills: List[Dict] = [
     _make_skill(add_roll, "🔫 roll", " life is so cruel... isn't it?"),
     _make_skill(add_banme, "⚔️ banme", " commit sudoku"),
     _make_skill(add_tree, "🎄 tree", " advent of code time!"),
+    _make_skill(add_coc, "⛔🤬 coc", " VLDC/GDG VL Code of Conduct"),
 
     # modes
-    _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
+    _make_skill(add_smile_mode, "😼 smile mode",
+                " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
 ]
