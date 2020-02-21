@@ -1,8 +1,8 @@
 import logging
 from functools import wraps
-from typing import Callable, List
+from typing import Callable, List, Optional
 
-from telegram import Update
+from telegram import Update, Bot, Message
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async, Dispatcher
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
@@ -109,4 +109,71 @@ class Mode:
         return wrapper
 
 
-__all__ = ["Mode"]
+# https://github.com/egregors/vldc-bot/issues/72
+def _hook_message(bot: Bot, callback_after=lambda x: x):
+    orig_fn = getattr(bot, '_message')
+
+    def wrapped_fn(*args, **kwargs):
+        result = orig_fn(*args, **kwargs)
+        callback_after(result)
+        return result
+
+    setattr(bot, '_message', wrapped_fn)
+    return orig_fn
+
+
+def _remove_message_after(message: Message, context: CallbackContext, seconds: int):
+    logger.debug(f"Scheduling cleanup of message {message.message_id} in {seconds} seconds")
+    context.job_queue.run_once(lambda _: message.delete(), seconds, context=message.chat_id)
+
+
+def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
+    """ Remove messages emitted by decorated function """
+    logger.debug(f"Removing message from bot in {seconds}")
+
+    def cleanup_decorator(func):
+        logger.debug(f"cleanup_decorator func: {func}")
+
+        @wraps(func)
+        def cleanup_wrapper(*args, **kwargs):
+            orig_fn = None
+
+            # todo:
+            #  don't sure about that 😕😕😕
+            bot: Optional[Bot] = None
+            context: Optional[CallbackContext] = None
+            update: Optional[Update] = None
+            message: Optional[Message] = None
+
+            for arg in args:
+                if isinstance(arg, CallbackContext):
+                    context = arg
+                    bot = context.bot
+
+                    orig_fn = _hook_message(bot, lambda msg: (
+                        _remove_message_after(msg, context, seconds)
+                    ))
+                if isinstance(arg, Update):
+                    update = arg
+                    message = update.message
+
+            if bot and update:
+                if remove_cmd:
+                    _remove_message_after(message, context, seconds)
+                # todo:
+                #  should be refactored someday:
+                #  > error: Item "None" of "Optional[Any]" has no attribute "reply_to_message"
+                if remove_reply and message.reply_to_message:  # type: ignore
+                    reply: Message = message.reply_to_message  # type: ignore
+                    _remove_message_after(reply, context, seconds)
+
+            result = func(*args, **kwargs)
+            setattr(bot, '_message', orig_fn)
+            return result
+
+        return cleanup_wrapper
+
+    return cleanup_decorator
+
+
+__all__ = ["Mode", "cleanup"]

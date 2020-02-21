@@ -7,9 +7,11 @@ from typing import List, Tuple
 from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
+from mode import cleanup
+
 logger = logging.getLogger(__name__)
 
-MUTE_MINUTES = 8 * 60  # 8h
+MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
 
 
@@ -66,6 +68,7 @@ def _shot(context: CallbackContext) -> Tuple[bool, int]:
 
 
 @run_async
+@cleanup(seconds=600, remove_cmd=True, remove_reply=True)
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
 
@@ -76,7 +79,7 @@ def roll(update: Update, context: CallbackContext):
         mute_min = get_mute_minutes(shots_remained)
         until = datetime.now() + timedelta(minutes=mute_min)
         context.bot.send_message(update.effective_chat.id,
-                                 f"💥 boom! {user.full_name} 😵 [{mute_min//60}h mute]")
+                                 f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]")
 
         try:
             context.bot.restrict_chat_member(update.effective_chat.id, user.id, until,
