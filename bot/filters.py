@@ -1,4 +1,5 @@
 from telegram.ext import BaseFilter
+import re
 
 
 class AdminFilter(BaseFilter):
@@ -11,4 +12,16 @@ class AdminFilter(BaseFilter):
         }
 
 
+class UwuFilter(BaseFilter):
+    """ Regexp check for UwU """
+    name = 'Filters.uwu'
+
+    def filter(self, message) -> bool:
+        if message.text:
+            return bool(re.search(r'\bu[wv]+u\b', message.text, re.IGNORECASE))
+
+        return False
+
+
 admin_filter = AdminFilter()
+uwu_filter = UwuFilter()

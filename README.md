@@ -14,14 +14,14 @@ The official [VLDC](https://vldc.org) telegram group bot.
 
 Inspired by Twitch SmileMode this bot may bring you a remarkable new way to conversation ;)
 
-If you an admin of Telegram Group just send `/smile_mode-on` to set SmileMode ON,
+If you an admin of Telegram Group just send `/smile_mode_on` to set SmileMode ON,
 and `/smile_mode_off` to turn it off.
 
 **Keep it in mind, you should make bot an admin and allow delete and pin messages**
 
 On SmileMode all messages exclude **stickers** of **GIFs** will be deleted.
 
-### Bot Gate
+### Towel Mode
 
 By default any new guests of the group will receive message from the Bot. 
 User should reply the Bot message in the next hour otherwise user would be blacklisted.
