@@ -1,5 +1,4 @@
 import logging
-
 from typing import Callable
 
 from telegram import Update, User
@@ -33,7 +32,9 @@ def translate_msg(update: Update, context: CallbackContext):
         logger.info(f"can't delete msg: {err}")
 
     try:
-        context.bot.send_message(chat_id, f"{user.full_name} diris: {traduki(text)}")
+        # getting avatar for user like a Jedi
+        emoji = chr(ord('😀') + sum([ord(c) for c in user.full_name]) % 75)
+        context.bot.send_message(chat_id, f"{emoji} {user.full_name} diris: {traduki(text)}")
     except Exception as err:
         logger.info(f"can't translate msg: {text}, because of: {err}")
 
