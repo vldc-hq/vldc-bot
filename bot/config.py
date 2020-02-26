@@ -42,5 +42,7 @@ def get_config() -> Dict:
         "TOKEN": get_token(),
         "GROUP_CHAT_ID": get_group_chat_id(),
         "MONGO_USER": get_mongo_user(),
-        "MONGO_PASS": get_mongo_pass()
+        "MONGO_PASS": get_mongo_pass(),
+        "MONGO_HOST": os.getenv("MONGO_HOST", "mongo"),
+        "MONGO_PORT": os.getenv("MONGO_PORT", "27017"),
     }
