@@ -37,14 +37,15 @@ def mesaĝa_traduko(update: Update, context: CallbackContext):
     except BadRequest as err:
         logger.info(f"can't delete msg: {err}")
 
+    # akiri avataron kaj lingvon por uzanto kiel Jedajo
     magia_nombro = sum([ord(c) for c in user.full_name])
     lingvoj = ['ro', 'uk', 'sr', 'sk', 'sl', 'uz', 'bg', 'mn', 'kk']
     lingvo = lingvoj[magia_nombro % len(lingvoj)]
+    emoji = chr(ord('😀') + magia_nombro % 75)
     if user.name == "@KittyHawk1":
         lingvo = "he"
+        emoji = "🧘‍♂️"
     try:
-        # akirante avataron por uzanto kiel Jedajo
-        emoji = chr(ord('😀') + magia_nombro % 75)
         context.bot.send_message(
             chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}")
     except Exception as err:
