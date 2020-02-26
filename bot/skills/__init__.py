@@ -8,6 +8,7 @@ from filters import admin_filter
 from mode import cleanup
 from skills.banme import add_banme
 from skills.core import add_core
+from skills.fools import add_fools_mode
 from skills.mute import add_mute
 from skills.roll import add_roll
 from skills.since_mode import add_since_mode
@@ -18,7 +19,7 @@ from skills.tree import add_tree
 from skills.uwu import add_uwu
 from skills.coc import add_coc
 
-__version__ = "0.12"
+__version__ = "0.13"
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ skills: List[Dict] = [
                 " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
+    _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
 ]
 
 
