@@ -7,6 +7,7 @@ from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 from filters import admin_filter
 from mode import cleanup
 from skills.banme import add_banme
+from skills.coc import add_coc
 from skills.core import add_core
 from skills.fools import add_fools_mode
 from skills.mute import add_mute
@@ -17,7 +18,6 @@ from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
-from skills.coc import add_coc
 
 __version__ = "0.13"
 
@@ -65,8 +65,7 @@ skills: List[Dict] = [
     _make_skill(add_coc, "⛔🤬 coc", " VLDC/GDG VL Code of Conduct"),
 
     # modes
-    _make_skill(add_smile_mode, "😼 smile mode",
-                " allow only stickers in the chat"),
+    _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
