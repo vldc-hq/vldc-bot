@@ -1,10 +1,6 @@
 import logging
-from datetime import datetime, timedelta
-from random import randint
-from threading import Lock
-from typing import List, Tuple
 
-from telegram import Update, User
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
 from mode import cleanup

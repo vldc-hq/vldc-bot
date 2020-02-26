@@ -176,4 +176,4 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
     return cleanup_decorator
 
 
-__all__ = ["Mode", "cleanup"]
+__all__ = ["Mode", "cleanup", "ON", "OFF"]
