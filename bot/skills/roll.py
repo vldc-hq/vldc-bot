@@ -2,17 +2,51 @@ import logging
 from datetime import datetime, timedelta
 from random import randint
 from threading import Lock
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
+from pymongo.collection import Collection
 from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
+from db.mongo import get_db
 from mode import cleanup
 
 logger = logging.getLogger(__name__)
 
 MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
+
+
+class DB:
+
+    def __init__(self, db_name: str):
+        self._coll: Collection = get_db(db_name).hussars
+
+    def find_all_hussars(self):
+        return self._coll.find({})
+
+    def find_hussar(self, user_id: str):
+        return self._coll.find_one({"_id": user_id})
+
+    def add_hussar(self, user: User):
+        return self._coll.insert_one({
+            "_id": user.id,
+            "meta": user,
+            "shot_counter": 0,
+            "miss_counter": 0,
+            "dead_counter": 0,
+            "total_time_in_club": timedelta(),
+            # TODO: wat about ranks?
+            # "rank": pass,
+            "first_shot": datetime.now(),
+            "last_shot": datetime.now(),
+        })
+
+    def dead(self, user_id: str):
+        pass
+
+    def miss(self, user_id: str):
+        pass
 
 
 def add_roll(upd: Updater, handlers_group: int):
