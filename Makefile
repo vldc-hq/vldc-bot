@@ -31,6 +31,9 @@ lint:
 	flake8 ./bot --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 	mypy --config-file mypy.ini ./bot
 
+mongo-up:
+	docker-compose -f docker-compose-dev.yml up -d mongo
+
 # start bot from venv (TOKEN and CHAT_ID should be in ENV)
 start:
 	export DEBUG=True && ./env/bin/python bot.py
