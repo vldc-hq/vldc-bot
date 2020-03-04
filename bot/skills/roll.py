@@ -71,6 +71,9 @@ class DB:
             "$set": {"last_shot": datetime.now()},
         })
 
+    def remove(self, user_id: str):
+        self._coll.delete_one({"_id": user_id})
+
 
 _db = DB(db_name='roll')
 
@@ -79,6 +82,7 @@ def add_roll(upd: Updater, handlers_group: int):
     logger.info("registering roll handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("roll", roll), handlers_group)
+    dp.add_handler(CommandHandler("roll_me_out", satisfy_GDPR), handlers_group)
     dp.add_handler(CommandHandler("hussars", show_hussars, filters=admin_filter), handlers_group)
 
 
@@ -136,7 +140,7 @@ def show_hussars(update: Update, context: CallbackContext):
                        Hussars leader board
 ====================================================
    time in club    | attempts | deaths |      hussar
------------------- + -------- + ------ + ---------------
+------------------ + -------- + ------ + -----------
 2 days, 15:59:54   | 6        | 6      | egregors
 15:59:59           | 1        | 1      | getjump
 ----------------------------------------------------
@@ -147,22 +151,22 @@ def show_hussars(update: Update, context: CallbackContext):
     #  need to find out how to show board for mobile telegram as well
     board = "```" \
             f"{'Hussars leader board (non mobile friendly)'.center(52)}\n" \
-            f"{''.rjust(52, '=')}\n" \
-            f"{'time in club'.center(18)} " \
+            f"{''.rjust(51, '=')}\n" \
+            f"{'time in club'.center(17)} " \
             f"| {'attempts'.center(8)} " \
             f"| {'deaths'.center(6)} " \
             f"| {'hussar'.center(11)} " \
             f"\n" \
-            f"{''.ljust(18, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
+            f"{''.ljust(17, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
 
     for h in _db.find_all():
-        board += f"{str(timedelta(seconds=(h['total_time_in_club']))).ljust(18)} " \
+        board += f"{str(timedelta(seconds=(h['total_time_in_club']))).ljust(17)} " \
                  f"| {str(h['shot_counter']).ljust(8)} " \
                  f"| {str(h['dead_counter']).ljust(6)} " \
                  f"| {h['meta']['username'].ljust(15)}\n"
-    board += f"{''.rjust(52, '-')}\n```"
-
-    update.message.reply_text(f"{board}", disable_notification=True, parse_mode=telegram.ParseMode.MARKDOWN)
+    board += f"{''.rjust(51, '-')}\n```"
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f"{board}", disable_notification=True,
+                             parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 @run_async
@@ -182,15 +186,15 @@ def roll(update: Update, context: CallbackContext):
         context.bot.send_message(update.effective_chat.id,
                                  f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]")
 
-        # hussar is dead!
-        _db.dead(user.id, until)
-
         try:
             context.bot.restrict_chat_member(update.effective_chat.id, user.id, until,
                                              can_add_web_page_previews=False,
                                              can_send_media_messages=False,
                                              can_send_other_messages=False,
                                              can_send_messages=False)
+            # hussar is dead!
+            _db.dead(user.id, until)
+
         except Exception as err:
             # todo: https://github.com/egregors/vldc-bot/issues/93
             #  if bot can't restrict user, user should be passed into towel-mode like state
@@ -202,3 +206,13 @@ def roll(update: Update, context: CallbackContext):
 
         context.bot.send_message(update.effective_chat.id,
                                  f"{user.full_name}: {get_miss_string(shots_remained)}")
+
+
+# noinspection PyPep8Naming
+@run_async
+@cleanup(seconds=600, remove_cmd=True, remove_reply=True)
+def satisfy_GDPR(update: Update, context: CallbackContext):
+    user: User = update.effective_user
+    _db.remove(user.id)
+    logger.info(f"{user.full_name} was removed from DB")
+    update.message.reply_text(f"ok, zoomer 😒", disable_notification=True)
