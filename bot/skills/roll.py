@@ -133,32 +133,34 @@ def _shot(context: CallbackContext) -> Tuple[bool, int]:
 def show_hussars(update: Update, context: CallbackContext):
     """ Show leader board, I believe it should looks like smth like:
 
-                          Доска почетных гусаров
-    | ============================================================== |
-    |    time in club    |  attempts  |   deaths   |      hussar     |
-    | ------------------ + ---------- + ---------- + --------------- |
-    | 2 days, 15:59:54   | 6          | 6          | egregors        |
-    | 15:59:59           | 1          | 1          | getjump         |
-    | -------------------------------------------------------------- |
+                       Hussars leader board
+====================================================
+   time in club    | attempts | deaths |      hussar
+------------------ + -------- + ------ + ---------------
+2 days, 15:59:54   | 6        | 6      | egregors
+15:59:59           | 1        | 1      | getjump
+----------------------------------------------------
 
     """
     # CSS is awesome!
+    # todo:
+    #  need to find out how to show board for mobile telegram as well
     board = "```" \
-            f"{'Доска почетных гусаров'.center(65)}\n" \
-            f"| {''.rjust(62, '=')} |\n" \
-            f"| {'time in club'.center(18)} " \
-            f"| {'attempts'.center(10)} " \
-            f"| {'deaths'.center(10)} " \
-            f"| {'hussar'.center(15)} " \
-            f"|\n" \
-            f"| {''.ljust(18, '-')} + {''.ljust(10, '-')} + {''.ljust(10, '-')} + {''.ljust(15, '-')} |\n"
+            f"{'Hussars leader board (non mobile friendly)'.center(52)}\n" \
+            f"{''.rjust(52, '=')}\n" \
+            f"{'time in club'.center(18)} " \
+            f"| {'attempts'.center(8)} " \
+            f"| {'deaths'.center(6)} " \
+            f"| {'hussar'.center(11)} " \
+            f"\n" \
+            f"{''.ljust(18, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
 
     for h in _db.find_all():
-        board += f"| {str(timedelta(seconds=(h['total_time_in_club']))).ljust(18)} " \
-                 f"| {str(h['shot_counter']).ljust(10)} " \
-                 f"| {str(h['dead_counter']).ljust(10)} " \
-                 f"| {h['meta']['username'].ljust(15)} |\n"
-    board += f"| {''.rjust(62, '-')} |\n```"
+        board += f"{str(timedelta(seconds=(h['total_time_in_club']))).ljust(18)} " \
+                 f"| {str(h['shot_counter']).ljust(8)} " \
+                 f"| {str(h['dead_counter']).ljust(6)} " \
+                 f"| {h['meta']['username'].ljust(15)}\n"
+    board += f"{''.rjust(52, '-')}\n```"
 
     update.message.reply_text(f"{board}", disable_notification=True, parse_mode=telegram.ParseMode.MARKDOWN)
 
