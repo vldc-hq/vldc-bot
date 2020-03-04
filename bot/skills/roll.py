@@ -82,7 +82,7 @@ def add_roll(upd: Updater, handlers_group: int):
     logger.info("registering roll handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("roll", roll), handlers_group)
-    dp.add_handler(CommandHandler("roll_me_out", satisfy_GDPR), handlers_group)
+    dp.add_handler(CommandHandler("gdpr_me", satisfy_GDPR), handlers_group)
     dp.add_handler(CommandHandler("hussars", show_hussars, filters=admin_filter), handlers_group)
 
 
