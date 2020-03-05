@@ -59,10 +59,9 @@ class DB:
             "last_shot": now,
         })
 
-    def dead(self, user_id: str, until: datetime):
-        ban_duration = until - datetime.now()
+    def dead(self, user_id: str, mute_min: int):
         self._coll.update_one({"_id": user_id}, {
-            "$inc": {"shot_counter": 1, "dead_counter": 1, "total_time_in_club": ban_duration.seconds},
+            "$inc": {"shot_counter": 1, "dead_counter": 1, "total_time_in_club": mute_min * 60},
             "$set": {"last_shot": datetime.now()},
         })
 
@@ -75,6 +74,9 @@ class DB:
     def remove(self, user_id: str):
         self._coll.delete_one({"_id": user_id})
 
+    def remove_all(self):
+        self._coll.delete_many({})
+
 
 _db = DB(db_name='roll')
 
@@ -85,6 +87,7 @@ def add_roll(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("roll", roll), handlers_group)
     dp.add_handler(CommandHandler("gdpr_me", satisfy_GDPR), handlers_group)
     dp.add_handler(CommandHandler("hussars", show_hussars, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("wipe_hussars", wipe_hussars, filters=admin_filter), handlers_group)
 
 
 barrel_lock = Lock()
@@ -182,7 +185,7 @@ def show_hussars(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=600, remove_cmd=True, remove_reply=True)
+@cleanup(seconds=120, remove_cmd=True, remove_reply=True)
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
     # check if hussar already exist or create new one
@@ -197,7 +200,6 @@ def roll(update: Update, context: CallbackContext):
         until = datetime.now() + timedelta(minutes=mute_min)
         context.bot.send_message(update.effective_chat.id,
                                  f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]")
-
         try:
             context.bot.restrict_chat_member(update.effective_chat.id, user.id, until,
                                              can_add_web_page_previews=False,
@@ -205,7 +207,7 @@ def roll(update: Update, context: CallbackContext):
                                              can_send_other_messages=False,
                                              can_send_messages=False)
             # hussar is dead!
-            _db.dead(user.id, until)
+            _db.dead(user.id, mute_min)
 
         except Exception as err:
             # todo: https://github.com/egregors/vldc-bot/issues/93
@@ -222,9 +224,17 @@ def roll(update: Update, context: CallbackContext):
 
 # noinspection PyPep8Naming
 @run_async
-@cleanup(seconds=600, remove_cmd=True, remove_reply=True)
+@cleanup(seconds=120, remove_cmd=True, remove_reply=True)
 def satisfy_GDPR(update: Update, context: CallbackContext):
     user: User = update.effective_user
     _db.remove(user.id)
     logger.info(f"{user.full_name} was removed from DB")
     update.message.reply_text(f"ok, boomer 😒", disable_notification=True)
+
+
+@run_async
+@cleanup(seconds=120, remove_cmd=True, remove_reply=True)
+def wipe_hussars(update: Update, context: CallbackContext):
+    _db.remove_all()
+    logger.info(f"all hussars was removed from DB")
+    update.message.reply_text(f"👍", disable_notification=True)
