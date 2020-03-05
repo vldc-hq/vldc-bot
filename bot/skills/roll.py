@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from random import randint
 from threading import Lock
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import telegram
 from pymongo.collection import Collection
@@ -132,6 +132,15 @@ def _shot(context: CallbackContext) -> Tuple[bool, int]:
     return fate, shots_remained
 
 
+def _get_username(h: Dict) -> str:
+    """ Get username or fullname or unknown """
+    m = h['meta']
+    username = m.get('username')
+    fname = m.get('first_name')
+    lname = m.get('last_name')
+    return username or ' '.join(filter(lambda x: x is not None, [fname, lname])) or 'unknown'
+
+
 @run_async
 @cleanup(seconds=600, remove_cmd=True, remove_reply=True)
 def show_hussars(update: Update, context: CallbackContext):
@@ -160,10 +169,12 @@ def show_hussars(update: Update, context: CallbackContext):
             f"{''.ljust(17, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
 
     for h in _db.find_all():
+        username = _get_username(h)
         board += f"{str(timedelta(seconds=(h['total_time_in_club']))).ljust(17)} " \
                  f"| {str(h['shot_counter']).ljust(8)} " \
                  f"| {str(h['dead_counter']).ljust(6)} " \
-                 f"| {h['meta']['username'].ljust(15)}\n"
+                 f"| {username.ljust(15)}\n"
+
     board += f"{''.rjust(51, '-')}\n```"
     context.bot.send_message(chat_id=update.effective_chat.id, text=f"{board}", disable_notification=True,
                              parse_mode=telegram.ParseMode.MARKDOWN)
@@ -215,4 +226,4 @@ def satisfy_GDPR(update: Update, context: CallbackContext):
     user: User = update.effective_user
     _db.remove(user.id)
     logger.info(f"{user.full_name} was removed from DB")
-    update.message.reply_text(f"ok, zoomer 😒", disable_notification=True)
+    update.message.reply_text(f"ok, boomer 😒", disable_notification=True)
