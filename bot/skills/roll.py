@@ -4,6 +4,7 @@ from random import randint
 from threading import Lock
 from typing import List, Tuple, Dict
 
+import pymongo
 import telegram
 from pymongo.collection import Collection
 from telegram import Update, User
@@ -38,7 +39,7 @@ class DB:
         self._coll: Collection = get_db(db_name).hussars
 
     def find_all(self):
-        return list(self._coll.find({}))
+        return list(self._coll.find({}).sort("total_time_in_club", pymongo.DESCENDING))
 
     def find(self, user_id: str):
         return self._coll.find_one({"_id": user_id})
