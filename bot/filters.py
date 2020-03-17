@@ -1,4 +1,5 @@
 from telegram.ext import BaseFilter
+from telegram import Message
 import re
 
 
@@ -22,6 +23,18 @@ class UwuFilter(BaseFilter):
 
         return False
 
+class OnlyAdminOnOthersFilter(BaseFilter):
+    """ Messages only from admins with reply """
+    name = 'Filters.onlyAdminOnOthers'
+
+    def filter(self, message: Message) -> bool:
+        if message.reply_to_message != None:
+            return message.from_user.id in {
+                a.user.id for a in message.chat.get_administrators()
+            }
+        else:
+            return True
 
 admin_filter = AdminFilter()
 uwu_filter = UwuFilter()
+only_admin_on_others = OnlyAdminOnOthersFilter()
