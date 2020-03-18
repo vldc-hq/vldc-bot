@@ -1,5 +1,6 @@
 from telegram.ext import BaseFilter
 from telegram import Message
+from config import get_debug
 import re
 
 
@@ -8,6 +9,8 @@ class AdminFilter(BaseFilter):
     name = 'Filters.admin'
 
     def filter(self, message) -> bool:
+        if get_debug():
+            return True
         return message.from_user.id in {
             a.user.id for a in message.chat.get_administrators()
         }
@@ -28,6 +31,8 @@ class OnlyAdminOnOthersFilter(BaseFilter):
     name = 'Filters.onlyAdminOnOthers'
 
     def filter(self, message: Message) -> bool:
+        if get_debug():
+            return True
         if message.reply_to_message != None:
             return message.from_user.id in {
                 a.user.id for a in message.chat.get_administrators()

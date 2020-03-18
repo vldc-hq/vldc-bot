@@ -16,6 +16,7 @@ from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
 from skills.still import add_still
 from skills.towel_mode import add_towel_mode
+from skills.covid_mode import add_covid_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
@@ -69,6 +70,7 @@ skills: List[Dict] = [
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
+    _make_skill(add_covid_mode, "🦠 covid mode", " fun and gamez")
 ]
 
 
