@@ -26,6 +26,7 @@ class UwuFilter(BaseFilter):
 
         return False
 
+
 class OnlyAdminOnOthersFilter(BaseFilter):
     """ Messages only from admins with reply """
     name = 'Filters.onlyAdminOnOthers'
@@ -33,12 +34,13 @@ class OnlyAdminOnOthersFilter(BaseFilter):
     def filter(self, message: Message) -> bool:
         if get_debug():
             return True
-        if message.reply_to_message != None:
+        if message.reply_to_message is not None:
             return message.from_user.id in {
                 a.user.id for a in message.chat.get_administrators()
             }
         else:
             return True
+
 
 admin_filter = AdminFilter()
 uwu_filter = UwuFilter()
