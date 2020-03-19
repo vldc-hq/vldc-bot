@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta, time
 from random import choice, random
+from hashlib import sha1
 
 from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
@@ -8,6 +9,9 @@ from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
 from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
                           JobQueue, MessageHandler)
 from telegram.ext.filters import Filters
+
+from google.cloud import automl_v1beta1
+from google.cloud.automl_v1beta1.proto import service_pb2
 
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
@@ -418,8 +422,29 @@ def catch_message(update: Update, context: CallbackContext):
 # @TODO
 
 
-def is_avatar_has_mask(img: bytearray):
-    return False
+def hashImg(img: bytearray) -> str:
+    sha1(img[-100:]).hexdigest()
+
+
+def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> Bool:
+    if (img is None) or len(img) < 100:
+        return False
+
+    ## lookup existing value in cache
+    hash = hashImg(img)
+    isGood = context.chat_data['avatar_mask_cache'].get(hash)
+    if isGood is not None:
+        return isGood
+
+    prediction_client = automl_v1beta1.PredictionServiceClient()
+
+    name = 'projects/{}/locations/us-central1/models/{}'.format(
+        config.get
+        , model_id)
+    payload = {'image': {'image_bytes': content}}
+    params = {}
+    request = prediction_client.predict(name, payload, params)
+    return request.payload.display_name == "good"  # waits till request is returned
 
 
 def daily_infection(chat_id, bot: Bot):
