@@ -39,7 +39,7 @@ class OnlyAdminOnOthersFilter(BaseFilter):
                 a.user.id for a in message.chat.get_administrators()
             }
         else:
-            return True
+            return False
 
 
 admin_filter = AdminFilter()
