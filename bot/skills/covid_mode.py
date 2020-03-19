@@ -430,7 +430,7 @@ def catch_message(update: Update, context: CallbackContext):
 
 
 def hashImg(img: bytearray) -> str:
-    sha1(img[-100:]).hexdigest()
+    return sha1(img[-100:]).hexdigest()
 
 
 def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
@@ -450,8 +450,7 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
     name = 'projects/{}/locations/us-central1/models/{}'.format(
         project_id, model_id)
     payload = {'image': {'image_bytes': img}}
-    params = {}
-    request = prediction_client.predict(name, payload, params)
+    request = prediction_client.predict(name, payload, {})
 
     is_good = request.payload.display_name == "good"
     if 'avatar_mask_cache' not in context.chat_data:
