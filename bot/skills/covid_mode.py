@@ -378,7 +378,7 @@ def random_cough(bot: Bot, queue: JobQueue):
                                          can_send_other_messages=False,
                                          can_send_messages=False)
                 message = message + \
-                (f"{full_name} умер от коронавируса F") + "\n"
+                    (f"{full_name} умер от коронавируса F") + "\n"
         else:
             chance = RANDOM_COUGH_UNINFECTED_CHANCE
 
@@ -398,10 +398,11 @@ def get_single_user_photo(user: User) -> bytearray:
     if len(photos.photos) > 0:
         if len(photos.photos[0]) == 0:
             return bytearray(b'\x00')
-        photo: PhotoSize = sorted(photos.photos[0], key=itemgetter('width'), reverse=True)[0]
+        photo: PhotoSize = sorted(
+            photos.photos[0], key=itemgetter('width'), reverse=True)[0]
         file_photo: File = photo.get_file()
         result = file_photo.download_as_bytearray()
-    
+
     return result
 
 
@@ -484,9 +485,10 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
 
     # lookup existing value in cache
     hash = hashImg(img)
-    is_good = context.chat_data['avatar_mask_cache'].get(hash)
-    if is_good is not None:
-        return is_good
+    if 'avatar_mask_cache' in context.chat_data.keys():
+        is_good = context.chat_data['avatar_mask_cache'].get(hash)
+        if is_good is not None:
+            return is_good
 
     prediction_client = automl_v1beta1.PredictionServiceClient()
 
@@ -494,10 +496,10 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
     model_id = os.getenv("MODEL_ID", "ICN3867444189771857920")
     name = 'projects/{}/locations/us-central1/models/{}'.format(
         project_id, model_id)
-    payload = {'image': {'image_bytes': img}}
+    payload = {'image': {'image_bytes': bytes(img)}}
     request = prediction_client.predict(name, payload, {})
 
-    is_good = request.payload.display_name == "good"
+    is_good = request.payload[0].display_name == "good"
     if 'avatar_mask_cache' not in context.chat_data:
         context.chat_data['avatar_mask_cache'] = {}
 
