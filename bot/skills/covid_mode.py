@@ -1,3 +1,4 @@
+import os
 import logging
 from datetime import datetime, timedelta, time
 from random import choice, random
@@ -438,9 +439,9 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
 
     # lookup existing value in cache
     hash = hashImg(img)
-    isGood = context.chat_data['avatar_mask_cache'].get(hash)
-    if isGood is not None:
-        return isGood
+    is_good = context.chat_data['avatar_mask_cache'].get(hash)
+    if is_good is not None:
+        return is_good
 
     prediction_client = automl_v1beta1.PredictionServiceClient()
 
@@ -448,16 +449,16 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
     model_id = os.getenv("MODEL_ID", "ICN3867444189771857920")
     name = 'projects/{}/locations/us-central1/models/{}'.format(
         project_id, model_id)
-    payload = {'image': {'image_bytes': content}}
+    payload = {'image': {'image_bytes': img}}
     params = {}
     request = prediction_client.predict(name, payload, params)
 
-    isGood = request.payload.display_name == "good"
+    is_good = request.payload.display_name == "good"
     if 'avatar_mask_cache' not in context.chat_data:
         context.chat_data['avatar_mask_cache'] = {}
 
-    context.chat_data['avatar_mask_cache'][hash] = isGood
-    return isGood
+    context.chat_data['avatar_mask_cache'][hash] = is_good
+    return is_good
 
 
 def daily_infection(chat_id, bot: Bot):
