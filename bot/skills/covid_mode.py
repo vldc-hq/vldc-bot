@@ -370,7 +370,7 @@ def random_cough(bot: Bot, queue: JobQueue):
         if 'infected_since' in _user:
             chance = RANDOM_COUGH_INFECTED_CHANCE
             days_count = (datetime.now() - _user['infected_since']).days
-            if _rng <= 1 / math.exp(1 / (LETHALITY_RATE * days_count)):
+            if _rng <= 1 / math.exp(1 / (LETHALITY_RATE * min(days_count, 1))):
                 chance = .0
                 bot.restrict_chat_member(get_group_chat_id(), _user['id'],
                                          can_add_web_page_previews=False,
