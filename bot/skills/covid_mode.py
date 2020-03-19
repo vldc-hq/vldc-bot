@@ -313,7 +313,8 @@ def cough(update: Update, context: CallbackContext):
         infect_user_masked_condition(
             reply_user,
             COUGH_INFECTION_CHANCE_MASKED,
-            COUGH_INFECTION_CHANCE_UNMASKED)
+            COUGH_INFECTION_CHANCE_UNMASKED,
+            context)
 
 
 @run_async
@@ -324,6 +325,7 @@ def infect_admin(update: Update, context: CallbackContext):
     _db.infect(infect_user.id)
     update.message.reply_text(
         f"{update.effective_user.full_name} опрокинул колбу с коронавирусом на {infect_user.full_name}")
+
 
 @run_async
 @cleanup(seconds=10)
@@ -358,7 +360,10 @@ def random_cough(bot: Bot, queue: JobQueue):
 
 
 def infect_user_masked_condition(
-        user: User, masked_probability, unmasked_probability):
+        user: User,
+        masked_probability: float,
+        unmasked_probability: float,
+        context: CallbackContext):
     if user is None:
         return
 
@@ -371,9 +376,11 @@ def infect_user_masked_condition(
     if photos.total_count > 0:
         photo: PhotoSize = sorted(photos[0], key=itemgetter('width'))[0]
         file_photo: File = photo.get_file()
-        has_mask = is_avatar_has_mask(file_photo.download_as_bytearray())
-
-        logger.debug(f"User {user.full_name} {has_mask}")
+        has_mask = is_avatar_has_mask(
+            file_photo.download_as_bytearray(), context)
+        message = f"User {user.full_name} {'has' if has_mask else 'does not have'} mask on"
+        context.bot.send_message(get_group_chat_id(), message)
+        logger.debug(message)
 
     infecting = False
 
@@ -413,24 +420,23 @@ def catch_message(update: Update, context: CallbackContext):
     infect_user_masked_condition(
         user_to_infect,
         INFECTION_CHANCE_MASKED,
-        INFECTION_CHANCE_UNMASKED)
+        INFECTION_CHANCE_UNMASKED,
+        context)
 
     prev_message_user = user
 
     _db.add(user)
-
-# @TODO
 
 
 def hashImg(img: bytearray) -> str:
     sha1(img[-100:]).hexdigest()
 
 
-def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> Bool:
+def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
     if (img is None) or len(img) < 100:
         return False
 
-    ## lookup existing value in cache
+    # lookup existing value in cache
     hash = hashImg(img)
     isGood = context.chat_data['avatar_mask_cache'].get(hash)
     if isGood is not None:
@@ -438,13 +444,20 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> Bool:
 
     prediction_client = automl_v1beta1.PredictionServiceClient()
 
+    project_id = os.getenv("GOOGLE_PROJECT_ID", "88478223524")
+    model_id = os.getenv("MODEL_ID", "ICN3867444189771857920")
     name = 'projects/{}/locations/us-central1/models/{}'.format(
-        config.get
-        , model_id)
+        project_id, model_id)
     payload = {'image': {'image_bytes': content}}
     params = {}
     request = prediction_client.predict(name, payload, params)
-    return request.payload.display_name == "good"  # waits till request is returned
+
+    isGood = request.payload.display_name == "good"
+    if 'avatar_mask_cache' not in context.chat_data:
+        context.chat_data['avatar_mask_cache'] = {}
+
+    context.chat_data['avatar_mask_cache'][hash] = isGood
+    return isGood
 
 
 def daily_infection(chat_id, bot: Bot):
