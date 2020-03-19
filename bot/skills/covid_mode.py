@@ -393,11 +393,11 @@ def random_cough(bot: Bot, queue: JobQueue):
 
 def get_single_user_photo(user: User) -> bytearray:
     photos: UserProfilePhotos = user.get_profile_photos()
-    result: bytearray = None
+    result: bytearray = bytearray()
 
     if len(photos.photos) > 0:
         if len(photos.photos[0]) == 0:
-            return [0]
+            return bytearray(b'\x00')
         photo: PhotoSize = sorted(photos[0], key=itemgetter('width'), reverse=True)[0]
         file_photo: File = photo.get_file()
         result = file_photo.download_as_bytearray()
