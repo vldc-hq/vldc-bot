@@ -55,9 +55,12 @@ class DB:
     def delete_user(self, user_id: str):
         return self._coll.delete_one({"_id": user_id})
 
+    def delete_all_users(self):
+        return self._coll.delete_many({})
+
 
 db = DB("towel_mode")
-mode = Mode(mode_name="towel_mode", default=True)
+mode = Mode(mode_name="towel_mode", default=True, off_callback=lambda _: db.delete_all_users())
 
 
 def _is_time_gone(user: Dict) -> bool:
