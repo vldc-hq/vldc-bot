@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, time
 from random import choice, random
 from hashlib import sha1
 
+import math
+
 from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
                       PhotoSize)
@@ -32,7 +34,7 @@ DAILY_INFECTION_RATE = 0.01
 COUGH_INFECTION_CHANCE_MASKED = 0.01
 COUGH_INFECTION_CHANCE_UNMASKED = 0.3
 
-RANDOM_COUGH_INFECTED_CHANCE = 0.99
+RANDOM_COUGH_INFECTED_CHANCE = 0.1
 RANDOM_COUGH_UNINFECTED_CHANCE = 0.002
 
 INFECTION_CHANCE_MASKED = 0.01
@@ -110,6 +112,16 @@ class DB:
             "infected_since": {"$exists": True}
         }) is not None
 
+    def add_lethality(self, user_id: str, since: datetime):
+        self._coll.update_one({"_id": user_id}, {
+            "$set": {
+                "lethaled_since": since
+            }
+        })
+
+    def get_lethaled(self):
+        return self._coll.find({"lethaled_since": {"$lte": datetime.now()}})
+
     def add_quarantine(self, user_id: str, since: datetime, until: datetime):
         self._coll.update_one({"_id": user_id}, {
             "$set": {
@@ -119,7 +131,7 @@ class DB:
         })
 
     def get_quarantined(self):
-        self._coll.find({"quarantined_until": {"$lte": datetime.now()}})
+        return self._coll.find({"quarantined_until": {"$lte": datetime.now()}})
 
     def remove(self, user_id: str):
         self._coll.delete_one({"_id": user_id})
@@ -219,6 +231,15 @@ def stop(update: Update, context: CallbackContext):
 
         if quarantined is not None:
             for user in quarantined:
+                context.bot.restrict_chat_member(get_group_chat_id(), user["_id"],
+                                                 can_add_web_page_previews=True,
+                                                 can_send_media_messages=True,
+                                                 can_send_other_messages=True,
+                                                 can_send_messages=True)
+        lethaled = _db.get_lethaled()
+
+        if lethaled is not None:
+            for user in lethaled:
                 context.bot.restrict_chat_member(get_group_chat_id(), user["_id"],
                                                  can_add_web_page_previews=True,
                                                  can_send_media_messages=True,
@@ -341,17 +362,27 @@ def random_cough(bot: Bot, queue: JobQueue):
 
         chance = .0
 
-        if 'infected_since' in _user:
-            chance = RANDOM_COUGH_INFECTED_CHANCE
-        else:
-            chance = RANDOM_COUGH_UNINFECTED_CHANCE
-
         full_name = _user['meta']['first_name']
 
         if 'last_name' in _user['meta']:
             full_name = f"{full_name} {_user['meta']['last_name']}"
 
-        if _rng < chance:
+        if 'infected_since' in _user:
+            chance = RANDOM_COUGH_INFECTED_CHANCE
+            days_count = (datetime.now() - _user['infected_since']).days
+            if _rng <= 1 / math.exp(1 / (LETHALITY_RATE * days_count)):
+                chance = .0
+                bot.restrict_chat_member(get_group_chat_id(), _user['id'],
+                                         can_add_web_page_previews=False,
+                                         can_send_media_messages=False,
+                                         can_send_other_messages=False,
+                                         can_send_messages=False)
+                message = message + \
+                (f"{full_name} умер от коронавируса F") + "\n"
+        else:
+            chance = RANDOM_COUGH_UNINFECTED_CHANCE
+
+        if _rng <= chance:
             coughed_count = coughed_count + 1
             message = message + \
                 (f"{full_name} чихнул в пространство") + "\n"
