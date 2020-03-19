@@ -391,6 +391,20 @@ def random_cough(bot: Bot, queue: JobQueue):
         bot.send_message(get_group_chat_id(), message)
 
 
+def get_single_user_photo(user: User) -> bytearray:
+    photos: UserProfilePhotos = user.get_profile_photos()
+    result: bytearray = None
+
+    if len(photos.photos) > 0:
+        if len(photos.photos[0]) == 0:
+            return [0]
+        photo: PhotoSize = sorted(photos[0], key=itemgetter('width'), reverse=True)[0]
+        file_photo: File = photo.get_file()
+        result = file_photo.download_as_bytearray()
+    
+    return result
+
+
 def infect_user_masked_condition(
         user: User,
         masked_probability: float,
@@ -405,11 +419,11 @@ def infect_user_masked_condition(
 
     has_mask = False
 
-    if photos.total_count > 0:
-        photo: PhotoSize = sorted(photos[0], key=itemgetter('width'))[0]
-        file_photo: File = photo.get_file()
+    photo_bytearray = get_single_user_photo(user)
+
+    if get_single_user_photo(user) is not [0]:
         has_mask = is_avatar_has_mask(
-            file_photo.download_as_bytearray(), context)
+            photo_bytearray, context)
         message = f"User {user.full_name} {'has' if has_mask else 'does not have'} mask on"
         context.bot.send_message(get_group_chat_id(), message)
         logger.debug(message)
