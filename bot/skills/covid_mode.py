@@ -1,5 +1,4 @@
 import logging
-import math
 import os
 from datetime import datetime, timedelta, time
 from hashlib import sha1
@@ -135,7 +134,7 @@ class DB:
         self._coll.delete_many({})
 
 
-_db = DB(db_name='covid')
+_db = DB(db_name='covid_mode')
 mode = Mode(
     mode_name='covid_mode',
     default=False,
@@ -148,8 +147,8 @@ mode = Mode(
 def add_covid_mode(upd: Updater, handlers_group: int):
     logger.info("registering covid handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("cvtest", test, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("cvinfect", infect_admin, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("check", test, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("infect", infect_admin, filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler("cough", cough), handlers_group)
     dp.add_handler(CommandHandler("quarantine", quarantine, filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler("temp", temp, filters=only_admin_on_others), handlers_group)
@@ -324,7 +323,7 @@ def random_cough(bot: Bot, queue: JobQueue):
         if 'infected_since' in _user:
             chance = RANDOM_COUGH_INFECTED_CHANCE
             days_count = (datetime.now() - _user['infected_since']).days
-            if _rng <= 1 / math.exp(1 / (LETHALITY_RATE * min(days_count, 1))):
+            if _rng <= LETHALITY_RATE * (days_count ** days_count):
                 chance = .0
                 bot.restrict_chat_member(get_group_chat_id(), _user['id'],
                                          can_add_web_page_previews=False,
