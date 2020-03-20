@@ -1,11 +1,12 @@
-import os
 import logging
-from datetime import datetime, timedelta, time
-from random import choice, random
-from hashlib import sha1
-
 import math
+import os
+from datetime import datetime, timedelta, time
+from hashlib import sha1
+from operator import itemgetter
+from random import choice, random
 
+from google.cloud import automl_v1beta1
 from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
                       PhotoSize)
@@ -13,16 +14,10 @@ from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
                           JobQueue, MessageHandler)
 from telegram.ext.filters import Filters
 
-from google.cloud import automl_v1beta1
-from google.cloud.automl_v1beta1.proto import service_pb2
-
+from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
-from mode import cleanup
-
-from operator import itemgetter
-
-from config import get_group_chat_id
+from mode import cleanup, Mode
 
 logger = logging.getLogger(__name__)
 
@@ -141,79 +136,40 @@ class DB:
 
 
 _db = DB(db_name='covid')
+mode = Mode(mode_name='covid_mode', default=False, off_callback=lambda dp: cure_all(dp.job_queue, dp.bot))
 
 
+@mode.add
 def add_covid_mode(upd: Updater, handlers_group: int):
     logger.info("registering covid handlers")
     dp = upd.dispatcher
-    dp.add_handler(
-        CommandHandler(
-            "cvstart",
-            start,
-            filters=admin_filter),
-        handlers_group)
-    dp.add_handler(
-        CommandHandler(
-            "cvstop",
-            stop,
-            filters=admin_filter),
-        handlers_group)
-    dp.add_handler(
-        CommandHandler(
-            "cvtest",
-            test,
-            filters=admin_filter),
-        handlers_group)
-    dp.add_handler(
-        CommandHandler(
-            "cvinfect",
-            infect_admin,
-            filters=admin_filter),
-        handlers_group)
+    dp.add_handler(CommandHandler("cvstart", start, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("cvstop", stop, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("cvtest", test, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("cvinfect", infect_admin, filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler("cough", cough), handlers_group)
-    dp.add_handler(
-        CommandHandler(
-            "quarantine",
-            quarantine,
-            filters=admin_filter),
-        handlers_group)
-    dp.add_handler(
-        CommandHandler(
-            "temp",
-            temp,
-            filters=only_admin_on_others),
-        handlers_group)
+    dp.add_handler(CommandHandler("quarantine", quarantine, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("temp", temp, filters=only_admin_on_others), handlers_group)
 
     # We must do this, since bot api doesnt present a way to get all members
     # of chat at once
-    dp.add_handler(
-        MessageHandler(
-            Filters.all,
-            callback=catch_message),
-        handlers_group)
+    dp.add_handler(MessageHandler(Filters.all, callback=catch_message), handlers_group)
 
     if _db.get_covidstatus():
         set_handlers(dp.job_queue, dp.bot)
 
 
 def set_handlers(queue: JobQueue, bot: Bot):
-    logger.debug('Settings handlers')
-    queue.run_daily(
-        lambda _: daily_infection(
-            get_group_chat_id(),
-            bot),
-        DAILY_INFECTION_TIME,
-        name=JOB_QUEUE_DAILY_INFECTION_KEY)
-    queue.run_repeating(
-        lambda _: random_cough(bot, queue),
-        REPEATING_COUGHING_INTERVAL,
-        name=JOB_QUEUE_REPEATING_COUGHING_KEY)
+    queue.run_daily(lambda _: daily_infection(get_group_chat_id(), bot),
+                    DAILY_INFECTION_TIME,
+                    name=JOB_QUEUE_DAILY_INFECTION_KEY)
+
+    queue.run_repeating(lambda _: random_cough(bot, queue),
+                        REPEATING_COUGHING_INTERVAL,
+                        name=JOB_QUEUE_REPEATING_COUGHING_KEY)
 
 
-@run_async
-def stop(update: Update, context: CallbackContext):
-    queue: JobQueue = context.job_queue
-
+def cure_all(queue: JobQueue, bot: Bot) -> None:
     try:
         covid_daily_infection_job, = queue.get_jobs_by_name(
             JOB_QUEUE_DAILY_INFECTION_KEY)
@@ -231,36 +187,48 @@ def stop(update: Update, context: CallbackContext):
 
         if quarantined is not None:
             for user in quarantined:
-                context.bot.restrict_chat_member(get_group_chat_id(), user["_id"],
-                                                 can_add_web_page_previews=True,
-                                                 can_send_media_messages=True,
-                                                 can_send_other_messages=True,
-                                                 can_send_messages=True)
+                bot.restrict_chat_member(get_group_chat_id(), user["_id"],
+                                         can_add_web_page_previews=True,
+                                         can_send_media_messages=True,
+                                         can_send_other_messages=True,
+                                         can_send_messages=True)
         lethaled = _db.get_lethaled()
 
         if lethaled is not None:
             for user in lethaled:
-                context.bot.restrict_chat_member(get_group_chat_id(), user["_id"],
-                                                 can_add_web_page_previews=True,
-                                                 can_send_media_messages=True,
-                                                 can_send_other_messages=True,
-                                                 can_send_messages=True)
+                bot.restrict_chat_member(get_group_chat_id(), user["_id"],
+                                         can_add_web_page_previews=True,
+                                         can_send_media_messages=True,
+                                         can_send_other_messages=True,
+                                         can_send_messages=True)
         _db.remove_all()
     except Exception as err:
-        logger.error(err)
+        logger.error(f"can't stop covid_mode: {err}")
+
+
+@run_async
+def stop(update: Update, context: CallbackContext):
+    # TODO: remove this handler
+    depl_msg = "/cvstop is duplicated. user /covid_mode_off"
+    logger.warning(depl_msg)
+    update.message.reply_text(depl_msg)
 
 
 @run_async
 def start(update: Update, context: CallbackContext):
-    stop(update, context)
+    # TODO: remove this handler
+    depl_msg = "/cvstart is duplicated. user /covid_mode_on"
+    logger.warning(depl_msg)
+    update.message.reply_text(depl_msg)
 
-    queue: JobQueue = context.job_queue
+    cure_all(context.job_queue, context.bot)
 
-    set_handlers(queue, context.bot)
-
+    set_handlers(context.job_queue, context.bot)
+    # TODO: don't store mode status persistently. Use Mode abstraction
     _db.set_covidstatus(True)
 
     update.message.reply_text(f"ALARM!!! CORONAVIRUS IS SPREADING")
+    # TODO: looks like we need mode_on_callback as well :\
 
 
 @run_async
@@ -377,15 +345,13 @@ def random_cough(bot: Bot, queue: JobQueue):
                                          can_send_media_messages=False,
                                          can_send_other_messages=False,
                                          can_send_messages=False)
-                message = message + \
-                    (f"{full_name} умер от коронавируса F") + "\n"
+                message = message + f"{full_name} умер от коронавируса F" + "\n"
         else:
             chance = RANDOM_COUGH_UNINFECTED_CHANCE
 
         if _rng <= chance:
             coughed_count = coughed_count + 1
-            message = message + \
-                (f"{full_name} чихнул в пространство") + "\n"
+            message = message + f"{full_name} чихнул в пространство" + "\n"
 
     if coughed_count > 0:
         bot.send_message(get_group_chat_id(), message)

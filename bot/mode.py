@@ -90,6 +90,7 @@ class Mode:
             if self.off_callback is not None:
                 try:
                     self.off_callback(self._dp)
+
                 except Exception as err:
                     logger.error(f"can't eval mode_off callback: {err}")
 
