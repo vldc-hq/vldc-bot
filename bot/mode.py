@@ -15,14 +15,21 @@ ON, OFF = True, False
 
 
 class Mode:
+    """ Todo: add docstring (no) """
     _dp: Dispatcher
     _mode_handlers: List[CommandHandler] = []
 
-    def __init__(self, mode_name: str, default: bool = True, pin_info_msg: bool = False) -> None:
+    def __init__(
+            self,
+            mode_name: str,
+            default: bool = True,
+            pin_info_msg: bool = False,
+            off_callback: Optional[Callable[[Dispatcher], None]] = None) -> None:
         self.name = mode_name
         self.default = default
         self.chat_data_key = self._gen_chat_data_key(mode_name)
         self.pin_info_msg = pin_info_msg
+        self.off_callback = off_callback
 
         self.handlers_gr = DEFAULT_GROUP
 
@@ -79,6 +86,13 @@ class Mode:
         mode = self._get_mode_state(context)
         if mode is ON:
             self._set_mode(OFF, context)
+
+            if self.off_callback is not None:
+                try:
+                    self.off_callback(self._dp)
+                except Exception as err:
+                    logger.error(f"can't eval mode_off callback: {err}")
+
             context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
             if self.pin_info_msg is True:
                 context.bot.unpin_chat_message(update.effective_chat.id)
@@ -103,9 +117,14 @@ class Mode:
             logger.info(f"registered {len(self._mode_handlers)} {self.name} handlers")
 
             self._add_on_off_handlers()
+            # todo:
+            #  https://github.com/egregors/vldc-bot/issues/104
+            #  for some reason, if you don't put handlers remover here
+            #  mods with default=True do not get _on | _off command handlers
+            self._remove_mode_handlers()
 
-            if self.default is False:
-                self._remove_mode_handlers()
+            if self.default is True:
+                self._add_mode_handlers()
 
         return wrapper
 
