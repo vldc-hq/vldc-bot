@@ -8,6 +8,8 @@ services:
       - mongo
     env_file:
       - ./.env
+    volumes:
+        - ./:/opt/gcloud
 
   mongo:
     image: mongo

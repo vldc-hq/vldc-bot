@@ -3,7 +3,8 @@ from functools import wraps
 from typing import Callable, List, Optional
 
 from telegram import Update, Bot, Message
-from telegram.ext import Updater, CommandHandler, CallbackContext, run_async, Dispatcher
+from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async, 
+                          Dispatcher, JobQueue)
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from filters import admin_filter
@@ -122,9 +123,11 @@ def _hook_message(bot: Bot, callback_after=lambda x: x):
     return orig_fn
 
 
-def _remove_message_after(message: Message, context: CallbackContext, seconds: int):
-    logger.debug(f"Scheduling cleanup of message {message.message_id} in {seconds} seconds")
-    context.job_queue.run_once(lambda _: message.delete(), seconds, context=message.chat_id)
+def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
+    logger.debug(f"Scheduling cleanup of message {message.message_id} \
+                   in {seconds} seconds")
+    job_queue.run_once(lambda _: message.delete(), seconds,
+                       context=message.chat_id)
 
 
 def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
@@ -144,28 +147,40 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
             context: Optional[CallbackContext] = None
             update: Optional[Update] = None
             message: Optional[Message] = None
+            queue: Optional[JobQueue] = None
 
             for arg in args:
+                logger.debug(arg)
+                if isinstance(arg, Bot):
+                    bot = arg
+                
+                if isinstance(arg, JobQueue):
+                    queue = arg
+
                 if isinstance(arg, CallbackContext):
                     context = arg
                     bot = context.bot
-
-                    orig_fn = _hook_message(bot, lambda msg: (
-                        _remove_message_after(msg, context, seconds)
-                    ))
                 if isinstance(arg, Update):
                     update = arg
                     message = update.message
 
+            if context:
+                queue = context.job_queue
+
+            if bot:
+                orig_fn = _hook_message(bot, lambda msg: (
+                    _remove_message_after(msg, queue, seconds)
+                ))
+
             if bot and update:
                 if remove_cmd:
-                    _remove_message_after(message, context, seconds)
+                    _remove_message_after(message, queue, seconds)
                 # todo:
                 #  should be refactored someday:
                 #  > error: Item "None" of "Optional[Any]" has no attribute "reply_to_message"
                 if remove_reply and message.reply_to_message:  # type: ignore
                     reply: Message = message.reply_to_message  # type: ignore
-                    _remove_message_after(reply, context, seconds)
+                    _remove_message_after(reply, queue, seconds)
 
             result = func(*args, **kwargs)
             setattr(bot, '_message', orig_fn)
@@ -176,4 +191,4 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
     return cleanup_decorator
 
 
-__all__ = ["Mode", "cleanup"]
+__all__ = ["Mode", "cleanup", "ON", "OFF"]
