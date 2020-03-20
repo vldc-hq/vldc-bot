@@ -136,15 +136,18 @@ class DB:
 
 
 _db = DB(db_name='covid')
-mode = Mode(mode_name='covid_mode', default=False, off_callback=lambda dp: cure_all(dp.job_queue, dp.bot))
+mode = Mode(
+    mode_name='covid_mode',
+    default=False,
+    on_callback=lambda dp: start_pandemic(dp.job_queue, dp.bot),
+    off_callback=lambda dp: cure_all(dp.job_queue, dp.bot)
+)
 
 
 @mode.add
 def add_covid_mode(upd: Updater, handlers_group: int):
     logger.info("registering covid handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("cvstart", start, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("cvstop", stop, filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler("cvtest", test, filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler("cvinfect", infect_admin, filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler("cough", cough), handlers_group)
@@ -206,29 +209,12 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
         logger.error(f"can't stop covid_mode: {err}")
 
 
-@run_async
-def stop(update: Update, context: CallbackContext):
-    # TODO: remove this handler
-    depl_msg = "/cvstop is duplicated. user /covid_mode_off"
-    logger.warning(depl_msg)
-    update.message.reply_text(depl_msg)
-
-
-@run_async
-def start(update: Update, context: CallbackContext):
-    # TODO: remove this handler
-    depl_msg = "/cvstart is duplicated. user /covid_mode_on"
-    logger.warning(depl_msg)
-    update.message.reply_text(depl_msg)
-
-    cure_all(context.job_queue, context.bot)
-
-    set_handlers(context.job_queue, context.bot)
-    # TODO: don't store mode status persistently. Use Mode abstraction
+def start_pandemic(queue: JobQueue, bot: Bot) -> None:
+    cure_all(queue, bot)
+    set_handlers(queue, bot)
     _db.set_covidstatus(True)
 
-    update.message.reply_text(f"ALARM!!! CORONAVIRUS IS SPREADING")
-    # TODO: looks like we need mode_on_callback as well :\
+    bot.send_message(get_group_chat_id(), f"ALARM!!! CORONAVIRUS IS SPREADING")
 
 
 @run_async
@@ -441,7 +427,7 @@ def catch_message(update: Update, context: CallbackContext):
     _db.add(user)
 
 
-def hashImg(img: bytearray) -> str:
+def hash_img(img: bytearray) -> str:
     return sha1(img[-100:]).hexdigest()
 
 
@@ -450,9 +436,9 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
         return False
 
     # lookup existing value in cache
-    hash = hashImg(img)
+    hash_ = hash_img(img)
     if 'avatar_mask_cache' in context.chat_data.keys():
-        is_good = context.chat_data['avatar_mask_cache'].get(hash)
+        is_good = context.chat_data['avatar_mask_cache'].get(hash_)
         if is_good is not None:
             return is_good
 

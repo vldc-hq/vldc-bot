@@ -3,7 +3,7 @@ from functools import wraps
 from typing import Callable, List, Optional
 
 from telegram import Update, Bot, Message
-from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async, 
+from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
                           Dispatcher, JobQueue)
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
@@ -24,12 +24,14 @@ class Mode:
             mode_name: str,
             default: bool = True,
             pin_info_msg: bool = False,
-            off_callback: Optional[Callable[[Dispatcher], None]] = None) -> None:
+            off_callback: Optional[Callable[[Dispatcher], None]] = None,
+            on_callback: Optional[Callable[[Dispatcher], None]] = None) -> None:
         self.name = mode_name
         self.default = default
         self.chat_data_key = self._gen_chat_data_key(mode_name)
         self.pin_info_msg = pin_info_msg
         self.off_callback = off_callback
+        self.on_callback = on_callback
 
         self.handlers_gr = DEFAULT_GROUP
 
@@ -71,14 +73,17 @@ class Mode:
         logger.info(f"{self.name} switch to ON")
         mode = self._get_mode_state(context)
         if mode is OFF:
+            self._set_mode(ON, context)
+
+            if self.on_callback is not None:
+                try:
+                    self.on_callback(self._dp)
+                except Exception as err:
+                    logger.error(f"can't eval mode_on callback: {err}")
+
             msg = context.bot.send_message(update.effective_chat.id, f"{self.name} is ON")
             if self.pin_info_msg is True:
-                context.bot.pin_chat_message(
-                    update.effective_chat.id,
-                    msg.message_id,
-                    disable_notification=True
-                )
-            self._set_mode(ON, context)
+                context.bot.pin_chat_message(update.effective_chat.id, msg.message_id, disable_notification=True)
 
     @run_async
     def _mode_off(self, update: Update, context: CallbackContext):
@@ -90,7 +95,6 @@ class Mode:
             if self.off_callback is not None:
                 try:
                     self.off_callback(self._dp)
-
                 except Exception as err:
                     logger.error(f"can't eval mode_off callback: {err}")
 
@@ -173,7 +177,7 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
                 logger.debug(arg)
                 if isinstance(arg, Bot):
                     bot = arg
-                
+
                 if isinstance(arg, JobQueue):
                     queue = arg
 
