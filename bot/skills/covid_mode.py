@@ -37,7 +37,7 @@ RANDOM_COUGH_UNINFECTED_CHANCE = 0.002
 INFECTION_CHANCE_MASKED = 0.01
 INFECTION_CHANCE_UNMASKED = 0.15
 
-LETHALITY_RATE = 0.8
+LETHALITY_RATE = 0.03
 
 JOB_QUEUE_DAILY_INFECTION_KEY = 'covid_daily_infection_job'
 JOB_QUEUE_REPEATING_COUGHING_KEY = 'covid_repeating_coughing_job'
@@ -85,18 +85,6 @@ class DB:
             "$set": {"meta": user.to_dict()}
         }, upsert=True)
 
-    # def get_covidstatus(self):
-    #     setts = self._setts.find_one({})
-    #     logger.debug(setts)
-    #     if setts is None:
-    #         return False
-    #     return setts['covidstatus']
-    #
-    # def set_covidstatus(self, status):
-    #     self._setts.update_one({}, {
-    #         "$set": {"covidstatus": status}
-    #     }, upsert=True)
-
     def infect(self, user_id: str):
         self._coll.update_one({"_id": user_id}, {
             "$set": {"infected_since": datetime.now()}
@@ -107,16 +95,6 @@ class DB:
             "_id": user_id,
             "infected_since": {"$exists": True}
         }) is not None
-
-    # def add_lethality(self, user_id: str, since: datetime):
-    #     self._coll.update_one({"_id": user_id}, {
-    #         "$set": {
-    #             "lethaled_since": since
-    #         }
-    #     })
-
-    # def get_lethaled(self):
-    #     return self._coll.find({"lethaled_since": {"$lte": datetime.now()}})
 
     def add_quarantine(self, user_id: str, since: datetime, until: datetime):
         self._coll.update_one({"_id": user_id}, {
@@ -139,7 +117,7 @@ class DB:
 _db = DB(db_name='covid_mode')
 mode = Mode(
     mode_name='covid_mode',
-    default=OFF,  # todo: turn off by default
+    default=OFF,
     on_callback=lambda dp: start_pandemic(dp.job_queue, dp.bot),
     off_callback=lambda dp: cure_all(dp.job_queue, dp.bot)
 )
@@ -380,6 +358,7 @@ def infect_user_masked_condition(user: User, masked_probability: float, unmasked
         _db.infect(user.id)
 
 
+# todo: put it in the chat_data
 prev_message_user: Optional[User] = None
 
 
