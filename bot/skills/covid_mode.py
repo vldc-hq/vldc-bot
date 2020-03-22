@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, time
 from hashlib import sha1
 from operator import itemgetter
 from random import choice, random
-from typing import Optional
+from typing import Optional, Tuple
 
 from google.cloud import automl_v1beta1
 from pymongo.collection import Collection
@@ -18,7 +18,7 @@ from telegram.ext.filters import Filters
 from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
-from mode import cleanup, Mode, ON
+from mode import cleanup, Mode, OFF
 from skills.roll import _get_username
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,6 @@ class DB:
 
     def __init__(self, db_name: str):
         self._coll: Collection = get_db(db_name).members
-        self._setts: Collection = get_db(db_name).settings
 
     def find_all(self):
         return list(self._coll.find({}))
@@ -140,7 +139,7 @@ class DB:
 _db = DB(db_name='covid_mode')
 mode = Mode(
     mode_name='covid_mode',
-    default=ON,  # todo: turn off by default
+    default=OFF,  # todo: turn off by default
     on_callback=lambda dp: start_pandemic(dp.job_queue, dp.bot),
     off_callback=lambda dp: cure_all(dp.job_queue, dp.bot)
 )
@@ -174,27 +173,32 @@ def set_handlers(queue: JobQueue, bot: Bot):
 
 
 def cure_all(queue: JobQueue, bot: Bot) -> None:
-    covid_daily_infection_job, = queue.get_jobs_by_name(
+    # wipe db and ununrestrict all infected users
+    for user in _db.find_all():
+        # unrestrict all except admins (they are so good)
+        try:
+            bot.restrict_chat_member(get_group_chat_id(), user["_id"],
+                                     can_add_web_page_previews=True,
+                                     can_send_media_messages=True,
+                                     can_send_other_messages=True,
+                                     can_send_messages=True)
+            logger.debug(f"user: {_get_username(user)} was unrestrict")
+        except Exception as err:
+            logger.warning(f"can't unrestrict {_get_username(user)}: {err}")
+    _db.remove_all()
+
+    # clean up the jobs queue
+    covid_daily_infection_job: Tuple = queue.get_jobs_by_name(
         JOB_QUEUE_DAILY_INFECTION_KEY)
 
-    if covid_daily_infection_job is not None:
-        covid_daily_infection_job.schedule_removal()
+    if covid_daily_infection_job:
+        covid_daily_infection_job[0].schedule_removal()
 
-    covid_repeating_coughing_job, = queue.get_jobs_by_name(
+    covid_repeating_coughing_job: Tuple = queue.get_jobs_by_name(
         JOB_QUEUE_REPEATING_COUGHING_KEY)
 
-    if covid_repeating_coughing_job is not None:
-        covid_repeating_coughing_job.schedule_removal()
-
-    users = _db.find_all()
-
-    for user in users:
-        bot.restrict_chat_member(get_group_chat_id(), user["_id"],
-                                 can_add_web_page_previews=True,
-                                 can_send_media_messages=True,
-                                 can_send_other_messages=True,
-                                 can_send_messages=True)
-    _db.remove_all()
+    if covid_repeating_coughing_job:
+        covid_repeating_coughing_job[0].schedule_removal()
 
 
 def start_pandemic(queue: JobQueue, bot: Bot) -> None:
@@ -291,7 +295,7 @@ def infect_admin(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=100)
+@cleanup(seconds=60)
 def random_cough(bot: Bot, queue: JobQueue):
     users = _db.find_all()
 
@@ -320,9 +324,7 @@ def random_cough(bot: Bot, queue: JobQueue):
 
                 except BadRequest as err:
                     err_msg = f"can't restrict user: {err}"
-                    logger.info(err_msg)
-                    # todo: debug
-                    bot.send_message(get_group_chat_id(), err_msg)
+                    logger.warning(err_msg)
         else:
             chance = RANDOM_COUGH_UNINFECTED_CHANCE
 
