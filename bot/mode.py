@@ -97,6 +97,7 @@ class Mode:
                     self.off_callback(self._dp)
                 except Exception as err:
                     logger.error(f"can't eval mode_off callback: {err}")
+                    raise err
 
             context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
             if self.pin_info_msg is True:
