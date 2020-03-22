@@ -325,7 +325,8 @@ def random_cough(bot: Bot, queue: JobQueue):
             days_count = (datetime.now() - _user['infected_since']).days
             if _rng <= LETHALITY_RATE * (days_count ** days_count):
                 chance = .0
-                bot.restrict_chat_member(get_group_chat_id(), _user['id'],
+                _db.add_lethality(_user['_id'], datetime.now())
+                bot.restrict_chat_member(get_group_chat_id(), _user['_id'],
                                          can_add_web_page_previews=False,
                                          can_send_media_messages=False,
                                          can_send_other_messages=False,
