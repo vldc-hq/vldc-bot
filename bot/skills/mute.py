@@ -15,6 +15,7 @@ def add_mute(upd: Updater, handlers_group: int):
     logger.info("registering mute handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("mute", mute, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("unmute", unmute, filters=admin_filter), handlers_group)
 
 
 def _get_minutes(args: List[str]):
@@ -46,5 +47,18 @@ def mute(update: Update, context: CallbackContext):
         mute_minutes = _get_minutes(context.args)
         user: User = update.message.reply_to_message.from_user
         mute_user_for_time(update, context, user, mute_minutes)
+    except Exception as err:
+        update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
+
+
+def unmute(update: Update, context: CallbackContext):
+    try:
+        user = update.message.reply_to_message.from_user
+        update.message.reply_text(f"{user.full_name}, не озаруй! Мало ли кто увидит 🧐")
+        context.bot.restrict_chat_member(update.effective_chat.id, user.id,
+                                         can_add_web_page_previews=True,
+                                         can_send_media_messages=True,
+                                         can_send_other_messages=True,
+                                         can_send_messages=True)
     except Exception as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
