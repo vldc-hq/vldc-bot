@@ -104,8 +104,18 @@ class DB:
             }
         })
 
-    # def get_quarantined(self):
-    #     return self._coll.find({"quarantined_until": {"$lte": datetime.now()}})
+    def add_lethality(self, user_id: str, since: datetime):
+        self._coll.update_one({"_id": user_id}, {
+            "$set": {
+                "lethaled_since": since
+            }
+        })
+
+    def is_lethaled(self, user_id: str):
+        return self._coll.find_one({
+            "_id": user_id,
+            "lethaled_since": {"$exists": True}
+        })
 
     def remove(self, user_id: str):
         self._coll.delete_one({"_id": user_id})
@@ -278,7 +288,6 @@ def random_cough(bot: Bot, queue: JobQueue):
     users = _db.find_all()
 
     message = ''
-    coughed_count = 0
 
     for user in users:
         _rng = random()
@@ -291,14 +300,16 @@ def random_cough(bot: Bot, queue: JobQueue):
             days_count = (datetime.now() - user['infected_since']).days
             if _rng <= LETHALITY_RATE * (days_count ** days_count):
                 chance = .0
-
                 try:
-                    bot.restrict_chat_member(get_group_chat_id(), user['_id'],
-                                             can_add_web_page_previews=False,
-                                             can_send_media_messages=False,
-                                             can_send_other_messages=False,
-                                             can_send_messages=False)
-                    message += f"{full_name} умер от коронавируса, F\n"
+                    lethaled = _db.is_lethaled(user['_id'])
+                    if lethaled is None:
+                        _db.add_lethality(user['_id'], datetime.now())
+                        bot.restrict_chat_member(get_group_chat_id(), user['_id'],
+                                                 can_add_web_page_previews=False,
+                                                 can_send_media_messages=False,
+                                                 can_send_other_messages=False,
+                                                 can_send_messages=False)
+                        message += f"{full_name} умер от коронавируса, F\n"
 
                 except BadRequest as err:
                     err_msg = f"can't restrict user: {err}"
@@ -307,7 +318,6 @@ def random_cough(bot: Bot, queue: JobQueue):
             chance = RANDOM_COUGH_UNINFECTED_CHANCE
 
         if _rng <= chance:
-            coughed_count += 1
             message += f"{full_name} чихнул в пространство \n"
 
     if message:
@@ -339,10 +349,7 @@ def infect_user_masked_condition(user: User, masked_probability: float, unmasked
 
     if get_single_user_photo(user) is not [0]:
         has_mask = is_avatar_has_mask(
-            photo_bytearray, context)
-        message = f"User {user.full_name} {'has' if has_mask else 'does not have'} mask on"
-        context.bot.send_message(get_group_chat_id(), message)
-        logger.debug(message)
+            photo_bytearray, user, context)
 
     _rng = random()
     logger.debug(_rng)
@@ -388,7 +395,7 @@ def hash_img(img: bytearray) -> str:
     return sha1(img[-100:]).hexdigest()
 
 
-def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
+def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> bool:
     if (img is None) or len(img) < 100:
         return False
 
@@ -414,6 +421,8 @@ def is_avatar_has_mask(img: bytearray, context: CallbackContext) -> bool:
             context.chat_data['avatar_mask_cache'] = {}
 
         context.chat_data['avatar_mask_cache'][hash] = is_good
+        message = f"User {user.full_name} {'has' if is_good else 'does not have'} mask on"
+        context.bot.send_message(get_group_chat_id(), message)
         return is_good
 
     except Exception as err:
