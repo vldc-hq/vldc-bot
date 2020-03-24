@@ -4,6 +4,7 @@ import base64
 import json
 import requests
 
+from timeit import default_timer as timer
 from datetime import datetime, timedelta, time
 from hashlib import sha1
 from operator import itemgetter
@@ -424,7 +425,9 @@ def container_predict(img: bytearray, key: str) -> bool:
     }
 
     url = 'http://serving:8501/v1/models/default:predict'
+    start = timer()
     response = requests.post(url, data=json.dumps(instances)).json()
+    logger.info(f"inference time is {timer() - start}")
     hasMask = sorted(zip(response['predictions'][0]['labels'],
                          response['predictions'][0]['scores']),
                      key=lambda x: -x[1])[0][0] == 'good'
@@ -436,19 +439,21 @@ def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> 
         return False
 
     # lookup existing value in cache
+    cache_key = 'avatar_mask_cache'
     hash_ = hash_img(img)
-    if 'avatar_mask_cache' in context.chat_data.keys():
-        is_good = context.chat_data['avatar_mask_cache'].get(hash_)
+    if cache_key in context.bot_data.keys():
+        is_good = context.bot_data[cache_key].get(hash_)
         if is_good is not None:
             return is_good
 
     try:
         is_good = container_predict(img, hash_)
 
-        if 'avatar_mask_cache' not in context.chat_data:
-            context.chat_data['avatar_mask_cache'] = {}
+        if cache_key not in context.chat_data.keys():
+            context.chat_data[cache_key] = {}
 
-        context.chat_data['avatar_mask_cache'][hash_] = is_good
+
+        context.chat_data[cache_key][hash_] = is_good
         message = f"User {user.full_name} {'has' if is_good else 'does not have'} mask on"
         context.bot.send_message(get_group_chat_id(), message)
         return is_good
