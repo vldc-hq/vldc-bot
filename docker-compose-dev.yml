@@ -10,6 +10,7 @@ services:
       - .:/opt/gcloud
     depends_on:
       - mongo
+      - serving
     env_file:
       - ./.env
     logging:

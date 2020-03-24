@@ -5,6 +5,7 @@ services:
     image: docker.pkg.github.com/egregors/vldc-bot/bot:latest
     depends_on:
       - mongo
+      - serving
     env_file:
       - ./.env
     volumes:
