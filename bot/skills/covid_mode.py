@@ -28,6 +28,8 @@ QUARANTIN_MUTE_DURATION = timedelta(hours=12)
 
 DAILY_INFECTION_RATE = 0.01
 
+RANDOM_CURE_RATE = 0.01
+
 COUGH_INFECTION_CHANCE_MASKED = 0.01
 COUGH_INFECTION_CHANCE_UNMASKED = 0.3
 
@@ -90,10 +92,16 @@ class DB:
             "$set": {"infected_since": datetime.now()}
         })
 
+    def cure(self, user_id: str):
+        self._coll.update_one({"_id": user_id}, {
+            "$set": {"cured_since": datetime.now()}
+        })
+
     def is_user_infected(self, user_id: str) -> bool:
         return self._coll.find_one({
             "_id": user_id,
-            "infected_since": {"$exists": True}
+            "infected_since": {"$exists": True},
+            "cured_since": {"$exists": False}
         }) is not None
 
     def add_quarantine(self, user_id: str, since: datetime, until: datetime):
@@ -114,7 +122,7 @@ class DB:
     def is_lethaled(self, user_id: str):
         return self._coll.find_one({
             "_id": user_id,
-            "lethaled_since": {"$exists": True}
+            "lethaled_since": {"$exists": True},
         })
 
     def remove(self, user_id: str):
@@ -299,21 +307,28 @@ def random_cough(bot: Bot, queue: JobQueue):
         # todo: move "_get_username" to commons
         full_name = _get_username(user)
 
-        if 'infected_since' in user:
+        lethaled = _db.is_lethaled(user['_id'])
+
+        if 'infected_since' in user and 'cured_since' not in user and lethaled is None:
             chance = RANDOM_COUGH_INFECTED_CHANCE
-            days_count = (datetime.now() - user['infected_since']).days
-            if _rng <= LETHALITY_RATE * (days_count ** days_count):
+            delta_seconds = (datetime.now() - user['infected_since']).total_seconds()
+            delta_days_float = delta_seconds / (60 * 60 * 24)
+
+            if _rng <= RANDOM_CURE_RATE ** (2 - delta_days_float):
+                chance = .0
+                _db.cure(user['_id'])
+                message += f"{full_name} излечился от коронавируса\n"
+
+            if _rng <= LETHALITY_RATE * (delta_days_float ** delta_days_float):
                 chance = .0
                 try:
-                    lethaled = _db.is_lethaled(user['_id'])
-                    if lethaled is None:
-                        _db.add_lethality(user['_id'], datetime.now())
-                        bot.restrict_chat_member(get_group_chat_id(), user['_id'],
-                                                 can_add_web_page_previews=False,
-                                                 can_send_media_messages=False,
-                                                 can_send_other_messages=False,
-                                                 can_send_messages=False)
-                        message += f"{full_name} умер от коронавируса, F\n"
+                    _db.add_lethality(user['_id'], datetime.now())
+                    bot.restrict_chat_member(get_group_chat_id(), user['_id'],
+                                                can_add_web_page_previews=False,
+                                                can_send_media_messages=False,
+                                                can_send_other_messages=False,
+                                                can_send_messages=False)
+                    message += f"{full_name} умер от коронавируса, F\n"
 
                 except BadRequest as err:
                     err_msg = f"can't restrict user: {err}"
