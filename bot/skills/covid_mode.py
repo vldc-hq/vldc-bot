@@ -56,6 +56,7 @@ DAILY_INFECTION_TIME = time(
 
 class DB:
     """
+        todo: update scheme
         Members document:
         {
             _id: 420,                                   # int       -- tg user id
@@ -170,6 +171,7 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
     for user in _db.find_all():
         # unrestrict all except admins (they are so good)
         try:
+            # TODO: extract it more properly
             unmute_perm = ChatPermissions(
                 can_add_web_page_previews=True,
                 can_send_media_messages=True,
