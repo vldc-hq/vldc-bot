@@ -1,12 +1,15 @@
 import logging
 import os
+import base64
+import json
+import requests
+
 from datetime import datetime, timedelta, time
 from hashlib import sha1
 from operator import itemgetter
 from random import choice, random
 from typing import Optional, Tuple
 
-from google.cloud import automl_v1beta1
 from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
                       PhotoSize)
@@ -137,17 +140,22 @@ mode = Mode(
 def add_covid_mode(upd: Updater, handlers_group: int):
     logger.info("registering covid handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("check", test, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("infect", infect_admin, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler(
+        "check", test, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("infect", infect_admin,
+                                  filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler("cough", cough), handlers_group)
-    dp.add_handler(CommandHandler("quarantine", quarantine, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("temp", temp, filters=only_admin_on_others), handlers_group)
+    dp.add_handler(CommandHandler("quarantine", quarantine,
+                                  filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler(
+        "temp", temp, filters=only_admin_on_others), handlers_group)
 
     # dp.add_handler(CommandHandler("cure", cure, filters=only_admin_on_others), handlers_group)
 
     # We must do this, since bot api doesnt present a way to get all members
     # of chat at once
-    dp.add_handler(MessageHandler(Filters.all, callback=catch_message), handlers_group)
+    dp.add_handler(MessageHandler(
+        Filters.all, callback=catch_message), handlers_group)
 
 
 def set_handlers(queue: JobQueue, bot: Bot):
@@ -384,7 +392,8 @@ def catch_message(update: Update, context: CallbackContext):
         if _db.is_user_infected(prev_message_user.id):
             user_to_infect = user
 
-    infect_user_masked_condition(user_to_infect, INFECTION_CHANCE_MASKED, INFECTION_CHANCE_UNMASKED, context)
+    infect_user_masked_condition(
+        user_to_infect, INFECTION_CHANCE_MASKED, INFECTION_CHANCE_UNMASKED, context)
 
     prev_message_user = user
 
@@ -393,6 +402,23 @@ def catch_message(update: Update, context: CallbackContext):
 
 def hash_img(img: bytearray) -> str:
     return sha1(img[-100:]).hexdigest()
+
+
+def container_predict(img: bytearray, key: str) -> bool:
+    encoded_image = base64.b64encode(img).decode('utf-8')
+    instances = {
+        'instances': [
+                {'image_bytes': {'b64': str(encoded_image)},
+                 'key': key}
+        ]
+    }
+
+    url = 'http://serving:8501/v1/models/default:predict'
+    response = requests.post(url, data=json.dumps(instances)).json()
+    hasMask = sorted(zip(response['predictions'][0]['labels'],
+                         response['predictions'][0]['scores']),
+                     key=lambda x: -x[1])[0][0] == 'good'
+    return hasMask
 
 
 def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> bool:
@@ -407,16 +433,8 @@ def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> 
             return is_good
 
     try:
-        prediction_client = automl_v1beta1.PredictionServiceClient()
+        is_good = container_predict(img, hash_)
 
-        project_id = os.getenv("GOOGLE_PROJECT_ID", "88478223524")
-        model_id = os.getenv("MODEL_ID", "ICN3867444189771857920")
-        name = 'projects/{}/locations/us-central1/models/{}'.format(
-            project_id, model_id)
-        payload = {'image': {'image_bytes': bytes(img)}}
-        request = prediction_client.predict(name, payload, {})
-
-        is_good = request.payload[0].display_name == "good"
         if 'avatar_mask_cache' not in context.chat_data:
             context.chat_data['avatar_mask_cache'] = {}
 

@@ -1,17 +1,32 @@
-version: '3.1'
+version: "3.1"
 
 services:
-
   bot:
     build:
       context: .
       dockerfile: ./compose/dev/Dockerfile
     volumes:
       - .:/app
+      - .:/opt/gcloud
     depends_on:
       - mongo
     env_file:
       - ./.env
+    logging:
+      options:
+        max-size: "1M"
+        max-file: "10"
+
+  serving:
+    image: gcr.io/automl-vision-ondevice/gcloud-container-1.12.0:latest
+    ports:
+      - 8501:8501
+    volumes:
+      - ./tf-model:/tmp/mounted_model/0001
+    logging:
+      options:
+        max-size: "1M"
+        max-file: "10"
 
   mongo:
     image: mongo
@@ -19,4 +34,7 @@ services:
       - 27017:27017
     env_file:
       - ./.env
-
+    logging:
+      options:
+        max-size: "1M"
+        max-file: "10"
