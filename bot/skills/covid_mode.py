@@ -11,7 +11,7 @@ from typing import Optional, Tuple
 import requests
 from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
-                      PhotoSize)
+                      PhotoSize, ChatPermissions)
 from telegram.error import BadRequest
 from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
                           JobQueue, MessageHandler)
@@ -170,11 +170,13 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
     for user in _db.find_all():
         # unrestrict all except admins (they are so good)
         try:
-            bot.restrict_chat_member(get_group_chat_id(), user["_id"],
-                                     can_add_web_page_previews=True,
-                                     can_send_media_messages=True,
-                                     can_send_other_messages=True,
-                                     can_send_messages=True)
+            unmute_perm = ChatPermissions(
+                can_add_web_page_previews=True,
+                can_send_media_messages=True,
+                can_send_other_messages=True,
+                can_send_messages=True
+            )
+            bot.restrict_chat_member(get_group_chat_id(), user.id, unmute_perm)
             logger.debug(f"user: {_get_username(user)} was unrestrict")
         except Exception as err:
             logger.warning(f"can't unrestrict {_get_username(user)}: {err}")

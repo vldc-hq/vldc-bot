@@ -2,8 +2,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import List
 
-from telegram import Update, User
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram import Update, User, ChatPermissions
+from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
 from filters import admin_filter
 from utils.time import get_duration
@@ -32,33 +32,40 @@ def mute_user_for_time(update: Update, context: CallbackContext, user: User, mut
         logger.info(f"user: {user.full_name}[{user.id}] will be muted for {mute_duration}")
 
         update.message.reply_text(f"Таймаут для {user.full_name} на {mute_duration}")
-        context.bot.restrict_chat_member(update.effective_chat.id, user.id,
-                                         until,
-                                         can_add_web_page_previews=False,
-                                         can_send_media_messages=False,
-                                         can_send_other_messages=False,
-                                         can_send_messages=False)
+        mute_perm = ChatPermissions(
+            can_add_web_page_previews=False,
+            can_send_media_messages=False,
+            can_send_other_messages=False,
+            can_send_messages=False
+        )
+        context.bot.restrict_chat_member(update.effective_chat.id, user.id, mute_perm, until)
     except Exception as err:
+        logger.error(f"can't mute user {user}: {err}")
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
+@run_async
 def mute(update: Update, context: CallbackContext):
-    try:
-        mute_minutes = _get_minutes(context.args)
-        user: User = update.message.reply_to_message.from_user
-        mute_user_for_time(update, context, user, mute_minutes)
-    except Exception as err:
-        update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
+    user: User = update.message.reply_to_message.from_user
+    mute_minutes = _get_minutes(context.args)
+    mute_user_for_time(update, context, user, mute_minutes)
 
 
-def unmute(update: Update, context: CallbackContext):
+def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
     try:
-        user = update.message.reply_to_message.from_user
         update.message.reply_text(f"{user.full_name}, не озаруй! Мало ли кто увидит 🧐")
-        context.bot.restrict_chat_member(update.effective_chat.id, user.id,
-                                         can_add_web_page_previews=True,
-                                         can_send_media_messages=True,
-                                         can_send_other_messages=True,
-                                         can_send_messages=True)
+        unmute_perm = ChatPermissions(
+            can_add_web_page_previews=True,
+            can_send_media_messages=True,
+            can_send_other_messages=True,
+            can_send_messages=True
+        )
+        context.bot.restrict_chat_member(update.effective_chat.id, user.id, unmute_perm)
     except Exception as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
+
+
+@run_async
+def unmute(update: Update, context: CallbackContext) -> None:
+    user = update.message.reply_to_message.from_user
+    unmute_user(update, context, user)

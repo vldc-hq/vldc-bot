@@ -13,6 +13,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 from db.mongo import get_db
 from filters import admin_filter
 from mode import cleanup
+from skills.mute import mute_user_for_time
 
 logger = logging.getLogger(__name__)
 
@@ -196,23 +197,15 @@ def roll(update: Update, context: CallbackContext):
                 f"{'he is dead!' if is_shot else 'miss!'}")
 
     if is_shot:
+        # todo: https://github.com/egregors/vldc-bot/issues/93
+        #  if bot can't restrict user, user should be passed into towel-mode like state
+
         mute_min = get_mute_minutes(shots_remained)
-        until = datetime.now() + timedelta(minutes=mute_min)
         context.bot.send_message(update.effective_chat.id,
                                  f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]")
-        try:
-            context.bot.restrict_chat_member(update.effective_chat.id, user.id, until,
-                                             can_add_web_page_previews=False,
-                                             can_send_media_messages=False,
-                                             can_send_other_messages=False,
-                                             can_send_messages=False)
-            # hussar is dead!
-            _db.dead(user.id, mute_min)
 
-        except Exception as err:
-            # todo: https://github.com/egregors/vldc-bot/issues/93
-            #  if bot can't restrict user, user should be passed into towel-mode like state
-            update.message.reply_text(f"😿 не вышло, потому что: {err}")
+        mute_user_for_time(update, context, user, timedelta(minutes=mute_min))
+        _db.dead(user.id, mute_min)
     else:
 
         # lucky one
