@@ -285,6 +285,10 @@ def cough(update: Update, context: CallbackContext):
 @cleanup(seconds=600)
 def infect_admin(update: Update, context: CallbackContext):
     infect_user: User = update.message.reply_to_message.from_user
+
+    if infect_user.is_bot:
+        return
+
     _db.add(infect_user)
     _db.infect(infect_user.id)
     update.message.reply_text(
@@ -350,7 +354,7 @@ def get_single_user_photo(user: User) -> bytearray:
 
 def infect_user_masked_condition(user: User, masked_probability: float, unmasked_probability: float,
                                  context: CallbackContext):
-    if user is None:
+    if user is None or user.is_bot:
         return
 
     has_mask = False
@@ -382,7 +386,13 @@ def catch_message(update: Update, context: CallbackContext):
     global prev_message_user
     user: User = update.effective_user
 
+    if user.is_bot:
+        return
+
     if update.message is not None and update.message.reply_to_message is not None:
+        reply_user = update.message.reply_to_message.from_user
+        if reply_user.is_bot:
+            return
         _db.add(update.message.reply_to_message.from_user)
 
     user_to_infect: Optional[User] = None
@@ -441,6 +451,7 @@ def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> 
 
         if cache_key not in context.chat_data.keys():
             context.chat_data[cache_key] = {}
+
 
         context.chat_data[cache_key][hash_] = is_good
         message = f"User {user.full_name} {'has' if is_good else 'does not have'} mask on"
