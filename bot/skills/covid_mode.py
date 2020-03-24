@@ -430,7 +430,7 @@ def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> 
         if 'avatar_mask_cache' not in context.chat_data:
             context.chat_data['avatar_mask_cache'] = {}
 
-        context.chat_data['avatar_mask_cache'][hash] = is_good
+        context.chat_data['avatar_mask_cache'][hash_] = is_good
         message = f"User {user.full_name} {'has' if is_good else 'does not have'} mask on"
         context.bot.send_message(get_group_chat_id(), message)
         return is_good
