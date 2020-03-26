@@ -21,6 +21,7 @@ from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
 from mode import cleanup, Mode, OFF
+from skills.mute import mute_user_for_time
 from skills.roll import _get_username
 
 logger = logging.getLogger(__name__)
@@ -239,12 +240,7 @@ def quarantine(update: Update, context: CallbackContext):
         since = datetime.now()
         until = since + QUARANTIN_MUTE_DURATION
         _db.add_quarantine(user.id, since, until)
-        context.bot.restrict_chat_member(update.effective_chat.id, user.id,
-                                         until,
-                                         can_add_web_page_previews=False,
-                                         can_send_media_messages=False,
-                                         can_send_other_messages=False,
-                                         can_send_messages=False)
+        mute_user_for_time(update, context, user, QUARANTIN_MUTE_DURATION)
     except Exception as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
