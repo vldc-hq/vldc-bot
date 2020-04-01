@@ -6,6 +6,7 @@ from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 
 from filters import admin_filter
 from mode import cleanup
+from skills.at_least_70k import add_70k
 from skills.banme import add_banme
 from skills.coc import add_coc
 from skills.core import add_core
@@ -20,7 +21,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.21"
+__version__ = "0.22"
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,7 @@ skills: List[Dict] = [
     _make_skill(add_banme, "⚔️ banme", " commit sudoku"),
     _make_skill(add_tree, "🎄 tree", " advent of code time!"),
     _make_skill(add_coc, "⛔🤬 coc", " VLDC/GDG VL Code of Conduct"),
+    _make_skill(add_70k, "🛠 more than 70k?", " try to hire!"),
 
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
