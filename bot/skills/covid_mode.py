@@ -1,19 +1,17 @@
-import logging
-import os
 import base64
 import json
-import requests
-
-from timeit import default_timer as timer
+import logging
 from datetime import datetime, timedelta, time
 from hashlib import sha1
 from operator import itemgetter
 from random import choice, random
+from timeit import default_timer as timer
 from typing import Optional, Tuple
 
+import requests
 from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
-                      PhotoSize)
+                      PhotoSize, ChatPermissions)
 from telegram.error import BadRequest
 from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
                           JobQueue, MessageHandler)
@@ -23,6 +21,7 @@ from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
 from mode import cleanup, Mode, OFF
+from skills.mute import mute_user_for_time
 from skills.roll import _get_username
 
 logger = logging.getLogger(__name__)
@@ -31,8 +30,6 @@ QUARANTINE_MINUTES = 16 * 60
 QUARANTIN_MUTE_DURATION = timedelta(hours=12)
 
 DAILY_INFECTION_RATE = 0.01
-
-RANDOM_CURE_RATE = 0.01
 
 COUGH_INFECTION_CHANCE_MASKED = 0.01
 COUGH_INFECTION_CHANCE_UNMASKED = 0.3
@@ -60,6 +57,7 @@ DAILY_INFECTION_TIME = time(
 
 class DB:
     """
+        todo: update scheme
         Members document:
         {
             _id: 420,                                   # int       -- tg user id
@@ -96,16 +94,10 @@ class DB:
             "$set": {"infected_since": datetime.now()}
         })
 
-    def cure(self, user_id: str):
-        self._coll.update_one({"_id": user_id}, {
-            "$set": {"cured_since": datetime.now()}
-        })
-
     def is_user_infected(self, user_id: str) -> bool:
         return self._coll.find_one({
             "_id": user_id,
-            "infected_since": {"$exists": True},
-            "cured_since": {"$exists": False}
+            "infected_since": {"$exists": True}
         }) is not None
 
     def add_quarantine(self, user_id: str, since: datetime, until: datetime):
@@ -126,7 +118,7 @@ class DB:
     def is_lethaled(self, user_id: str):
         return self._coll.find_one({
             "_id": user_id,
-            "lethaled_since": {"$exists": True},
+            "lethaled_since": {"$exists": True}
         })
 
     def remove(self, user_id: str):
@@ -159,8 +151,6 @@ def add_covid_mode(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler(
         "temp", temp, filters=only_admin_on_others), handlers_group)
 
-    # dp.add_handler(CommandHandler("cure", cure, filters=only_admin_on_others), handlers_group)
-
     # We must do this, since bot api doesnt present a way to get all members
     # of chat at once
     dp.add_handler(MessageHandler(
@@ -182,11 +172,14 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
     for user in _db.find_all():
         # unrestrict all except admins (they are so good)
         try:
-            bot.restrict_chat_member(get_group_chat_id(), user["_id"],
-                                     can_add_web_page_previews=True,
-                                     can_send_media_messages=True,
-                                     can_send_other_messages=True,
-                                     can_send_messages=True)
+            # TODO: extract it more properly
+            unmute_perm = ChatPermissions(
+                can_add_web_page_previews=True,
+                can_send_media_messages=True,
+                can_send_other_messages=True,
+                can_send_messages=True
+            )
+            bot.restrict_chat_member(get_group_chat_id(), user.id, unmute_perm)
             logger.debug(f"user: {_get_username(user)} was unrestrict")
         except Exception as err:
             logger.warning(f"can't unrestrict {_get_username(user)}: {err}")
@@ -247,12 +240,7 @@ def quarantine(update: Update, context: CallbackContext):
         since = datetime.now()
         until = since + QUARANTIN_MUTE_DURATION
         _db.add_quarantine(user.id, since, until)
-        context.bot.restrict_chat_member(update.effective_chat.id, user.id,
-                                         until,
-                                         can_add_web_page_previews=False,
-                                         can_send_media_messages=False,
-                                         can_send_other_messages=False,
-                                         can_send_messages=False)
+        mute_user_for_time(update, context, user, QUARANTIN_MUTE_DURATION)
     except Exception as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
@@ -293,10 +281,6 @@ def cough(update: Update, context: CallbackContext):
 @cleanup(seconds=600)
 def infect_admin(update: Update, context: CallbackContext):
     infect_user: User = update.message.reply_to_message.from_user
-
-    if infect_user.is_bot:
-        return
-
     _db.add(infect_user)
     _db.infect(infect_user.id)
     update.message.reply_text(
@@ -316,28 +300,21 @@ def random_cough(bot: Bot, queue: JobQueue):
         # todo: move "_get_username" to commons
         full_name = _get_username(user)
 
-        lethaled = _db.is_lethaled(user['_id'])
-
-        if 'infected_since' in user and 'cured_since' not in user and lethaled is None:
+        if 'infected_since' in user:
             chance = RANDOM_COUGH_INFECTED_CHANCE
-            delta_seconds = (datetime.now() - user['infected_since']).total_seconds()
-            delta_days_float = delta_seconds / (60 * 60 * 24)
-
-            if _rng <= RANDOM_CURE_RATE ** (2 - delta_days_float):
-                chance = .0
-                _db.cure(user['_id'])
-                message += f"{full_name} излечился от коронавируса\n"
-
-            if _rng <= LETHALITY_RATE * (delta_days_float ** delta_days_float):
+            days_count = (datetime.now() - user['infected_since']).days
+            if _rng <= LETHALITY_RATE * (days_count ** days_count):
                 chance = .0
                 try:
-                    _db.add_lethality(user['_id'], datetime.now())
-                    bot.restrict_chat_member(get_group_chat_id(), user['_id'],
-                                                can_add_web_page_previews=False,
-                                                can_send_media_messages=False,
-                                                can_send_other_messages=False,
-                                                can_send_messages=False)
-                    message += f"{full_name} умер от коронавируса, F\n"
+                    lethaled = _db.is_lethaled(user['_id'])
+                    if lethaled is None:
+                        _db.add_lethality(user['_id'], datetime.now())
+                        bot.restrict_chat_member(get_group_chat_id(), user['_id'],
+                                                 can_add_web_page_previews=False,
+                                                 can_send_media_messages=False,
+                                                 can_send_other_messages=False,
+                                                 can_send_messages=False)
+                        message += f"{full_name} умер от коронавируса, F\n"
 
                 except BadRequest as err:
                     err_msg = f"can't restrict user: {err}"
@@ -369,7 +346,7 @@ def get_single_user_photo(user: User) -> bytearray:
 
 def infect_user_masked_condition(user: User, masked_probability: float, unmasked_probability: float,
                                  context: CallbackContext):
-    if user is None or user.is_bot:
+    if user is None:
         return
 
     has_mask = False
@@ -401,13 +378,7 @@ def catch_message(update: Update, context: CallbackContext):
     global prev_message_user
     user: User = update.effective_user
 
-    if user.is_bot:
-        return
-
     if update.message is not None and update.message.reply_to_message is not None:
-        reply_user = update.message.reply_to_message.from_user
-        if reply_user.is_bot:
-            return
         _db.add(update.message.reply_to_message.from_user)
 
     user_to_infect: Optional[User] = None
@@ -434,8 +405,8 @@ def container_predict(img: bytearray, key: str) -> bool:
     encoded_image = base64.b64encode(img).decode('utf-8')
     instances = {
         'instances': [
-                {'image_bytes': {'b64': str(encoded_image)},
-                 'key': key}
+            {'image_bytes': {'b64': str(encoded_image)},
+             'key': key}
         ]
     }
 
@@ -464,11 +435,10 @@ def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> 
     try:
         is_good = container_predict(img, hash_)
 
-        if cache_key not in context.chat_data.keys():
-            context.chat_data[cache_key] = {}
+        if cache_key not in context.bot_data.keys():
+            context.bot_data[cache_key] = {}
 
-
-        context.chat_data[cache_key][hash_] = is_good
+        context.bot_data[cache_key][hash_] = is_good
         message = f"User {user.full_name} {'has' if is_good else 'does not have'} mask on"
         context.bot.send_message(get_group_chat_id(), message)
         return is_good
