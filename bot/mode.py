@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from telegram import Update, Bot, Message
 from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
@@ -157,8 +157,8 @@ def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
                        context=message.chat_id)
 
 
-def _cleanup_args_resolver(*args) -> (Optional[Bot],
-                                      Optional[Message], Optional[JobQueue]):
+def _cleanup_args_resolver(*args) -> Tuple[Optional[Bot],
+                                      Optional[Message], Optional[JobQueue]]:
     """ Can be done in one pass for code readability, but its more complex
         like _args_resolver(args, Type)
         Example: _args_resolver(args, Bot)
