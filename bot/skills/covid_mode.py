@@ -45,6 +45,8 @@ LETHALITY_RATE = 0.03
 JOB_QUEUE_DAILY_INFECTION_KEY = 'covid_daily_infection_job'
 JOB_QUEUE_REPEATING_COUGHING_KEY = 'covid_repeating_coughing_job'
 
+PREV_MESSAGE_USER_KEY = 'prev_message_user'
+
 REPEATING_COUGHING_INTERVAL = timedelta(minutes=1)
 
 DAILY_INFECTION_TIME = time(
@@ -200,7 +202,6 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
 
 
 def start_pandemic(queue: JobQueue, bot: Bot) -> None:
-    cure_all(queue, bot)
     set_handlers(queue, bot)
 
     bot.send_message(get_group_chat_id(), f"ALARM!!! CORONAVIRUS IS SPREADING")
@@ -370,12 +371,7 @@ def infect_user_masked_condition(user: User, masked_probability: float, unmasked
         _db.infect(user.id)
 
 
-# todo: put it in the chat_data
-prev_message_user: Optional[User] = None
-
-
 def catch_message(update: Update, context: CallbackContext):
-    global prev_message_user
     user: User = update.effective_user
 
     if update.message is not None and update.message.reply_to_message is not None:
@@ -383,7 +379,9 @@ def catch_message(update: Update, context: CallbackContext):
 
     user_to_infect: Optional[User] = None
 
-    if prev_message_user is not None:
+    if PREV_MESSAGE_USER_KEY in context.chat_data.keys():
+        prev_message_user: User = context.chat_data[PREV_MESSAGE_USER_KEY]
+
         if _db.is_user_infected(user.id):
             user_to_infect = prev_message_user
         if _db.is_user_infected(prev_message_user.id):
@@ -392,7 +390,7 @@ def catch_message(update: Update, context: CallbackContext):
     infect_user_masked_condition(
         user_to_infect, INFECTION_CHANCE_MASKED, INFECTION_CHANCE_UNMASKED, context)
 
-    prev_message_user = user
+    context.chat_data[PREV_MESSAGE_USER_KEY] = user
 
     _db.add(user)
 
