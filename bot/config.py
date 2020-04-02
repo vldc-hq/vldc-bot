@@ -6,6 +6,10 @@ def get_debug() -> Union[str, bool]:
     return os.getenv("DEBUG", False)
 
 
+def get_debugger() -> Union[str, bool]:
+    return os.getenv("DEBUGGER", False)
+
+
 def get_group_chat_id() -> str:
     """ Get VLDC chat id ENV """
     chat_id = os.getenv("CHAT_ID", None)
@@ -39,6 +43,7 @@ def get_mongo_pass():
 def get_config() -> Dict:
     return {
         "DEBUG": get_debug(),
+        "DEBUGGER": get_debugger(),
         "TOKEN": get_token(),
         "GROUP_CHAT_ID": get_group_chat_id(),
         "MONGO_USER": get_mongo_user(),
