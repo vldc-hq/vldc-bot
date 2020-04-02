@@ -149,15 +149,50 @@ def _hook_message(bot: Bot, callback_after=lambda x: x):
     return orig_fn
 
 
+@run_async
 def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
-    logger.debug(f"Scheduling cleanup of message {message.message_id} \
+    logger.debug(f"Scheduling cleanup of message {message} \
                    in {seconds} seconds")
     job_queue.run_once(lambda _: message.delete(), seconds,
                        context=message.chat_id)
 
 
+def _cleanup_args_resolver(*args) -> (Optional[Bot],
+                                      Optional[Message], Optional[JobQueue]):
+    """ Can be done in one pass for code readability, but its more complex
+        like _args_resolver(args, Type)
+        Example: _args_resolver(args, Bot)
+    """
+    bot: Optional[Bot] = None
+    message: Optional[Message] = None
+    queue: Optional[JobQueue] = None
+
+    for arg in args:
+        if isinstance(arg, Bot):
+            bot = arg
+        if isinstance(arg, JobQueue):
+            queue = arg
+        if isinstance(arg, CallbackContext):
+            context = arg
+            bot = context.bot
+            queue = context.job_queue
+        if isinstance(arg, Update):
+            update: Update = arg
+            message = update.message
+
+    return (bot, message, queue)
+
+
 def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
-    """ Remove messages emitted by decorated function """
+    """Cleanup decorator
+    Remove messages emitted by decorated function
+
+    Args:
+        seconds (:obj:`int`): Amount of seconds after which message should be deleted
+        remove_cmd (:obj:`bool`, optional): Whether user command should be deleted, default True
+        remove_reply (:obj:`bool`, optional): Whether reply should be deleted
+
+    """
     logger.debug(f"Removing message from bot in {seconds}")
 
     def cleanup_decorator(func):
@@ -167,48 +202,30 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
         def cleanup_wrapper(*args, **kwargs):
             orig_fn = None
 
-            # todo:
-            #  don't sure about that 😕😕😕
-            bot: Optional[Bot] = None
-            context: Optional[CallbackContext] = None
-            update: Optional[Update] = None
-            message: Optional[Message] = None
-            queue: Optional[JobQueue] = None
+            (bot, message, queue) = _cleanup_args_resolver(*args)
 
-            for arg in args:
-                logger.debug(arg)
-                if isinstance(arg, Bot):
-                    bot = arg
+            # No need to do anything else just return original
+            # function result
+            if not bot:
+                return func(*args, **kwargs)
 
-                if isinstance(arg, JobQueue):
-                    queue = arg
+            # Hook message method on Bot
+            # So everything after that will be catched
+            # And also removed
+            orig_fn = _hook_message(bot, lambda msg: (
+                _remove_message_after(msg, queue, seconds)
+            ))
 
-                if isinstance(arg, CallbackContext):
-                    context = arg
-                    bot = context.bot
-                if isinstance(arg, Update):
-                    update = arg
-                    message = update.message
-
-            if context:
-                queue = context.job_queue
-
-            if bot:
-                orig_fn = _hook_message(bot, lambda msg: (
-                    _remove_message_after(msg, queue, seconds)
-                ))
-
-            if bot and update:
+            if message:
                 if remove_cmd:
                     _remove_message_after(message, queue, seconds)
-                # todo:
-                #  should be refactored someday:
-                #  > error: Item "None" of "Optional[Any]" has no attribute "reply_to_message"
                 if remove_reply and message.reply_to_message:  # type: ignore
                     reply: Message = message.reply_to_message  # type: ignore
                     _remove_message_after(reply, queue, seconds)
-
-            result = func(*args, **kwargs)
+            try:
+                result = func(*args, **kwargs)
+            except Exception as err:
+                logger.error(err)
             setattr(bot, '_message', orig_fn)
             return result
 
