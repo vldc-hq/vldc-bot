@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: ./compose/dev/Dockerfile
+    ports:
+      - 5678:5678
     volumes:
       - .:/app
       - .:/opt/gcloud
