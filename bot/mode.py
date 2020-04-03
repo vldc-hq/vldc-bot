@@ -157,7 +157,7 @@ def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
                        context=message.chat_id)
 
 
-def cleanup_inner_wrapper(seconds:int, remove_cmd, remove_reply,
+def cleanup_inner_wrapper(seconds: int, remove_cmd, remove_reply,
                           args, kwargs, func,
                           bot: Bot, queue: JobQueue, message: Optional[Message]):
     # Hook message method on Bot
@@ -173,9 +173,9 @@ def cleanup_inner_wrapper(seconds:int, remove_cmd, remove_reply,
         if remove_reply and message.reply_to_message:  # type: ignore
             reply: Message = message.reply_to_message  # type: ignore
             _remove_message_after(reply, queue, seconds)
-    
+
     result = None
-    
+
     try:
         result = func(*args, **kwargs)
     except Exception as err:
@@ -209,7 +209,7 @@ def cleanup_update_context(seconds: int, remove_cmd=True, remove_reply=False):
             bot: Bot = context.bot
             message: Message = update.message
 
-            return cleanup_inner_wrapper(seconds, remove_cmd, remove_reply, args, 
+            return cleanup_inner_wrapper(seconds, remove_cmd, remove_reply, args,
                                          kwargs, func, bot, queue, message)
 
         return cleanup_wrapper
@@ -234,13 +234,12 @@ def cleanup_bot_queue(seconds: int):
             bot: Bot = args[0]
             queue: JobQueue = args[1]
 
-            return cleanup_inner_wrapper(seconds, False, False, args, 
+            return cleanup_inner_wrapper(seconds, False, False, args,
                                          kwargs, func, bot, queue, None)
 
         return cleanup_wrapper
 
     return cleanup_decorator
-
 
 
 __all__ = ["Mode", "cleanup_bot_queue", "cleanup_update_context", "ON", "OFF"]
