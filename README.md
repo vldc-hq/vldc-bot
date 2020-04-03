@@ -82,6 +82,32 @@ Run tests
 make dev_test
 ```
 
+### Setting Up Debugger in VS Code
+
+Create `launch.json` under your `.vscode` directory in project, add the following content onto it:
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Docker Python",
+            "type": "python",
+            "request": "attach",
+            "port": 5678,
+            "host": "localhost",
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ],
+        }
+    ]
+}
+```
+
+Also, put `DEBUGGER=True` into your `.env` file. After that you can do debugging with VS Code, by running containerized application and hitting `Run -> Start Debugging` or `F5` button.
+
 # Contributing
 Bug reports, bug fixes and new features are always welcome.
 Please open issues and submit pull requests for any new code.
