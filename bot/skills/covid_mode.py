@@ -376,14 +376,14 @@ def infect_user_masked_condition(user: User, masked_probability: float, unmasked
             photo_bytearray, user, context)
 
     _rng = random()
-    logger.debug(_rng)
+    logger.debug(str(_rng))
 
     if has_mask:
         infecting = _rng <= masked_probability
     else:
         infecting = _rng <= unmasked_probability
 
-    logger.debug(infecting)
+    logger.debug(str(infecting))
     if infecting:
         logger.debug(f"User {user.full_name} infected")
         _db.infect(user.id)

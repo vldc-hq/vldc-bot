@@ -179,7 +179,7 @@ def cleanup_inner_wrapper(seconds:int, remove_cmd, remove_reply,
     try:
         result = func(*args, **kwargs)
     except Exception as err:
-        logger.error(err)
+        logger.error(str(err))
     setattr(bot, '_message', orig_fn)
     return result
 
