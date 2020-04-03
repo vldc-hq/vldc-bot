@@ -20,7 +20,7 @@ from telegram.ext.filters import Filters
 from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
-from mode import cleanup, Mode, OFF
+from mode import cleanup_update_context, cleanup_bot_queue, Mode, OFF
 from skills.mute import mute_user_for_time
 from skills.roll import _get_username
 
@@ -265,7 +265,7 @@ def test(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=600)
+@cleanup_update_context(seconds=600)
 def cough(update: Update, context: CallbackContext):
     user: User = update.effective_user
 
@@ -287,7 +287,7 @@ def cough(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=600)
+@cleanup_update_context(seconds=600)
 def infect_admin(update: Update, context: CallbackContext):
     infect_user: User = update.message.reply_to_message.from_user
     _db.add(infect_user)
@@ -297,7 +297,7 @@ def infect_admin(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=60)
+@cleanup_bot_queue(seconds=60)
 def random_cough(bot: Bot, queue: JobQueue):
     users = _db.find_all()
 
@@ -325,11 +325,14 @@ def random_cough(bot: Bot, queue: JobQueue):
                 chance = .0
                 try:
                     _db.add_lethality(user['_id'], datetime.now())
-                    bot.restrict_chat_member(get_group_chat_id(), user['_id'],
-                                                can_add_web_page_previews=False,
-                                                can_send_media_messages=False,
-                                                can_send_other_messages=False,
-                                                can_send_messages=False)
+                    # TODO: Extract it more properly
+                    mute_perm = ChatPermissions(
+                        can_add_web_page_previews=False,
+                        can_send_media_messages=False,
+                        can_send_other_messages=False,
+                        can_send_messages=False
+                    )
+                    bot.restrict_chat_member(get_group_chat_id(), user['_id'], mute_perm)
                     message += f"{full_name} умер от коронавируса, F\n"
 
                 except BadRequest as err:
