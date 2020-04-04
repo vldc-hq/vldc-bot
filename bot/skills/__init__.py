@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 
 from filters import admin_filter
-from mode import cleanup
+from mode import cleanup_update_context
 from skills.at_least_70k import add_70k
 from skills.banme import add_banme
 from skills.coc import add_coc
@@ -21,7 +21,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.22"
+__version__ = "0.23"
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _add_version(upd: Updater, version_handlers_group: int):
 
 
 @run_async
-@cleanup(seconds=20, remove_cmd=True)
+@cleanup_update_context(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
     """ Show current version of bot """
     logger.info(f"current ver.: {__version__}")
