@@ -20,7 +20,7 @@ from telegram.ext.filters import Filters
 from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
-from mode import cleanup, Mode, OFF
+from mode import cleanup_update_context, cleanup_bot_queue, Mode, OFF
 from skills.mute import mute_user_for_time
 from skills.roll import _get_username
 
@@ -30,6 +30,8 @@ QUARANTINE_MINUTES = 16 * 60
 QUARANTIN_MUTE_DURATION = timedelta(hours=12)
 
 DAILY_INFECTION_RATE = 0.01
+
+RANDOM_CURE_RATE = 0.01
 
 COUGH_INFECTION_CHANCE_MASKED = 0.01
 COUGH_INFECTION_CHANCE_UNMASKED = 0.3
@@ -44,6 +46,8 @@ LETHALITY_RATE = 0.03
 
 JOB_QUEUE_DAILY_INFECTION_KEY = 'covid_daily_infection_job'
 JOB_QUEUE_REPEATING_COUGHING_KEY = 'covid_repeating_coughing_job'
+
+PREV_MESSAGE_USER_KEY = 'prev_message_user'
 
 REPEATING_COUGHING_INTERVAL = timedelta(minutes=1)
 
@@ -94,10 +98,16 @@ class DB:
             "$set": {"infected_since": datetime.now()}
         })
 
+    def cure(self, user_id: str):
+        self._coll.update_one({"_id": user_id}, {
+            "$set": {"cured_since": datetime.now()}
+        })
+
     def is_user_infected(self, user_id: str) -> bool:
         return self._coll.find_one({
             "_id": user_id,
-            "infected_since": {"$exists": True}
+            "infected_since": {"$exists": True},
+            "cured_since": {"$exists": False}
         }) is not None
 
     def add_quarantine(self, user_id: str, since: datetime, until: datetime):
@@ -118,7 +128,7 @@ class DB:
     def is_lethaled(self, user_id: str):
         return self._coll.find_one({
             "_id": user_id,
-            "lethaled_since": {"$exists": True}
+            "lethaled_since": {"$exists": True},
         })
 
     def remove(self, user_id: str):
@@ -200,7 +210,6 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
 
 
 def start_pandemic(queue: JobQueue, bot: Bot) -> None:
-    cure_all(queue, bot)
     set_handlers(queue, bot)
 
     bot.send_message(get_group_chat_id(), f"ALARM!!! CORONAVIRUS IS SPREADING")
@@ -256,7 +265,7 @@ def test(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=600)
+@cleanup_update_context(seconds=600)
 def cough(update: Update, context: CallbackContext):
     user: User = update.effective_user
 
@@ -278,7 +287,7 @@ def cough(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=600)
+@cleanup_update_context(seconds=600)
 def infect_admin(update: Update, context: CallbackContext):
     infect_user: User = update.message.reply_to_message.from_user
     _db.add(infect_user)
@@ -288,7 +297,7 @@ def infect_admin(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=60)
+@cleanup_bot_queue(seconds=60)
 def random_cough(bot: Bot, queue: JobQueue):
     users = _db.find_all()
 
@@ -300,21 +309,31 @@ def random_cough(bot: Bot, queue: JobQueue):
         # todo: move "_get_username" to commons
         full_name = _get_username(user)
 
-        if 'infected_since' in user:
+        lethaled = _db.is_lethaled(user['_id'])
+
+        if 'infected_since' in user and 'cured_since' not in user and lethaled is None:
             chance = RANDOM_COUGH_INFECTED_CHANCE
-            days_count = (datetime.now() - user['infected_since']).days
-            if _rng <= LETHALITY_RATE * (days_count ** days_count):
+            delta_seconds = (datetime.now() - user['infected_since']).total_seconds()
+            delta_days_float = delta_seconds / (60 * 60 * 24)
+
+            if _rng <= RANDOM_CURE_RATE ** (2 - delta_days_float):
+                chance = .0
+                _db.cure(user['_id'])
+                message += f"{full_name} излечился от коронавируса\n"
+
+            if _rng <= LETHALITY_RATE * (delta_days_float ** delta_days_float):
                 chance = .0
                 try:
-                    lethaled = _db.is_lethaled(user['_id'])
-                    if lethaled is None:
-                        _db.add_lethality(user['_id'], datetime.now())
-                        bot.restrict_chat_member(get_group_chat_id(), user['_id'],
-                                                 can_add_web_page_previews=False,
-                                                 can_send_media_messages=False,
-                                                 can_send_other_messages=False,
-                                                 can_send_messages=False)
-                        message += f"{full_name} умер от коронавируса, F\n"
+                    _db.add_lethality(user['_id'], datetime.now())
+                    # TODO: Extract it more properly
+                    mute_perm = ChatPermissions(
+                        can_add_web_page_previews=False,
+                        can_send_media_messages=False,
+                        can_send_other_messages=False,
+                        can_send_messages=False
+                    )
+                    bot.restrict_chat_member(get_group_chat_id(), user['_id'], mute_perm)
+                    message += f"{full_name} умер от коронавируса, F\n"
 
                 except BadRequest as err:
                     err_msg = f"can't restrict user: {err}"
@@ -357,25 +376,20 @@ def infect_user_masked_condition(user: User, masked_probability: float, unmasked
             photo_bytearray, user, context)
 
     _rng = random()
-    logger.debug(_rng)
+    logger.debug(str(_rng))
 
     if has_mask:
         infecting = _rng <= masked_probability
     else:
         infecting = _rng <= unmasked_probability
 
-    logger.debug(infecting)
+    logger.debug(str(infecting))
     if infecting:
         logger.debug(f"User {user.full_name} infected")
         _db.infect(user.id)
 
 
-# todo: put it in the chat_data
-prev_message_user: Optional[User] = None
-
-
 def catch_message(update: Update, context: CallbackContext):
-    global prev_message_user
     user: User = update.effective_user
 
     if update.message is not None and update.message.reply_to_message is not None:
@@ -383,7 +397,9 @@ def catch_message(update: Update, context: CallbackContext):
 
     user_to_infect: Optional[User] = None
 
-    if prev_message_user is not None:
+    if PREV_MESSAGE_USER_KEY in context.chat_data.keys():
+        prev_message_user: User = context.chat_data[PREV_MESSAGE_USER_KEY]
+
         if _db.is_user_infected(user.id):
             user_to_infect = prev_message_user
         if _db.is_user_infected(prev_message_user.id):
@@ -392,7 +408,7 @@ def catch_message(update: Update, context: CallbackContext):
     infect_user_masked_condition(
         user_to_infect, INFECTION_CHANCE_MASKED, INFECTION_CHANCE_UNMASKED, context)
 
-    prev_message_user = user
+    context.chat_data[PREV_MESSAGE_USER_KEY] = user
 
     _db.add(user)
 

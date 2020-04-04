@@ -12,7 +12,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
 from db.mongo import get_db
 from filters import admin_filter
-from mode import cleanup
+from mode import cleanup_update_context
 from skills.mute import mute_user_for_time
 
 logger = logging.getLogger(__name__)
@@ -147,7 +147,7 @@ def _get_username(h: Dict) -> str:
 
 
 @run_async
-@cleanup(seconds=600, remove_cmd=True, remove_reply=True)
+@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_hussars(update: Update, context: CallbackContext):
     """ Show leader board, I believe it should looks like smth like:
 
@@ -186,7 +186,7 @@ def show_hussars(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=120, remove_cmd=True, remove_reply=True)
+@cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
     # check if hussar already exist or create new one
@@ -217,7 +217,7 @@ def roll(update: Update, context: CallbackContext):
 
 # noinspection PyPep8Naming
 @run_async
-@cleanup(seconds=120, remove_cmd=True, remove_reply=True)
+@cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
 def satisfy_GDPR(update: Update, context: CallbackContext):
     user: User = update.effective_user
     _db.remove(user.id)
@@ -226,7 +226,7 @@ def satisfy_GDPR(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup(seconds=120, remove_cmd=True, remove_reply=True)
+@cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
 def wipe_hussars(update: Update, context: CallbackContext):
     _db.remove_all()
     logger.info(f"all hussars was removed from DB")

@@ -149,15 +149,51 @@ def _hook_message(bot: Bot, callback_after=lambda x: x):
     return orig_fn
 
 
+@run_async
 def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
-    logger.debug(f"Scheduling cleanup of message {message.message_id} \
+    logger.debug(f"Scheduling cleanup of message {message} \
                    in {seconds} seconds")
     job_queue.run_once(lambda _: message.delete(), seconds,
                        context=message.chat_id)
 
 
-def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
-    """ Remove messages emitted by decorated function """
+def cleanup_inner_wrapper(seconds: int, remove_cmd, remove_reply,
+                          args, kwargs, func,
+                          bot: Bot, queue: JobQueue, message: Optional[Message]):
+    # Hook message method on Bot
+    # So everything after that will be catched
+    # And also removed
+    orig_fn = _hook_message(bot, lambda msg: (
+        _remove_message_after(msg, queue, seconds)
+    ))
+
+    if message:
+        if remove_cmd:
+            _remove_message_after(message, queue, seconds)
+        if remove_reply and message.reply_to_message:  # type: ignore
+            reply: Message = message.reply_to_message  # type: ignore
+            _remove_message_after(reply, queue, seconds)
+
+    result = None
+
+    try:
+        result = func(*args, **kwargs)
+    except Exception as err:
+        logger.error(str(err))
+    setattr(bot, '_message', orig_fn)
+    return result
+
+
+def cleanup_update_context(seconds: int, remove_cmd=True, remove_reply=False):
+    """Cleanup decorator for Update, CallbackContext
+    Remove messages emitted by decorated function with arguments Update, CallbackContext
+
+    Args:
+        seconds (:obj:`int`): Amount of seconds after which message should be deleted
+        remove_cmd (:obj:`bool`, optional): Whether user command should be deleted, default True
+        remove_reply (:obj:`bool`, optional): Whether reply should be deleted
+
+    """
     logger.debug(f"Removing message from bot in {seconds}")
 
     def cleanup_decorator(func):
@@ -165,56 +201,45 @@ def cleanup(seconds: int, remove_cmd=True, remove_reply=False):
 
         @wraps(func)
         def cleanup_wrapper(*args, **kwargs):
-            orig_fn = None
+            update: Update = args[0]
+            context: CallbackContext = args[1]
 
-            # todo:
-            #  don't sure about that 😕😕😕
-            bot: Optional[Bot] = None
-            context: Optional[CallbackContext] = None
-            update: Optional[Update] = None
-            message: Optional[Message] = None
-            queue: Optional[JobQueue] = None
+            queue: JobQueue = context.job_queue
 
-            for arg in args:
-                logger.debug(arg)
-                if isinstance(arg, Bot):
-                    bot = arg
+            bot: Bot = context.bot
+            message: Message = update.message
 
-                if isinstance(arg, JobQueue):
-                    queue = arg
-
-                if isinstance(arg, CallbackContext):
-                    context = arg
-                    bot = context.bot
-                if isinstance(arg, Update):
-                    update = arg
-                    message = update.message
-
-            if context:
-                queue = context.job_queue
-
-            if bot:
-                orig_fn = _hook_message(bot, lambda msg: (
-                    _remove_message_after(msg, queue, seconds)
-                ))
-
-            if bot and update:
-                if remove_cmd:
-                    _remove_message_after(message, queue, seconds)
-                # todo:
-                #  should be refactored someday:
-                #  > error: Item "None" of "Optional[Any]" has no attribute "reply_to_message"
-                if remove_reply and message.reply_to_message:  # type: ignore
-                    reply: Message = message.reply_to_message  # type: ignore
-                    _remove_message_after(reply, queue, seconds)
-
-            result = func(*args, **kwargs)
-            setattr(bot, '_message', orig_fn)
-            return result
+            return cleanup_inner_wrapper(seconds, remove_cmd, remove_reply, args,
+                                         kwargs, func, bot, queue, message)
 
         return cleanup_wrapper
 
     return cleanup_decorator
 
 
-__all__ = ["Mode", "cleanup", "ON", "OFF"]
+def cleanup_bot_queue(seconds: int):
+    """Cleanup decorator for Bot, JobQueue
+    Remove messages emitted by decorated function with arguments Bot, JobQueue
+
+    Args:
+        seconds (:obj:`int`): Amount of seconds after which message should be deleted
+    """
+    logger.debug(f"Removing message from bot in {seconds}")
+
+    def cleanup_decorator(func):
+        logger.debug(f"cleanup_decorator func: {func}")
+
+        @wraps(func)
+        def cleanup_wrapper(*args, **kwargs):
+            bot: Bot = args[0]
+            queue: JobQueue = args[1]
+
+            return cleanup_inner_wrapper(seconds, False, False, args,
+                                         kwargs, func, bot, queue, None)
+
+        return cleanup_wrapper
+
+    return cleanup_decorator
+
+
+__all__ = ["Mode", "cleanup_bot_queue", "cleanup_update_context", "ON", "OFF"]
