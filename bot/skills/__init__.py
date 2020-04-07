@@ -13,6 +13,7 @@ from skills.core import add_core
 from skills.covid_mode import add_covid_mode
 from skills.fools import add_fools_mode
 from skills.mute import add_mute
+from skills.pr import add_pr
 from skills.roll import add_roll
 from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
