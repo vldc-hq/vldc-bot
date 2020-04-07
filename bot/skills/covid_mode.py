@@ -26,8 +26,8 @@ from skills.roll import _get_username
 
 logger = logging.getLogger(__name__)
 
-QUARANTINE_MINUTES = 16 * 60
-QUARANTIN_MUTE_DURATION = timedelta(hours=12)
+QUARANTINE_MUTE_DURATION = timedelta(hours=4)
+RESPAWN_TIME = timedelta(hours=12)
 
 DAILY_INFECTION_RATE = 0.01
 
@@ -46,10 +46,12 @@ LETHALITY_RATE = 0.03
 
 JOB_QUEUE_DAILY_INFECTION_KEY = 'covid_daily_infection_job'
 JOB_QUEUE_REPEATING_COUGHING_KEY = 'covid_repeating_coughing_job'
+JOB_QUEUE_REPEATING_FATE_KEY = 'covid_repeating_fate_job'
 
 PREV_MESSAGE_USER_KEY = 'prev_message_user'
 
-REPEATING_COUGHING_INTERVAL = timedelta(minutes=1)
+REPEATING_COUGHING_INTERVAL = timedelta(minutes=5)
+REPEATING_FATE_INTERVAL = timedelta(hours=5)
 
 DAILY_INFECTION_TIME = time(
     hour=0,
@@ -175,6 +177,9 @@ def set_handlers(queue: JobQueue, bot: Bot):
     queue.run_repeating(lambda _: random_cough(bot, queue),
                         REPEATING_COUGHING_INTERVAL,
                         name=JOB_QUEUE_REPEATING_COUGHING_KEY)
+    queue.run_repeating(lambda _: random_fate(bot, queue),
+                        REPEATING_FATE_INTERVAL,
+                        name=JOB_QUEUE_REPEATING_FATE_KEY)
 
 
 def cure_all(queue: JobQueue, bot: Bot) -> None:
@@ -245,11 +250,11 @@ def quarantine(update: Update, context: CallbackContext):
     try:
         user: User = update.message.reply_to_message.from_user
         update.message.reply_text(
-            f"{user.full_name} помещён в карантин на {QUARANTIN_MUTE_DURATION}")
+            f"{user.full_name} помещён в карантин на {QUARANTINE_MUTE_DURATION}")
         since = datetime.now()
-        until = since + QUARANTIN_MUTE_DURATION
+        until = since + QUARANTINE_MUTE_DURATION
         _db.add_quarantine(user.id, since, until)
-        mute_user_for_time(update, context, user, QUARANTIN_MUTE_DURATION)
+        mute_user_for_time(update, context, user, QUARANTINE_MUTE_DURATION)
     except Exception as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
@@ -297,8 +302,27 @@ def infect_admin(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup_bot_queue(seconds=60)
+@cleanup_bot_queue(seconds=30)
 def random_cough(bot: Bot, queue: JobQueue):
+    users = _db.find_all()
+
+    message = ''
+
+    for user in users:
+        # todo: move "_get_username" to commons
+        full_name = _get_username(user)
+
+        if random() <= RANDOM_COUGH_UNINFECTED_CHANCE:
+            message += f"{full_name} чихнул в пространство \n"
+
+    if message:
+        bot.send_message(get_group_chat_id(), message)
+
+
+@run_async
+def random_fate(bot: Bot, queue: JobQueue):
+    "health or death"
+
     users = _db.find_all()
 
     message = ''
@@ -312,17 +336,16 @@ def random_cough(bot: Bot, queue: JobQueue):
         lethaled = _db.is_lethaled(user['_id'])
 
         if 'infected_since' in user and 'cured_since' not in user and lethaled is None:
-            chance = RANDOM_COUGH_INFECTED_CHANCE
-            delta_seconds = (datetime.now() - user['infected_since']).total_seconds()
+            delta_seconds = (datetime.now() -
+                             user['infected_since']).total_seconds()
             delta_days_float = delta_seconds / (60 * 60 * 24)
 
             if _rng <= RANDOM_CURE_RATE ** (2 - delta_days_float):
-                chance = .0
                 _db.cure(user['_id'])
-                message += f"{full_name} излечился от коронавируса\n"
+                message += f"{full_name} has recovered from coronavirus!\n"
+                continue
 
             if _rng <= LETHALITY_RATE * (delta_days_float ** delta_days_float):
-                chance = .0
                 try:
                     _db.add_lethality(user['_id'], datetime.now())
                     # TODO: Extract it more properly
@@ -332,17 +355,14 @@ def random_cough(bot: Bot, queue: JobQueue):
                         can_send_other_messages=False,
                         can_send_messages=False
                     )
-                    bot.restrict_chat_member(get_group_chat_id(), user['_id'], mute_perm)
-                    message += f"{full_name} умер от коронавируса, F\n"
+                    until = datetime.now() + RESPAWN_TIME
+                    bot.restrict_chat_member(
+                        get_group_chat_id(), user['_id'], mute_perm, until)
+                    message += f"{full_name} died from coronavirus F (time to respawn: {RESPAWN_TIME}) 🧟\n"
 
                 except BadRequest as err:
                     err_msg = f"can't restrict user: {err}"
                     logger.warning(err_msg)
-        else:
-            chance = RANDOM_COUGH_UNINFECTED_CHANCE
-
-        if _rng <= chance:
-            message += f"{full_name} чихнул в пространство \n"
 
     if message:
         bot.send_message(get_group_chat_id(), message)
