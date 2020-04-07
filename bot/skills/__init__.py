@@ -66,9 +66,11 @@ skills: List[Dict] = [
     _make_skill(add_tree, "🎄 tree", " advent of code time!"),
     _make_skill(add_coc, "⛔🤬 coc", " VLDC/GDG VL Code of Conduct"),
     _make_skill(add_70k, "🛠 more than 70k?", " try to hire!"),
+    _make_skill(add_pr, "💻 got sk1lzz?", " put them to use!"),
 
     # modes
-    _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
+    _make_skill(add_smile_mode, "😼 smile mode",
+                " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
