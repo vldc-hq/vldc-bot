@@ -258,14 +258,14 @@ def stats(update: Update, context: CallbackContext):
 
     for user in users:
         if 'lethaled_since' in user:
-            lethaled_count += 1 
+            lethaled_count += 1
             break
-        
+
         if 'infected_since' in user and 'cured_since' not in user and 'lethaled_since' not in user:
             infected_count += 1
         elif 'cured_since' in user:
             cured_count += 1
-        
+
         if 'quarantined_since' in user and user['quarantined_until'] > datetime.now():
             quarantined_count += 1
 
