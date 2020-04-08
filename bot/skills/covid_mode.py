@@ -161,6 +161,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("quarantine", quarantine,
                                   filters=admin_filter), handlers_group)
     dp.add_handler(CommandHandler(
+        "stats", stats, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler(
         "temp", temp, filters=only_admin_on_others), handlers_group)
 
     # We must do this, since bot api doesnt present a way to get all members
@@ -243,6 +245,37 @@ def temp(update: Update, context: CallbackContext):
     temp = str(round(36 + temp_appendix, 2))
 
     message.reply_text(f"У {user.full_name} температура {temp} С")
+
+
+@run_async
+def stats(update: Update, context: CallbackContext):
+    users = _db.find_all()
+
+    infected_count = 0
+    lethaled_count = 0
+    cured_count = 0
+    quarantined_count = 0
+
+    for user in users:
+        if 'lethaled_since' in user:
+            lethaled_count += 1 
+            break
+        
+        if 'infected_since' in user and 'cured_since' not in user and 'lethaled_since' not in user:
+            infected_count += 1
+        elif 'cured_since' in user:
+            cured_count += 1
+        
+        if 'quarantined_since' in user and user['quarantined_until'] > datetime.now():
+            quarantined_count += 1
+
+    text = f"Статистика по CM (РЕЖИМ БОТА, ДЛЯ ИЗУЧЕНИЯ):\n" \
+           f"Летальных: {lethaled_count}\n" \
+           f"Инфицированных: {infected_count}\n" \
+           f"Излечившихся: {cured_count}\n" \
+           f"На карантине: {quarantined_count}\n"
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 
 @run_async
