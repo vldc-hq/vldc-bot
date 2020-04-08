@@ -259,7 +259,7 @@ def stats(update: Update, context: CallbackContext):
     for user in users:
         if 'lethaled_since' in user:
             lethaled_count += 1
-            break
+            continue
 
         if 'infected_since' in user and 'cured_since' not in user and 'lethaled_since' not in user:
             infected_count += 1
