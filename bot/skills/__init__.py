@@ -22,7 +22,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.23"
+__version__ = "0.3"
 
 logger = logging.getLogger(__name__)
 
