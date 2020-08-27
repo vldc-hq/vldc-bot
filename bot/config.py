@@ -50,4 +50,5 @@ def get_config() -> Dict:
         "MONGO_PASS": get_mongo_pass(),
         "MONGO_HOST": os.getenv("MONGO_HOST", "mongo"),
         "MONGO_PORT": os.getenv("MONGO_PORT", "27017"),
+        "SENTRY_DSN": os.getenv("SENTRY_DSN", None)
     }

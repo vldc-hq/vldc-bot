@@ -6,6 +6,7 @@
 """
 import logging
 
+import sentry_sdk
 from telegram.ext import Updater
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
@@ -14,8 +15,14 @@ from skills import skills
 
 
 def main():
-    """ Start the Smile! 😊."""
+    """ 🐈🐈🐈 """
     conf = get_config()
+
+    sentry_sdk.init(
+        conf["SENTRY_DSN"],
+        traces_sample_rate=1.0
+    )
+
     if conf["DEBUGGER"]:
         import ptvsd
         ptvsd.enable_attach(address=('0.0.0.0', 5678))
