@@ -181,9 +181,12 @@ def ban_user(context: CallbackContext):
 
     for user in db.find_all_users():
         if _is_time_gone(user):
-            context.bot.kick_chat_member(chat_id, user['_id'])
+            try:
+                context.bot.kick_chat_member(chat_id, user['_id'])
+                _delete_user_rel_messages(chat_id, user["_id"], context)
+            except BadRequest as err:
+                logger.error("can't ban user %s, because of: %s", user, err)
 
-            _delete_user_rel_messages(chat_id, user["_id"], context)
             db.delete_user(user['_id'])
 
             logger.info(f"user banned: {user}")
