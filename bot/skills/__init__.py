@@ -13,6 +13,7 @@ from skills.core import add_core
 from skills.covid_mode import add_covid_mode
 from skills.fools import add_fools_mode
 from skills.mute import add_mute
+from skills.nastya_mode import add_nastya_mode
 from skills.pr import add_pr
 from skills.roll import add_roll
 from skills.since_mode import add_since_mode
@@ -22,7 +23,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,8 @@ skills: List[Dict] = [
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
-    _make_skill(add_covid_mode, "🦠 covid mode", " fun and gamez")
+    _make_skill(add_covid_mode, "🦠 covid mode", " fun and gamez"),
+    _make_skill(add_nastya_mode, "🤫 nastya mode", " stop. just stop")
 ]
 
 
