@@ -8,23 +8,27 @@ The official [VLDC](https://vldc.org) telegram group bot.
 ![docker_hub](https://img.shields.io/docker/cloud/build/egregors/vldc_bot)
 [![Maintainability](https://api.codeclimate.com/v1/badges/baa6fa307ee9f8411c5d/maintainability)](https://codeclimate.com/github/egregors/vldc-bot/maintainability)
 
-## Skills
 
-### Smile Mode
+### Skills
+* 😼 core –  core
+* 😼 version –  show this message
+* 😻 still – do u remember it?
+* 😾 uwu –  don't uwu!
+* 🤭 mute –  mute user for N minutes
+* 🔫 roll –  life is so cruel... isn't it?
+* ⚔️ banme –  commit sudoku
+* 🎄 tree –  advent of code time!
+* ⛔🤬 coc –  VLDC/GDG VL Code of Conduct
+* 🛠 more than 70k? –  try to hire!
+* 💻 got sk1lzz? –  put them to use!
 
-Inspired by Twitch SmileMode this bot may bring you a remarkable new way to conversation ;)
-
-If you an admin of Telegram Group just send `/smile_mode_on` to set SmileMode ON,
-and `/smile_mode_off` to turn it off.
-
-**Keep it in mind, you should make bot an admin and allow delete and pin messages**
-
-On SmileMode all messages exclude **stickers** of **GIFs** will be deleted.
-
-### Towel Mode
-
-By default any new guests of the group will receive message from the Bot. 
-User should reply the Bot message in the next hour otherwise user would be blacklisted.
+### Modes
+* 😼 smile mode –  allow only stickers in the chat
+* 🛠 since mode –  under construction
+* 🧼 towel mode –  anti bot
+* 🙃 fools mode –  what? not again!
+* 🦠 covid mode –  fun and gamez
+* 🤫 nastya mode –  stop. just stop
 
 
 ## Usage
