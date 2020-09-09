@@ -36,7 +36,8 @@ def mute_user_for_time(update: Update, context: CallbackContext, user: User, mut
             can_add_web_page_previews=False,
             can_send_media_messages=False,
             can_send_other_messages=False,
-            can_send_messages=False
+            can_send_messages=False,
+            can_send_polls=False
         )
         context.bot.restrict_chat_member(update.effective_chat.id, user.id, mute_perm, until)
     except Exception as err:
@@ -54,12 +55,14 @@ def mute(update: Update, context: CallbackContext):
 @run_async
 def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
     try:
-        update.message.reply_text(f"{user.full_name}, не озаруй! Мало ли кто увидит 🧐")
+        update.message.reply_text(f"{user.full_name}, не озоруй! Мало ли кто увидит 🧐")
         unmute_perm = ChatPermissions(
             can_add_web_page_previews=True,
             can_send_media_messages=True,
             can_send_other_messages=True,
-            can_send_messages=True
+            can_send_messages=True,
+            can_send_polls=True,
+            can_invite_users=True
         )
         context.bot.restrict_chat_member(update.effective_chat.id, user.id, unmute_perm)
     except Exception as err:
