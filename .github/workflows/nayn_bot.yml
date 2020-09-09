@@ -1,11 +1,15 @@
 name: Nyan Bot
 
-on: 
+on:
   push:
     branches:
       - master
+      - '!*no-ci*'
+      - '!*skip-ci*'
     tags:
-      - v*
+      - 'v*'
+      - '!*no-ci*'
+      - '!*skip-ci*'
 
 jobs:
   build:

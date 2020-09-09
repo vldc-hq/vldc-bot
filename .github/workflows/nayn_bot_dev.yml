@@ -1,9 +1,11 @@
 name: Nyan Bot Dev
 
-on: 
+on:
   push:
     branches:
       - dev
+      - '!*no-ci*'
+      - '!*skip-ci*'
 
 jobs:
   build:
