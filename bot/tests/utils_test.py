@@ -34,3 +34,8 @@ class DurationParserTestCase(TestCase):
         self.assertEqual(get_duration('php sucks!'), timedelta(0))
         self.assertEqual(get_duration('php 20s sucks!'), timedelta(seconds=20))
         self.assertEqual(get_duration('php 20s sucks 40m !'), timedelta(seconds=20, minutes=40))
+
+    def test_get_duration_lt_10(self):
+        self.assertEqual(get_duration('9'), timedelta(minutes=9))
+        self.assertEqual(get_duration('900'), timedelta(minutes=900))
+        self.assertEqual(get_duration('1'), timedelta(minutes=1))

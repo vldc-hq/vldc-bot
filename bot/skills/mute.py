@@ -51,6 +51,7 @@ def mute(update: Update, context: CallbackContext):
     mute_user_for_time(update, context, user, mute_minutes)
 
 
+@run_async
 def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
     try:
         update.message.reply_text(f"{user.full_name}, не озаруй! Мало ли кто увидит 🧐")

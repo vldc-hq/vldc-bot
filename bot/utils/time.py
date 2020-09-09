@@ -10,6 +10,9 @@ def get_duration(raw_duration: str) -> timedelta:
 
     def f(acc: timedelta, el: str) -> timedelta:
         try:
+            if not any(['h' in el, 'm' in el, 's' in el]):
+                return acc + timedelta(minutes=int(el))
+
             mark = el[-1]
             count = int(el[:-1])
 
