@@ -21,6 +21,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * ⛔🤬 coc –  VLDC/GDG VL Code of Conduct
 * 🛠 more than 70k? –  try to hire!
 * 💻 got sk1lzz? –  put them to use!
+* 👁 smell like PRISM? nononono!
 
 ### Modes
 * 😼 smile mode –  allow only stickers in the chat

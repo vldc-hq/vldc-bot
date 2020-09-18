@@ -23,7 +23,9 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
+
+from skills.words import add_words
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ def _add_version(upd: Updater, version_handlers_group: int):
 @run_async
 @cleanup_update_context(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
-    """ Show current version of bot """
+    """ Show a current version of bot """
     logger.info(f"current ver.: {__version__}")
 
     chat_id = update.effective_chat.id
@@ -69,10 +71,10 @@ skills: List[Dict] = [
     _make_skill(add_coc, "⛔🤬 coc", " VLDC/GDG VL Code of Conduct"),
     _make_skill(add_70k, "🛠 more than 70k?", " try to hire!"),
     _make_skill(add_pr, "💻 got sk1lzz?", " put them to use!"),
+    _make_skill(add_words, "👁", "smell like PRISM? nononono!"),
 
     # modes
-    _make_skill(add_smile_mode, "😼 smile mode",
-                " allow only stickers in the chat"),
+    _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
