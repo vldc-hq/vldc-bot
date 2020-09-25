@@ -14,6 +14,8 @@ from mode import cleanup_update_context
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TOP_LIMIT = 10
+
 
 class DB:
     def __init__(self, db_name: str):
@@ -56,10 +58,21 @@ def _normalize(words: List[str]) -> List[str]:
     return [w.lower() for w in words if w[0] != '/']
 
 
+def _get_top_limit(context: CallbackContext) -> int:
+    if len(context.args) < 1:
+        return DEFAULT_TOP_LIMIT
+
+    try:
+        return int(context.args[0])
+    except Exception as err:
+        logger.error(f"can't get top limit: {err}")
+        return DEFAULT_TOP_LIMIT
+
+
 @run_async
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_top(update: Update, context: CallbackContext):
-    _top_limit = 10
+    _top_limit = _get_top_limit(context)
     # TODO: make it pretty
     top = "\n".join([f"{w['word']}: {w['count']}" for w in list(_db.find_all())[:_top_limit]])
     context.bot.send_message(chat_id=update.effective_chat.id,
