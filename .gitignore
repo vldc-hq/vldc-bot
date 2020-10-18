@@ -110,3 +110,6 @@ venv.bak/
 
 # idea
 .idea/
+
+#creds
+*-*.json
