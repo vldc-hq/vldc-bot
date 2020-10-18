@@ -1,10 +1,12 @@
-from telegram.ext import BaseFilter
-from telegram import Message
-from config import get_debug
 import re
 
+from telegram import Message
+from telegram.ext import MessageFilter
 
-class AdminFilter(BaseFilter):
+from config import get_debug
+
+
+class AdminFilter(MessageFilter):
     """ Messages only from admins """
     name = 'Filters.admin'
 
@@ -16,7 +18,7 @@ class AdminFilter(BaseFilter):
         }
 
 
-class UwuFilter(BaseFilter):
+class UwuFilter(MessageFilter):
     """ Regexp check for UwU """
     name = 'Filters.uwu'
 
@@ -27,7 +29,7 @@ class UwuFilter(BaseFilter):
         return False
 
 
-class OnlyAdminOnOthersFilter(BaseFilter):
+class OnlyAdminOnOthersFilter(MessageFilter):
     """ Messages only from admins with reply """
     name = 'Filters.onlyAdminOnOthers'
 
