@@ -29,7 +29,6 @@ def handle_voice(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     message = update.message
 
-
     # remove message
     # context.bot.delete_message(chat_id=chat_id, message_id=message.message_id)
 
@@ -46,7 +45,7 @@ def handle_voice(update: Update, context: CallbackContext):
         file_type = voice.mime_type
 
         logger.info("%s sent voice message!", user.name)
-        
+
         logger.info("------------------------------------------------------------------------------------")
         logger.info(f"id: {file_id}, type: {file_type}")
         text = get_text_from_speech(file_id)
