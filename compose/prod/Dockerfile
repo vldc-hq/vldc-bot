@@ -1,5 +1,7 @@
 FROM python:3.8-slim
 
+RUN apt-get -y update && apt-get install -y ffmpeg
+
 COPY . /app
 WORKDIR /app
 

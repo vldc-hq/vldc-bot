@@ -11,7 +11,9 @@ from telegram.ext import Updater
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from config import get_config
-from skills import skills
+from skills import skills, commands_list
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -34,6 +36,9 @@ def main():
 
     for handler_group, skill in enumerate(skills, DEFAULT_GROUP + 1):
         skill["add_handlers"](updater, handler_group)
+
+    # update commands list
+    updater.bot.set_my_commands(commands=commands_list)
 
     # let's go dude
     updater.start_polling()

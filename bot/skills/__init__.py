@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Tuple
 
 from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
@@ -23,7 +23,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 
 from skills.words import add_words
 
@@ -80,6 +80,23 @@ skills: List[Dict] = [
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
     _make_skill(add_covid_mode, "🦠 covid mode", " fun and gamez"),
     _make_skill(add_nastya_mode, "🤫 nastya mode", " stop. just stop")
+]
+
+commands_list: List[Tuple[str, str]] = [
+    ("version", "show this message"),
+    ("still", "do u remember it?"),
+    ("mute", "😼 mute user for N minutes"),
+    ("unmute", "😼 unmute user"),
+    ("roll", "life is so cruel... isn't it?"),
+    ("gdpr_me", "wipe all my hussar history"),
+    ("hussars", "😼 show hussars leaderboard"),
+    ("wipe_hussars", "😼 wipe all hussars history"),
+    ("banme", "commit sudoku"),
+    ("tree", "advent of code time!"),
+    ("coc", "VLDC/GDG VL Code of Conduct"),
+    ("70k", "try to hire!"),
+    ("pr", "got sk1lzz?"),
+    ("top", "top N PRISM words")
 ]
 
 
