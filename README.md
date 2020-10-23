@@ -48,43 +48,21 @@ docker-compose -f docker-compose-dev.yml build
 ## Developing
 Create test Telegram bot, and store TOKEN and chat id, you will need it for developing.
 
-### In VENV:
+User `make` to up dev services:
 
-Create `venv` and install dependencies
-```
-make dev
-```
+```shell script
+Usage: make [task]
 
-Run tests
-```
-make test
-```
-
-Run linters
-```
-make lint
-```
-
-Run bot (required vars should be in ENV)
-```
-make start
-```
-
-### In Docker:
-
-Build local container
-```
-make dev_build
-```
-
-Run local dev bot (with mongo)
-```
-dev_start
-```
-
-Run tests
-```
-make dev_test
+task                 help
+------               ----
+build                Build all
+up                   Up All and show logs
+stop                 Stop all
+down                 Down all
+test                 Run tests
+lint                 Run linters (flake8, mypy)
+                     
+help                 Show help message
 ```
 
 ### Setting Up Debugger in VS Code
