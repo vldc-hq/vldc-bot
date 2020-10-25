@@ -6,6 +6,7 @@ from telegram.ext import Updater, Dispatcher, MessageHandler, Filters, run_async
 
 from mode import Mode
 from skills.mute import mute_user_for_time
+from utils.voice_recognition import get_text_from_speech
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +27,23 @@ def handle_voice(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     message = update.message
 
-    logger.info("%s sent voice message!", user.name)
+    voice = message.voice or message.audio
+    duration = voice.duration
 
-    # TODO: Recognize voice message and replace original message by text
+    message_text = ""
 
-    # ban user
-    context.bot.send_message(chat_id=chat_id, text=f"🤫🤫🤫 Групповой чат – не место для войсов, @{user.username}!")
-    mute_user_for_time(update, context, user, timedelta(hours=2))
+    if duration > 20:
+        message_text = f"🤫🤫🤫 @{user.username}! Слишком много наговорил..."
+    else:
+        file_id = voice.file_id
+        logger.info("%s sent voice message!", user.name)
+        default_message = f"@{user.username} промямлил что-то невразумительное..."
+        recognized_text = get_text_from_speech(file_id)
+        if recognized_text is None:
+            message_text = default_message
+        else:
+            message_text = f"🤫🤫🤫 Групповой чат – не место для войсов, @{user.username}!"\
+                            f"\nВот такой текст был распознан: {recognized_text}"
 
-    # remove message
     context.bot.delete_message(chat_id=chat_id, message_id=message.message_id)
+    context.bot.send_message(chat_id=chat_id, text=message_text)
