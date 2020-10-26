@@ -5,9 +5,9 @@ from telegram.ext import Updater, Dispatcher, CommandHandler, CallbackContext, r
 
 logger = logging.getLogger(__name__)
 
-MSG = f"Would you like to make PR for this?\n" \
-      f"You can start by forking me at https://github.com/egregors/vldc-bot\n" \
-      f"💪😎"
+MSG = "Would you like to make PR for this?\n" \
+      "You can start by forking me at https://github.com/egregors/vldc-bot\n" \
+      "💪😎"
 
 
 def add_pr(upd: Updater, handlers_group: int):

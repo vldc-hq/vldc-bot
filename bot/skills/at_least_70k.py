@@ -5,9 +5,9 @@ from telegram.ext import Updater, Dispatcher, CommandHandler, CallbackContext, r
 
 logger = logging.getLogger(__name__)
 
-MSG = f"Значительно больше откликов на предложение можно получить, " \
-      f"если подробно изложить суть, приложив по возможности ссылку на описание и " \
-      f"указав вилку :3"
+MSG = "Значительно больше откликов на предложение можно получить, " \
+      "если подробно изложить суть, приложив по возможности ссылку на описание и " \
+      "указав вилку :3"
 
 
 def add_70k(upd: Updater, handlers_group: int):

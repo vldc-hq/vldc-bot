@@ -70,12 +70,12 @@ def since_callback(update, context):
      """
     topic_title = " ".join(context.args)
     if len(topic_title) == 0:
-        logging.warning(f"topic is empty")
+        logging.warning("topic is empty")
         update.message.reply_text("topic is empty 😿")
         return
 
     if len(topic_title) > 64:
-        logging.warning(f"topic too long")
+        logging.warning("topic too long")
         update.message.reply_text("topic too long 😿")
         return
 

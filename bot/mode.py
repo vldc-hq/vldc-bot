@@ -117,7 +117,7 @@ class Mode:
             self._dp = upd.dispatcher
             self.handlers_gr = handlers_group
 
-            logger.info(f"adding users handlers...")
+            logger.info("adding users handlers...")
             func(upd, self.handlers_gr)
 
             self._mode_handlers = upd.dispatcher.handlers[self.handlers_gr].copy()

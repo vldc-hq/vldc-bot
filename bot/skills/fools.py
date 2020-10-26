@@ -70,11 +70,11 @@ def f(text: str, lingvo: str) -> str:
     return response.translations[0].translated_text
 
 
-def _make_traduki(f: Callable[[str, str], str]) -> Callable[[str, str], str]:
-    def tr(s: str, l: str) -> str:
-        if s is None or len(s) < 1:
+def _make_traduki(func: Callable[[str, str], str]) -> Callable[[str, str], str]:
+    def tr(string: str, lang: str) -> str:
+        if string is None or len(string) < 1:
             raise ValueError("nothing to translate")
-        return f(s, l)
+        return func(string, lang)
 
     return tr
 

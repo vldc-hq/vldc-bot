@@ -1,0 +1,3 @@
+[MESSAGES CONTROL]
+disable = bad-continuation,duplicate-code,too-few-public-methods,fixme,C0103,missing-module-docstring,missing-class-docstring,missing-function-docstring,unnecessary-pass
+max-line-length = 127
