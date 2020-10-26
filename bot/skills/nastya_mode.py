@@ -33,8 +33,6 @@ def handle_voice(update: Update, context: CallbackContext):
     voice = message.voice or message.audio
     duration = voice.duration
 
-    message_text = ""
-
     if duration > MAX_VOICE_DURATION:
         message_text = f"🤫🤫🤫 @{user.username}! Слишком много наговорил..."
     else:
@@ -45,18 +43,18 @@ def handle_voice(update: Update, context: CallbackContext):
 
         try:
             recognized_text = get_text_from_speech(file_id)
-        except Exception:
-            logger.exception("failed to recognize speech")
+        except Exception as err:
+            logger.exception("failed to recognize speech: %s", err)
 
         if recognized_text is None:
             message_text = default_message
         else:
             message_text = f"🤫🤫🤫 Групповой чат – не место для войсов, @{user.username}!" \
-                           f"\nВот такой текст был распознан: {recognized_text}"
+                           f"\n@{user.username} пытался сказать: {recognized_text}"
 
     context.bot.send_message(chat_id=chat_id, text=message_text)
 
     try:
-        mute_user_for_time(update, context, VOICE_USER_MUTE_DURATION)
+        mute_user_for_time(update, context, user, VOICE_USER_MUTE_DURATION)
     finally:
         context.bot.delete_message(chat_id=chat_id, message_id=message.message_id)
