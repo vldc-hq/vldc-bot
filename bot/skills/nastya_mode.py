@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 mode = Mode(mode_name="nastya_mode", default=True)
 
-MAX_VOICE_DURATION = 60 #seconds
+MAX_VOICE_DURATION = 60  # seconds
 VOICE_USER_MUTE_DURATION = timedelta(minutes=10)
 
 
@@ -48,12 +48,11 @@ def handle_voice(update: Update, context: CallbackContext):
         except Exception:
             logger.exception("failed to recognize speech")
 
-
         if recognized_text is None:
             message_text = default_message
         else:
-            message_text = f"🤫🤫🤫 Групповой чат – не место для войсов, @{user.username}!"\
-                            f"\nВот такой текст был распознан: {recognized_text}"
+            message_text = f"🤫🤫🤫 Групповой чат – не место для войсов, @{user.username}!" \
+                           f"\nВот такой текст был распознан: {recognized_text}"
 
     context.bot.send_message(chat_id=chat_id, text=message_text)
 

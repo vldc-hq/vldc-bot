@@ -221,13 +221,13 @@ def roll(update: Update, context: CallbackContext):
 def satisfy_GDPR(update: Update, context: CallbackContext):
     user: User = update.effective_user
     _db.remove(user.id)
-    logger.info(f"{user.full_name} was removed from DB")
-    update.message.reply_text(f"ok, boomer 😒", disable_notification=True)
+    logger.info("%s was removed from DB", user.full_name)
+    update.message.reply_text("ok, boomer 😒", disable_notification=True)
 
 
 @run_async
 @cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
 def wipe_hussars(update: Update, context: CallbackContext):
     _db.remove_all()
-    logger.info(f"all hussars was removed from DB")
-    update.message.reply_text(f"👍", disable_notification=True)
+    logger.info("all hussars was removed from DB")
+    update.message.reply_text("👍", disable_notification=True)

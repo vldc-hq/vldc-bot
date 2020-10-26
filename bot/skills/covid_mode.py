@@ -219,7 +219,7 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
 def start_pandemic(queue: JobQueue, bot: Bot) -> None:
     set_handlers(queue, bot)
 
-    bot.send_message(get_group_chat_id(), f"ALARM!!! CORONAVIRUS IS SPREADING")
+    bot.send_message(get_group_chat_id(), "ALARM!!! CORONAVIRUS IS SPREADING")
 
 
 @run_async

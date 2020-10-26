@@ -1,10 +1,11 @@
-import os
-from google.cloud import speech
-import requests
-import logging
 import json
-from tempfile import NamedTemporaryFile
+import logging
+import os
 import subprocess
+from tempfile import NamedTemporaryFile
+
+import requests
+from google.cloud import speech
 
 TOKEN = os.environ["TOKEN"]
 
@@ -93,5 +94,5 @@ def get_text_from_speech(file_id):
         logger.info("Result of voice recognition", result)
         return result
     except (AttributeError, ValueError, RuntimeError) as ex:
-        logger.error("Error during voice recognition", { "exception": ex, "file_id": file_id })
+        logger.error("Error during voice recognition", {"exception": ex, "file_id": file_id})
         return None
