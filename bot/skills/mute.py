@@ -10,6 +10,9 @@ from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
 
+MIN_MUTE_TIME = timedelta(minutes=1)
+MAX_MUTE_TIME = timedelta(days=7)
+
 
 def add_mute(upd: Updater, handlers_group: int):
     logger.info("registering mute handlers")
@@ -27,6 +30,10 @@ def _get_minutes(args: List[str]):
 
 
 def mute_user_for_time(update: Update, context: CallbackContext, user: User, mute_duration: timedelta):
+    if timedelta < MIN_MUTE_TIME:
+        timedelta = MIN_MUTE_TIME
+    if timedelta > MAX_MUTE_TIME:
+        timedelta = MAX_MUTE_TIME
     try:
         until = datetime.now() + mute_duration
         logger.info(f"user: {user.full_name}[{user.id}] will be muted for {mute_duration}")
