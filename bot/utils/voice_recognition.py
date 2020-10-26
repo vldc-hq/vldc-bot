@@ -22,7 +22,7 @@ speech_client = speech.SpeechClient()
 
 def _get_audio_file_data(file_id):
     """
-    gets audio file 
+    gets audio file
     """
     url = f"https://api.telegram.org/bot{TOKEN}/getFile?file_id={file_id}"
     response = requests.get(url)
@@ -38,22 +38,18 @@ def _get_binary_content(file):
     response = requests.get(url, stream=True)
 
     suffix = ".oga"
-    tmp_voice = NamedTemporaryFile(delete=False, suffix=suffix)
-    tmp_voice.write(response.content)
+    with NamedTemporaryFile(suffix=suffix) as tmp_voice:
+        tmp_voice.write(response.content)
 
-    tmp_voice_filename_ogg = tmp_voice.name
-    tmp_voice_filename_wav = tmp_voice_filename_ogg[:-len(suffix)] + ".wav"
+        tmp_voice_filename_ogg = tmp_voice.name
+        tmp_voice_filename_wav = tmp_voice_filename_ogg[:-len(suffix)] + ".wav"
 
-    subprocess.call(['ffmpeg', '-i', tmp_voice_filename_ogg, tmp_voice_filename_wav])
+        subprocess.call(['ffmpeg', '-i', tmp_voice_filename_ogg, tmp_voice_filename_wav])
 
-    converted_wav = open(tmp_voice_filename_wav, "rb")
-    converted_wav_bin = converted_wav.read()
+        with open(tmp_voice_filename_wav, "rb") as converted_wav:
+            converted_wav_bin = converted_wav.read()
 
-    tmp_voice.close()
-    converted_wav.close()
-
-    os.remove(tmp_voice_filename_ogg)
-    os.remove(tmp_voice_filename_wav)
+        os.remove(tmp_voice_filename_wav)
 
     return converted_wav_bin
 
