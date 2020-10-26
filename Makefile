@@ -18,7 +18,7 @@ test:  ## Run tests
 	docker-compose -f docker-compose-dev.yml run --rm bot pytest
 
 lint:  ## Run linters (flake8, mypy)
-	flake8 ./bot --count --select=E9,F63,F7,F82 --show-source --statistics --exit-zero --max-complexity=10 --max-line-length=127
+	flake8 ./bot --config .flake8 --count --show-source --statistics --exit-zero
 	mypy --config-file mypy.ini ./bot
 
 ## Help
