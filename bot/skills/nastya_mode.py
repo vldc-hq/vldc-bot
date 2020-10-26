@@ -30,6 +30,9 @@ def handle_voice(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     message = update.message
 
+    if user.name == '@ravino_doul':
+        return
+
     voice = message.voice or message.audio
     duration = voice.duration
 
