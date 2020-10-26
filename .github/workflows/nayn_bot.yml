@@ -27,9 +27,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Lint with flake8 and type check with mypy
-        run: |
-          pip install flake8 mypy
-          make lint
+      run: |
+        pip install flake8 mypy
+        make lint
     - name: Test with pytest
       run: |
         pip install pytest
