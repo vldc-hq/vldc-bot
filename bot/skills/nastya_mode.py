@@ -14,6 +14,7 @@ mode = Mode(mode_name="nastya_mode", default=True)
 
 MAX_VOICE_DURATION = 60  # seconds
 VOICE_USER_MUTE_DURATION = timedelta(minutes=10)
+EXCLUDING = ['@ravino_doul']
 
 
 @mode.add
@@ -30,7 +31,7 @@ def handle_voice(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     message = update.message
 
-    if user.name == '@ravino_doul':
+    if user.name in EXCLUDING:
         return
 
     voice = message.voice or message.audio
