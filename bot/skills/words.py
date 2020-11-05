@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 
 import pymongo
 import telegram
@@ -58,23 +58,31 @@ def _normalize(words: List[str]) -> List[str]:
     return [w.lower() for w in words if w[0] != '/']
 
 
-def _get_top_limit(context: CallbackContext) -> int:
-    if len(context.args) < 1:
-        return DEFAULT_TOP_LIMIT
+def _get_pred(context: CallbackContext) -> str:
+    return " ".join(context.args) if len(context.args) > 0 else "True"
 
-    try:
-        return int(context.args[0])
-    except Exception as err:
-        logger.error(f"can't get top limit: {err}")
-        return DEFAULT_TOP_LIMIT
+
+def _eval_filter(words: List[Dict], pred: str):
+    def inner_pred(word):
+        w = word["word"]
+        c = word["count"]
+        return eval("lambda w, c: " + pred)(w, c)
+
+    return list(filter(inner_pred, [word for word in words]))
 
 
 @run_async
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_top(update: Update, context: CallbackContext):
-    _top_limit = _get_top_limit(context)
-    # TODO: make it pretty
-    top = "\n".join([f"{w['word']}: {w['count']}" for w in list(_db.find_all())[:_top_limit]])
+    default_words = _db.find_all()
+
+    try:
+        words = _eval_filter(default_words, _get_pred(context))
+    except Exception as err:
+        logger.exception(err)
+        words = default_words
+
+    top = "\n".join([f"{w['word']}: {w['count']}" for w in words[:DEFAULT_TOP_LIMIT]])
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=f"```\n{top}\n```", disable_notification=True,
                              parse_mode=telegram.ParseMode.MARKDOWN)
