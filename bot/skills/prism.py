@@ -47,15 +47,22 @@ def add_prism(upd: Updater, handlers_group: int):
 
 @run_async
 def extract_words(update: Update, context: CallbackContext):
-    _db.add_words(_normalize(_get_words(update.message.text)))
+    _db.add_words(_normalize_words(_get_words(update.message.text)))
 
 
 def _get_words(t: str) -> List[str]:
     return t.split(' ')
 
 
-def _normalize(words: List[str]) -> List[str]:
+def _normalize_words(words: List[str]) -> List[str]:
     return [w.lower() for w in words if w[0] != '/']
+
+
+def _normalize_pred(pred: str) -> str:
+    return pred.replace('“', '"') \
+        .replace('”', '"') \
+        .replace("‘", "'") \
+        .replace("’", "'")
 
 
 def _get_pred(context: CallbackContext) -> str:
@@ -66,7 +73,7 @@ def _eval_filter(words: List[Dict], pred: str):
     def inner_pred(word):
         w = word["word"]
         c = word["count"]
-        return eval("lambda w, c: " + pred)(w, c)
+        return eval("lambda w, c: " + _normalize_pred(pred))(w, c)
 
     return list(filter(inner_pred, [word for word in words]))
 
