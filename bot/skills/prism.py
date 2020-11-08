@@ -38,7 +38,7 @@ class DB:
 _db = DB(db_name='words')
 
 
-def add_words(upd: Updater, handlers_group: int):
+def add_prism(upd: Updater, handlers_group: int):
     logger.info("register words handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("top", show_top, filters=admin_filter), handlers_group)
