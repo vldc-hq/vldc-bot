@@ -15,6 +15,7 @@ from skills.fools import add_fools_mode
 from skills.mute import add_mute
 from skills.nastya_mode import add_nastya_mode
 from skills.pr import add_pr
+from skills.prism import add_prism
 from skills.roll import add_roll
 from skills.since_mode import add_since_mode
 from skills.smile_mode import add_smile_mode
@@ -23,9 +24,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.4.8"
-
-from skills.words import add_words
+__version__ = "0.4.9"
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +70,7 @@ skills: List[Dict] = [
     _make_skill(add_coc, "⛔🤬 coc", " VLDC/GDG VL Code of Conduct"),
     _make_skill(add_70k, "🛠 more than 70k?", " try to hire!"),
     _make_skill(add_pr, "💻 got sk1lzz?", " put them to use!"),
-    _make_skill(add_words, "👁 smell like PRISM?", " nononono!"),
+    _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
 
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
@@ -96,7 +95,7 @@ commands_list: List[Tuple[str, str]] = [
     ("coc", "VLDC/GDG VL Code of Conduct"),
     ("70k", "try to hire!"),
     ("pr", "got sk1lzz?"),
-    ("top", "top N PRISM words")
+    ("prism", "top N PRISM words with optional predicate")
 ]
 
 
