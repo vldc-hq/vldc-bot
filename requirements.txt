@@ -4,3 +4,4 @@ google-cloud-translate==2.0.0
 google-cloud-automl==0.10.0
 google-cloud-speech==2.0.0
 sentry-sdk==0.19
+Pillow==8.0
