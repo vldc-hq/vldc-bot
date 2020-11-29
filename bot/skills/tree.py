@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext
 
 logger = logging.getLogger(__name__)
 
-AOC_LEADERBOARD_LINK = "https://adventofcode.com/2019/leaderboard/private/view/458538"
+AOC_LEADERBOARD_LINK = "https://adventofcode.com/2020/leaderboard/private/view/458538"
 
 
 def add_tree(upd: Updater, handlers_group: int):
