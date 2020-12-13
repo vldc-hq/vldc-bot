@@ -16,7 +16,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-`        pip install poetry
+        pip install poetry
         poetry config virtualenvs.create false
         poetry install
     - name: Lint with flake8 and type check with mypy
