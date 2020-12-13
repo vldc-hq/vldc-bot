@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vldc-bot"
-version = "0.1.0"
+version = "0.4.11"
 description = "VLDC nyan bot ^_^"
 authors = [
   #tg
@@ -16,7 +16,7 @@ authors = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 python-telegram-bot="13.0"
 pymongo="3.11.0"
 google-cloud-translate="2.0.0"

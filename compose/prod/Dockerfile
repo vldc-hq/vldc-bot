@@ -2,7 +2,7 @@ FROM python:3.8-slim
 
 RUN apt-get -y update && apt-get install -y ffmpeg
 
-ENV POETRY_VERSION=1.0.0
+ENV POETRY_VERSION=1.1.4
 
 COPY . /app
 WORKDIR /app
