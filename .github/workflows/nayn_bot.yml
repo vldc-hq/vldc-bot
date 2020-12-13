@@ -18,22 +18,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-    - name: Set up Python 3.7
+    - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
+        python-version: 3.8
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install poetry
+        poetry config virtualenvs.create false
+        poetry install
     - name: Lint with flake8 and type check with mypy
-      run: |
-        pip install flake8 mypy
-        make lint
+      run: make lint
     - name: Test with pytest
-      run: |
-        pip install pytest
-        export PYTHONPATH=./bot && pytest
+      run: export PYTHONPATH=./bot && pytest
     - name: Publish to Registry
       uses: elgohr/Publish-Docker-Github-Action@master
       with:

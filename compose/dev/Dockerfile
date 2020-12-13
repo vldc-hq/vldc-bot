@@ -3,14 +3,16 @@ FROM python:3.8-slim
 RUN apt-get -y update && apt-get install -y ffmpeg
 
 ENV PYTHONPATH /app/bot
+ENV POETRY_VERSION=1.1.4
 
 COPY ./setup.py /app/setup.py
-COPY ./requirements.txt /app/requirements.txt
-COPY ./requirements-dev.txt /app/requirements-dev.txt
+COPY ./pyproject.toml /app/pyproject.toml
 
 WORKDIR /app
 
-RUN python -m pip install -r ./requirements-dev.txt
+RUN pip install "poetry==$POETRY_VERSION"
+RUN poetry config virtualenvs.create false
+RUN poetry install
 
 # source from mounted volume (see docker-compose-dev.yml)
 CMD ["python", "bot/main.py"]

@@ -3,9 +3,12 @@ from datetime import datetime, timedelta
 from random import randint
 from threading import Lock
 from typing import List, Tuple, Dict
+from uuid import uuid4
+import os
+from tempfile import gettempdir
+from PIL import Image, ImageDraw, ImageFont
 
 import pymongo
-import telegram
 from pymongo.collection import Collection
 from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
@@ -146,6 +149,47 @@ def _get_username(h: Dict) -> str:
     return username or ' '.join(filter(lambda x: x is not None, [fname, lname])) or 'unknown'
 
 
+JPEG = "JPEG"
+EXTENSION = ".jpg"
+COLOR = "white"
+MODE = "L"
+FONT_SIZE = 12
+
+
+def _create_empty_image(image_path, limit):
+    width = 480
+    line_multi = 1
+    header_height = 30
+    line_px = FONT_SIZE * line_multi
+    height = int((limit * line_px * 1.5) + header_height)
+    size = (width, height)
+    image = Image.new(MODE, size, COLOR)
+    image.save(image_path, JPEG)
+    return image
+
+
+def _add_text_to_image(text, image_path, output_path):
+    image = Image.open(image_path)
+    font = ImageFont.truetype("./fonts/firacode.ttf", FONT_SIZE)
+    draw = ImageDraw.Draw(image)
+    position = (45, 0)
+    draw.text(xy=position, text=text, font=font)
+    image.save(output_path, JPEG)
+    return image
+
+
+def from_text_to_image(text, limit):
+    if limit < 25:
+        limit = 25
+    tmp_dir = gettempdir()
+    file_name = str(uuid4())
+    image_path = f"{tmp_dir}/{file_name}{EXTENSION}"
+    _create_empty_image(image_path, limit)
+    _add_text_to_image(text, image_path, image_path)
+    image = open(image_path, "rb")
+    return (image, image_path)
+
+
 @run_async
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_hussars(update: Update, context: CallbackContext):
@@ -163,8 +207,7 @@ def show_hussars(update: Update, context: CallbackContext):
     # CSS is awesome!
     # todo:
     #  need to find out how to show board for mobile telegram as well
-    board = "```" \
-            f"{'Hussars leader board (non mobile friendly)'.center(52)}\n" \
+    board = f"{'Hussars leader board'.center(52)}\n" \
             f"{''.rjust(51, '=')}\n" \
             f"{'time in club'.center(17)} " \
             f"| {'attempts'.center(8)} " \
@@ -173,16 +216,26 @@ def show_hussars(update: Update, context: CallbackContext):
             f"\n" \
             f"{''.ljust(17, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
 
-    for h in _db.find_all():
+    hs = _db.find_all()
+    hs_len = len(hs)
+
+    for h in hs:
         username = _get_username(h)
         board += f"{str(timedelta(seconds=(h['total_time_in_club']))).ljust(17)} " \
                  f"| {str(h['shot_counter']).ljust(8)} " \
                  f"| {str(h['dead_counter']).ljust(6)} " \
                  f"| {username.ljust(15)}\n"
 
-    board += f"{''.rjust(51, '-')}\n```"
-    context.bot.send_message(chat_id=update.effective_chat.id, text=f"{board}", disable_notification=True,
-                             parse_mode=telegram.ParseMode.MARKDOWN)
+    board += f"{''.rjust(51, '-')}"
+
+    board_image, board_image_path = from_text_to_image(board, hs_len)
+
+    if hs_len <= 25:
+        context.bot.send_photo(chat_id=update.effective_chat.id, photo=board_image, disable_notification=True)
+    else:
+        context.bot.send_document(chat_id=update.effective_chat.id, document=board_image, disable_notification=True)
+
+    os.remove(board_image_path)
 
 
 @run_async
