@@ -2,4 +2,5 @@
 !requirements.txt
 !requirements-dev.txt
 !setup.py
+!pyproject.toml
 !bot/*
