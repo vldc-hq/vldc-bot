@@ -5,9 +5,7 @@ RUN apt-get -y update && apt-get install -y ffmpeg
 ENV PYTHONPATH /app/bot
 ENV POETRY_VERSION=1.1.4
 
-COPY ./setup.py /app/setup.py
-COPY ./pyproject.toml /app/pyproject.toml
-
+COPY . /app
 WORKDIR /app
 
 RUN pip install "poetry==$POETRY_VERSION"

@@ -1,6 +1,4 @@
 *
-!requirements.txt
-!requirements-dev.txt
-!setup.py
 !pyproject.toml
+!poetry.lock
 !bot/*

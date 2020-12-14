@@ -11,6 +11,4 @@ RUN pip install "poetry==$POETRY_VERSION"
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-dev
 
-RUN python setup.py install
-
 CMD ["python", "bot/main.py"]
