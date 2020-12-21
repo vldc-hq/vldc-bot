@@ -19,6 +19,8 @@ def add_mute(upd: Updater, handlers_group: int):
     dp = upd.dispatcher
     dp.add_handler(CommandHandler(
         "mute", mute, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler(
+        "mute", mute_self), handlers_group)
     dp.add_handler(CommandHandler("unmute", unmute,
                                   filters=admin_filter), handlers_group)
 
@@ -62,6 +64,13 @@ def mute(update: Update, context: CallbackContext):
     user: User = update.message.reply_to_message.from_user
     mute_minutes = _get_minutes(context.args)
     mute_user_for_time(update, context, user, mute_minutes)
+
+@run_async
+def mute_self(update: Update, context: CallbackContext):
+    user: User = update.effective_user
+    mute_minutes = _get_minutes(context.args)
+    mute_user_for_time(update, context, user, mute_minutes)
+    update.message.reply_text(f"{user.name}, не шали!")
 
 
 @run_async
