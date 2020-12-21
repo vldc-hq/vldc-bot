@@ -4,6 +4,7 @@ from random import randint
 from threading import Lock
 from typing import List, Tuple, Dict
 from uuid import uuid4
+
 import os
 from tempfile import gettempdir
 from PIL import Image, ImageDraw, ImageFont
@@ -11,7 +12,8 @@ from PIL import Image, ImageDraw, ImageFont
 import pymongo
 from pymongo.collection import Collection
 from telegram import Update, User
-from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext, run_async
+from telegram.ext.filters import Filters
 
 from db.mongo import get_db
 from filters import admin_filter
@@ -88,6 +90,7 @@ _db = DB(db_name='roll')
 def add_roll(upd: Updater, handlers_group: int):
     logger.info("registering roll handlers")
     dp = upd.dispatcher
+    dp.add_handler(MessageHandler(Filters.dice, roll), handlers_group)
     dp.add_handler(CommandHandler("roll", roll), handlers_group)
     dp.add_handler(CommandHandler("gdpr_me", satisfy_GDPR), handlers_group)
     dp.add_handler(CommandHandler("hussars", show_hussars, filters=admin_filter), handlers_group)
