@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from random import choice
 from typing import List
 
 from telegram import Update, User, ChatPermissions
@@ -17,10 +18,9 @@ MAX_MUTE_TIME = timedelta(days=7)
 def add_mute(upd: Updater, handlers_group: int):
     logger.info("registering mute handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler(
-        "mute", mute, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("unmute", unmute,
-                                  filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("mute", mute, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("mute", mute_self), handlers_group)
+    dp.add_handler(CommandHandler("unmute", unmute, filters=admin_filter), handlers_group)
 
 
 def _get_minutes(args: List[str]):
@@ -62,6 +62,20 @@ def mute(update: Update, context: CallbackContext):
     user: User = update.message.reply_to_message.from_user
     mute_minutes = _get_minutes(context.args)
     mute_user_for_time(update, context, user, mute_minutes)
+
+
+@run_async
+def mute_self(update: Update, context: CallbackContext):
+    user: User = update.effective_user
+    mute_minutes = _get_minutes(context.args)
+    mute_user_for_time(update, context, user, mute_minutes)
+    self_mute_messages = [
+        f"Да как эта штука работает вообще, {user.name}?",
+        f"Не озоруй, {user.name}, мало ли кто увидит",
+        f"Зловив на вила!",
+        f"Насилие порождает насилие, {user.name}",
+    ]
+    update.message.reply_text(choice(self_mute_messages))
 
 
 @run_async
