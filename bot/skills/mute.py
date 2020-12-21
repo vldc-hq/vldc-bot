@@ -72,7 +72,7 @@ def mute_self(update: Update, context: CallbackContext):
     self_mute_messages = [
         f"Да как эта штука работает вообще, {user.name}?",
         f"Не озоруй, {user.name}, мало ли кто увидит",
-        f"Зловив на вила!",
+        f"Зловив {user.name} на вила!",
         f"Насилие порождает насилие, {user.name}",
     ]
     update.message.reply_text(choice(self_mute_messages))
