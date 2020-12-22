@@ -6,6 +6,8 @@ from typing import List
 from telegram import Update, User, ChatPermissions
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
+from mode import cleanup_update_context
+
 from filters import admin_filter
 from utils.time import get_duration
 
@@ -65,6 +67,7 @@ def mute(update: Update, context: CallbackContext):
 
 
 @run_async
+@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def mute_self(update: Update, context: CallbackContext):
     user: User = update.effective_user
     mute_minutes = _get_minutes(context.args)
