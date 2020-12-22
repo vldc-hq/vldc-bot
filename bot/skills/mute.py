@@ -66,8 +66,8 @@ def mute(update: Update, context: CallbackContext):
     mute_user_for_time(update, context, user, mute_minutes)
 
 
-@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 @run_async
+@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def mute_self(update: Update, context: CallbackContext):
     user: User = update.effective_user
     mute_minutes = _get_minutes(context.args)
