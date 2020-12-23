@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
+HUSSARS_LIMIT_FOR_IMAGE = 25
 
 
 class DB:
@@ -173,7 +174,8 @@ def _create_empty_image(image_path, limit):
 
 def _add_text_to_image(text, image_path, output_path):
     image = Image.open(image_path)
-    font = ImageFont.truetype("./fonts/firacode.ttf", FONT_SIZE)
+    font_path = os.path.join("fonts", "firacode.ttf")
+    font = ImageFont.truetype(font_path, FONT_SIZE)
     draw = ImageDraw.Draw(image)
     position = (45, 0)
     draw.text(xy=position, text=text, font=font)
@@ -182,15 +184,15 @@ def _add_text_to_image(text, image_path, output_path):
 
 
 def from_text_to_image(text, limit):
-    if limit < 25:
-        limit = 25
+    if limit < HUSSARS_LIMIT_FOR_IMAGE:
+        limit = HUSSARS_LIMIT_FOR_IMAGE
     tmp_dir = gettempdir()
     file_name = str(uuid4())
     image_path = f"{tmp_dir}/{file_name}{EXTENSION}"
     _create_empty_image(image_path, limit)
     _add_text_to_image(text, image_path, image_path)
     image = open(image_path, "rb")
-    return (image, image_path)
+    return image, image_path
 
 
 @run_async
@@ -219,21 +221,21 @@ def show_hussars(update: Update, context: CallbackContext):
             f"\n" \
             f"{''.ljust(17, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
 
-    hs = _db.find_all()
-    hs_len = len(hs)
+    hussars = _db.find_all()
+    hussars_length = len(hussars)
 
-    for h in hs:
-        username = _get_username(h)
-        board += f"{str(timedelta(seconds=(h['total_time_in_club']))).ljust(17)} " \
-                 f"| {str(h['shot_counter']).ljust(8)} " \
-                 f"| {str(h['dead_counter']).ljust(6)} " \
+    for hussar in hussars:
+        username = _get_username(hussar)
+        board += f"{str(timedelta(seconds=(hussar['total_time_in_club']))).ljust(17)} " \
+                 f"| {str(hussar['shot_counter']).ljust(8)} " \
+                 f"| {str(hussar['dead_counter']).ljust(6)} " \
                  f"| {username.ljust(15)}\n"
 
     board += f"{''.rjust(51, '-')}"
 
-    board_image, board_image_path = from_text_to_image(board, hs_len)
+    board_image, board_image_path = from_text_to_image(board, hussars_length)
 
-    if hs_len <= 25:
+    if hussars_length <= HUSSARS_LIMIT_FOR_IMAGE:
         context.bot.send_photo(chat_id=update.effective_chat.id, photo=board_image, disable_notification=True)
     else:
         context.bot.send_document(chat_id=update.effective_chat.id, document=board_image, disable_notification=True)
