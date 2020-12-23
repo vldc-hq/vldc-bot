@@ -13,7 +13,7 @@ from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
 
-MIN_MUTE_TIME = timedelta(minutes=10)
+MIN_MUTE_TIME = timedelta(minutes=1)
 MAX_MUTE_TIME = timedelta(days=7)
 
 
@@ -70,13 +70,13 @@ def mute(update: Update, context: CallbackContext):
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def mute_self(update: Update, context: CallbackContext):
     user: User = update.effective_user
-    mute_minutes = _get_minutes(context.args)
-    mute_user_for_time(update, context, user, mute_minutes)
+    mute_user_for_time(update, context, user, timedelta(minutes=60))
     self_mute_messages = [
         f"Да как эта штука работает вообще, {user.name}?",
         f"Не озоруй, {user.name}, мало ли кто увидит",
         f"Зловив {user.name} на вила!",
         f"Насилие порождает насилие, {user.name}",
+        f"Опять ты, {user.name}!",
     ]
     update.message.reply_text(choice(self_mute_messages))
 

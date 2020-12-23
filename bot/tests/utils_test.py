@@ -39,3 +39,6 @@ class DurationParserTestCase(TestCase):
         self.assertEqual(get_duration('9'), timedelta(minutes=9))
         self.assertEqual(get_duration('900'), timedelta(minutes=900))
         self.assertEqual(get_duration('1'), timedelta(minutes=1))
+
+    def test_get_duration_with_dots(self):
+        self.assertEqual(get_duration('666.666'), timedelta(minutes=0))
