@@ -8,6 +8,9 @@ build:  ## Build all
 up:  ## Up All and show logs
 	docker-compose -f docker-compose-dev.yml up -d && docker-compose -f docker-compose-dev.yml logs -f --tail=10
 
+update:  ## Restart bot after files changing
+	docker-compose -f docker-compose-dev.yml restart bot && make up
+
 stop:  ## Stop all
 	docker-compose -f docker-compose-dev.yml stop
 
