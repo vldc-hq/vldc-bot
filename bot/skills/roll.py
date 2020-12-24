@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
 HUSSARS_LIMIT_FOR_IMAGE = 25
+FONT = "firacode.ttf"
 
 
 class DB:
@@ -167,31 +168,53 @@ def _create_empty_image(image_path, limit):
     line_px = FONT_SIZE * line_multi
     height = int((limit * line_px * 1.5) + header_height)
     size = (width, height)
+    logger.info("Creating image")
     image = Image.new(MODE, size, COLOR)
-    image.save(image_path, JPEG)
+    logger.info("Saving image")
+    try:
+        image.save(image_path, JPEG)
+        logger.info("Empty image saved")
+    except Exception as ex:
+        logger.error("Error during image saving", ex)
+        return
     return image
 
 
 def _add_text_to_image(text, image_path, output_path):
+    logger.info("Adding text to image")
     image = Image.open(image_path)
-    font_path = os.path.join("fonts", "firacode.ttf")
+    logger.info("Getting font")
+    font_path = os.path.join("fonts", FONT)
     font = ImageFont.truetype(font_path, FONT_SIZE)
+    logger.info(f"Font {FONT} has been found")
     draw = ImageDraw.Draw(image)
     position = (45, 0)
     draw.text(xy=position, text=text, font=font)
-    image.save(output_path, JPEG)
+    try:
+        image.save(image_path, JPEG)
+        logger.info("Image with text saved")
+    except Exception as ex:
+        logger.error("Error during image with text saving", ex)
+        os.remove(image_path)
+        return
     return image
 
 
 def from_text_to_image(text, limit):
+    logger.info("Getting an image from text")
     if limit < HUSSARS_LIMIT_FOR_IMAGE:
         limit = HUSSARS_LIMIT_FOR_IMAGE
+    logger.info("Getting temp dir")
     tmp_dir = gettempdir()
+    logger.info(f"Temp dir path {tmp_dir}")
     file_name = str(uuid4())
     image_path = f"{tmp_dir}/{file_name}{EXTENSION}"
+    logger.info(f"Image temp path {image_path}")
     _create_empty_image(image_path, limit)
     _add_text_to_image(text, image_path, image_path)
+    logger.info("Attempt to open an image with text")
     image = open(image_path, "rb")
+    logger.info(f"Image bin by path {image_path} found")
     return image, image_path
 
 
@@ -232,8 +255,11 @@ def show_hussars(update: Update, context: CallbackContext):
                  f"| {username.ljust(15)}\n"
 
     board += f"{''.rjust(51, '-')}"
-
-    board_image, board_image_path = from_text_to_image(board, hussars_length)
+    try:
+        board_image, board_image_path = from_text_to_image(board, hussars_length)
+    except Exception as ex:
+        logger.error("Cannot get image from text, hussars error", ex)
+        return
 
     if hussars_length <= HUSSARS_LIMIT_FOR_IMAGE:
         context.bot.send_photo(chat_id=update.effective_chat.id, photo=board_image, disable_notification=True)
