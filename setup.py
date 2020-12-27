@@ -14,7 +14,7 @@ readme = ''
 setup(
     long_description=readme,
     name='vldc-bot',
-    version='0.5.2',
+    version='0.5.3',
     description='VLDC nyan bot ^_^',
     python_requires='==3.*,>=3.9.0',
     author='@egregors',
@@ -30,7 +30,8 @@ setup(
     ],
     extras_require={
         "dev": [
-            "flake8==3.8.4", "mypy==0.790", "ptvsd==4.3.2", "pytest==5.1.2"
+            "flake8==3.*,>=3.0.0", "mypy==0.790", "ptvsd==4.3.2",
+            "pylint==2.*,>=2.0.0", "pytest==5.1.2"
         ]
     },
 )

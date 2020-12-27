@@ -47,7 +47,7 @@ class Mode:
 
     def _set_mode(self, state: bool, context: CallbackContext):
         context.chat_data[self.chat_data_key] = state
-        logger.info(f"new state: {state}")
+        logger.info("new state: %s", state)
         if state is ON:
             self._add_mode_handlers()
         elif state is OFF:
@@ -70,7 +70,7 @@ class Mode:
 
     @run_async
     def _mode_on(self, update: Update, context: CallbackContext):
-        logger.info(f"{self.name} switch to ON")
+        logger.info("%s switch to ON", self.name)
         mode = self._get_mode_state(context)
         if mode is OFF:
             self._set_mode(ON, context)
@@ -79,7 +79,7 @@ class Mode:
                 try:
                     self.on_callback(self._dp)
                 except Exception as err:
-                    logger.error(f"can't eval mode_on callback: {err}")
+                    logger.error("can't eval mode_on callback: %s", err)
                     raise err
 
             msg = context.bot.send_message(update.effective_chat.id, f"{self.name} is ON")
@@ -88,7 +88,7 @@ class Mode:
 
     @run_async
     def _mode_off(self, update: Update, context: CallbackContext):
-        logger.info(f"{self.name} switch to OFF")
+        logger.info("%s switch to OFF", self.name)
         mode = self._get_mode_state(context)
         if mode is ON:
             self._set_mode(OFF, context)
@@ -97,7 +97,7 @@ class Mode:
                 try:
                     self.off_callback(self._dp)
                 except Exception as err:
-                    logger.error(f"can't eval mode_off callback: {err}")
+                    logger.error("can't eval mode_off callback: %s", err)
                     raise err
 
             context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
@@ -121,7 +121,7 @@ class Mode:
             func(upd, self.handlers_gr)
 
             self._mode_handlers = upd.dispatcher.handlers[self.handlers_gr].copy()
-            logger.info(f"registered {len(self._mode_handlers)} {self.name} handlers")
+            logger.info("registered %d %s handlers", len(self._mode_handlers), self.name)
 
             self._add_on_off_handlers()
             # todo:
@@ -151,8 +151,8 @@ def _hook_message(bot: Bot, callback_after=lambda x: x):
 
 @run_async
 def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
-    logger.debug(f"Scheduling cleanup of message {message} \
-                   in {seconds} seconds")
+    logger.debug("Scheduling cleanup of message %s \
+                   in %d seconds", message, seconds)
     job_queue.run_once(lambda _: message.delete(), seconds,
                        context=message.chat_id)
 
@@ -178,7 +178,7 @@ def cleanup_inner_wrapper(seconds: int, remove_cmd, remove_reply,
 
     try:
         result = func(*args, **kwargs)
-    except Exception as err:
+    except (ValueError, TypeError) as err:
         logger.error(str(err))
     setattr(bot, '_message', orig_fn)
     return result
@@ -194,10 +194,10 @@ def cleanup_update_context(seconds: int, remove_cmd=True, remove_reply=False):
         remove_reply (:obj:`bool`, optional): Whether reply should be deleted
 
     """
-    logger.debug(f"Removing message from bot in {seconds}")
+    logger.debug("Removing message from bot in %d", seconds)
 
     def cleanup_decorator(func):
-        logger.debug(f"cleanup_decorator func: {func}")
+        logger.debug("cleanup_decorator func: %s", func)
 
         @wraps(func)
         def cleanup_wrapper(*args, **kwargs):
@@ -224,10 +224,10 @@ def cleanup_bot_queue(seconds: int):
     Args:
         seconds (:obj:`int`): Amount of seconds after which message should be deleted
     """
-    logger.debug(f"Removing message from bot in {seconds}")
+    logger.debug("Removing message from bot in %d", seconds)
 
     def cleanup_decorator(func):
-        logger.debug(f"cleanup_decorator func: {func}")
+        logger.debug("cleanup_decorator func: %s", func)
 
         @wraps(func)
         def cleanup_wrapper(*args, **kwargs):

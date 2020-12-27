@@ -2,7 +2,7 @@ FROM python:3.9-slim
 
 RUN apt-get -y update && apt-get install -y ffmpeg
 
-ENV PYTHONPATH /app/bot
+ENV PYTHONPATH /app
 ENV POETRY_VERSION=1.1.4
 
 COPY . /app

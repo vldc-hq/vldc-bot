@@ -18,15 +18,15 @@ def get_duration(raw_duration: str) -> timedelta:
 
             if mark == 'h':
                 return acc + timedelta(hours=count)
-            elif mark == 'm':
+            if mark == 'm':
                 return acc + timedelta(minutes=count)
-            elif mark == 's':
+            if mark == 's':
                 return acc + timedelta(seconds=count)
-            else:
-                return acc + timedelta(minutes=int(el))
+
+            return acc + timedelta(minutes=int(el))
 
         except ValueError as err:
-            logger.error(f"can't convert durations: {err}")
+            logger.error("can't convert durations: %s", err)
             return acc
 
     return reduce(f, filter(lambda x: x, raw_duration.split(' ')), timedelta())

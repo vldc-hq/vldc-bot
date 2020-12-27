@@ -20,8 +20,9 @@ down:  ## Down all
 test:  ## Run tests
 	docker-compose -f docker-compose-dev.yml run --rm bot pytest
 
-lint:  ## Run linters (flake8, mypy)
-	flake8 ./bot --config .flake8 --count --show-source --statistics --exit-zero
+lint:  ## Run linters (flake8, mypy, pylint)
+	pylint ./bot --rcfile .pylintrc
+	flake8 ./bot --config .flake8 --count --show-source --statistics
 	mypy --config-file mypy.ini ./bot
 
 ## Help

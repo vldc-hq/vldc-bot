@@ -20,7 +20,7 @@ def add_smile_mode(upd: Updater, handlers_group: int):
 
 def smile(update: Update, context: CallbackContext):
     """ Delete all messages except stickers or GIFs """
-    logger.debug(f"remove msg: {update.effective_message}")
+    logger.debug("remove msg: %s", update.effective_message)
     context.bot.delete_message(
         update.effective_chat.id,
         update.effective_message.message_id, 10

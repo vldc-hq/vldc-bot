@@ -4,9 +4,9 @@ from datetime import timedelta
 from telegram import Update, User
 from telegram.ext import Updater, Dispatcher, MessageHandler, Filters, run_async, CallbackContext
 
-from mode import Mode
-from skills.mute import mute_user_for_time
-from utils.voice_recognition import get_text_from_speech
+from bot.mode import Mode
+from bot.skills.mute import mute_user_for_time
+from bot.utils.voice_recognition import get_text_from_speech
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def handle_voice(update: Update, context: CallbackContext):
 
         try:
             recognized_text = get_text_from_speech(file_id)
-        except Exception as err:
+        except (AttributeError, ValueError, RuntimeError) as err:
             logger.exception("failed to recognize speech: %s", err)
 
         if recognized_text is None:

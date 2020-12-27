@@ -7,8 +7,8 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from telegram.ext import Updater, CommandHandler
 
-from config import get_config
-from mode import Mode
+from bot.config import get_config
+from bot.mode import Mode
 
 conf = get_config()
 
@@ -30,7 +30,7 @@ def add_since_mode(upd: Updater, handlers_group: int):
 
 def _get_topic(t: str) -> Dict:
     topic = topics_coll.find_one({"topic": t})
-    logger.info(f"topic from db for title {t} is {topic}")
+    logger.info("topic from db for title %s is %s", t, topic)
 
     return topic if topic is not None else {
         "topic": t.lower(),
@@ -92,7 +92,7 @@ def _get_all_topics(limit: int) -> List[Dict]:
     return list(topics_coll.find({}).sort("-count").limit(limit))
 
 
-def since_list_callback(update, context):
+def since_list_callback(update):
     # todo: need make it msg more pretty
     ts = reduce(
         lambda acc, el: acc + f"{_get_delta_days(el['since_datetime'])} days without «{el['topic']}»! "

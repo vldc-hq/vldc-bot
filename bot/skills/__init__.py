@@ -5,25 +5,25 @@ from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 import toml
 
-from filters import admin_filter
-from mode import cleanup_update_context
-from skills.at_least_70k import add_70k
-from skills.banme import add_banme
-from skills.coc import add_coc
-from skills.core import add_core
-from skills.covid_mode import add_covid_mode
-from skills.fools import add_fools_mode
-from skills.mute import add_mute
-from skills.nastya_mode import add_nastya_mode
-from skills.pr import add_pr
-from skills.prism import add_prism
-from skills.roll import add_roll
-from skills.since_mode import add_since_mode
-from skills.smile_mode import add_smile_mode
-from skills.still import add_still
-from skills.towel_mode import add_towel_mode
-from skills.tree import add_tree
-from skills.uwu import add_uwu
+from bot.filters import admin_filter
+from bot.mode import cleanup_update_context
+from bot.skills.at_least_70k import add_70k
+from bot.skills.banme import add_banme
+from bot.skills.coc import add_coc
+from bot.skills.core import add_core
+from bot.skills.covid_mode import add_covid_mode
+from bot.skills.fools import add_fools_mode
+from bot.skills.mute import add_mute
+from bot.skills.nastya_mode import add_nastya_mode
+from bot.skills.pr import add_pr
+from bot.skills.prism import add_prism
+from bot.skills.roll import add_roll
+from bot.skills.since_mode import add_since_mode
+from bot.skills.smile_mode import add_smile_mode
+from bot.skills.still import add_still
+from bot.skills.towel_mode import add_towel_mode
+from bot.skills.tree import add_tree
+from bot.skills.uwu import add_uwu
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def _version(update: Update, context: CallbackContext):
 
     version = _get_version_from_pyproject()
 
-    logger.info(f"current ver.: {version}")
+    logger.info("current ver.: %s", version)
 
     chat_id = update.effective_chat.id
 
