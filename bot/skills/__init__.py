@@ -3,6 +3,7 @@ from typing import List, Dict, Callable, Tuple
 
 from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
+import toml
 
 from filters import admin_filter
 from mode import cleanup_update_context
@@ -24,8 +25,6 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 
-__version__ = "0.5.1"
-
 logger = logging.getLogger(__name__)
 
 
@@ -36,16 +35,28 @@ def _add_version(upd: Updater, version_handlers_group: int):
                                   filters=admin_filter), version_handlers_group)
 
 
+def _get_version_from_pyproject() -> str:
+    """ Parse toml file for version """
+    with open('pyproject.toml', 'r') as pyproject:
+        toml_dict = toml.loads(pyproject.read())
+
+    version = toml_dict["tool"]["poetry"]["version"]
+    return version
+
+
 @run_async
 @cleanup_update_context(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
     """ Show a current version of bot """
-    logger.info(f"current ver.: {__version__}")
+
+    version = _get_version_from_pyproject()
+
+    logger.info(f"current ver.: {version}")
 
     chat_id = update.effective_chat.id
 
     context.bot.send_message(
-        chat_id, f"~=~~=~=~=_ver.:{__version__}_~=~=~=[,,_,,]:3\n\n"
+        chat_id, f"~=~~=~=~=_ver.:{version}_~=~=~=[,,_,,]:3\n\n"
                  f"{_get_skills_hints(skills)}")
 
 

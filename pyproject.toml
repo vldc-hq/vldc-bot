@@ -24,6 +24,7 @@ google-cloud-automl="0.10.0"
 google-cloud-speech="2.0.0"
 sentry-sdk="^0.19"
 Pillow="^8.0"
+toml = "0.10.2"
 
 [tool.poetry.dev-dependencies]
 flake8="3.8.4"
