@@ -14,7 +14,7 @@ readme = ''
 setup(
     long_description=readme,
     name='vldc-bot',
-    version='0.5.1',
+    version='0.5.2',
     description='VLDC nyan bot ^_^',
     python_requires='==3.*,>=3.9.0',
     author='@egregors',
@@ -26,7 +26,7 @@ setup(
         'google-cloud-automl==0.10.0', 'google-cloud-speech==2.0.0',
         'google-cloud-translate==2.0.0', 'pillow==8.*,>=8.0.0',
         'pymongo==3.*,>=3.11.0', 'python-telegram-bot==13.0',
-        'sentry-sdk==0.*,>=0.19.0'
+        'sentry-sdk==0.*,>=0.19.0', 'toml==0.10.2'
     ],
     extras_require={
         "dev": [
