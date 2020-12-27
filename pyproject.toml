@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vldc-bot"
-version = "0.5.2"
+version = "0.5.3"
 description = "VLDC nyan bot ^_^"
 authors = [
     #tg
@@ -27,7 +27,8 @@ Pillow = "^8.0"
 toml = "0.10.2"
 
 [tool.poetry.dev-dependencies]
-flake8 = "3.8.4"
+flake8 = "^3"
+pylint = "^2"
 pytest = "5.1.2"
 mypy = "0.790"
 ptvsd = "4.3.2"
