@@ -28,7 +28,7 @@ jobs:
         pip install poetry
         poetry config virtualenvs.create false
         poetry install
-    - name: Lint with flake8 and type check with mypy
+    - name: Lint
       run: make lint
     - name: Test with pytest
       run: export PYTHONPATH=./bot && pytest
