@@ -237,19 +237,19 @@ def show_hussars(update: Update, context: CallbackContext):
     #  need to find out how to show board for mobile telegram as well
     board = f"{'Hussars leader board'.center(52)}\n" \
             f"{''.rjust(51, '=')}\n" \
-            f"{'time in club'.center(17)} " \
+            f"{'time in club'.center(18)} " \
             f"| {'attempts'.center(8)} " \
             f"| {'deaths'.center(6)} " \
             f"| {'hussar'.center(11)} " \
             f"\n" \
-            f"{''.ljust(17, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
+            f"{''.ljust(18, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
 
     hussars = _db.find_all()
     hussars_length = len(hussars)
 
     for hussar in hussars:
         username = _get_username(hussar)
-        board += f"{str(timedelta(seconds=(hussar['total_time_in_club']))).ljust(17)} " \
+        board += f"{str(timedelta(seconds=(hussar['total_time_in_club']))).ljust(18)} " \
                  f"| {str(hussar['shot_counter']).ljust(8)} " \
                  f"| {str(hussar['dead_counter']).ljust(6)} " \
                  f"| {username.ljust(15)}\n"
