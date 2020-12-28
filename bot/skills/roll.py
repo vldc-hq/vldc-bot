@@ -281,7 +281,7 @@ def roll(update: Update, context: CallbackContext):
                 f"{'he is dead!' if is_shot else 'miss!'}")
 
     if is_shot:
-        # todo: https://github.com/egregors/vldc-bot/issues/93
+        # todo: https://github.com/vldc-hq/vldc-bot/issues/93
         #  if bot can't restrict user, user should be passed into towel-mode like state
 
         mute_min = get_mute_minutes(shots_remained)

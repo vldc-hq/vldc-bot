@@ -125,7 +125,7 @@ class Mode:
 
             self._add_on_off_handlers()
             # todo:
-            #  https://github.com/egregors/vldc-bot/issues/104
+            #  https://github.com/vldc-hq/vldc-bot/issues/104
             #  for some reason, if you don't put handlers remover here
             #  mods with default=True do not get _on | _off command handlers
             self._remove_mode_handlers()
@@ -136,7 +136,7 @@ class Mode:
         return wrapper
 
 
-# https://github.com/egregors/vldc-bot/issues/72
+# https://github.com/vldc-hq/vldc-bot/issues/72
 def _hook_message(bot: Bot, callback_after=lambda x: x):
     orig_fn = getattr(bot, '_message')
 

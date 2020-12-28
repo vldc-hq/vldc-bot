@@ -4,9 +4,9 @@ The official [VLDC](https://vldc.org) telegram group bot.
 
 ![nyan](img/VLDC_nyan-tiger-in-anaglyph-glasses.png)
 
-[![Build Status](https://github.com/egregors/vldc-bot/workflows/Nyan%20Bot/badge.svg)](https://github.com/egregors/vldc-bot/actions?query=workflow%3A%22Nyan+Bot%22)
+[![Build Status](https://github.com/vldc-hq/vldc-bot/workflows/Nyan%20Bot/badge.svg)](https://github.com/vldc-hq/vldc-bot/actions?query=workflow%3A%22Nyan+Bot%22)
 ![docker_hub](https://img.shields.io/docker/cloud/build/egregors/vldc_bot)
-[![Maintainability](https://api.codeclimate.com/v1/badges/baa6fa307ee9f8411c5d/maintainability)](https://codeclimate.com/github/egregors/vldc-bot/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/baa6fa307ee9f8411c5d/maintainability)](https://codeclimate.com/github/vldc-hq/vldc-bot/maintainability)
 
 
 ### Skills
