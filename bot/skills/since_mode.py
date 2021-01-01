@@ -58,7 +58,7 @@ def _update_topic(t: Dict):
 
 
 def since_callback(update, context):
-    """  https://github.com/egregors/vldc-bot/issues/11
+    """  https://github.com/vldc-hq/vldc-bot/issues/11
     todo: normal doc, not this trash
     since scheme:
         {

@@ -16,7 +16,7 @@ def add_core(upd: Updater, core_handlers_group: int):
 @run_async
 def start(update: Update, context: CallbackContext):
     update.message.reply_text("I'm a VLDC Bot. 😼\n\n"
-                              "My source: https://github.com/egregors/vldc-bot")
+                              "My source: https://github.com/vldc-hq/vldc-bot")
 
 
 @run_async
@@ -50,7 +50,7 @@ def help_(update: Update, context: CallbackContext):
         "TowelMode is ON by default\n\n"
 
         "Feel free to add more stuff!\n"
-        "\nhttps://github.com/egregors/vldc-bot/issues\n"
+        "\nhttps://github.com/vldc-hq/vldc-bot/issues\n"
         "\n\n"
     )
 

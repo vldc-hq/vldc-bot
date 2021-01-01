@@ -2,7 +2,7 @@
     VLDC Nyan bot
     ~=~=~=~=~=~=~=~=~=~=~=~=~=[,,_,,]:3
 
-    https://github.com/egregors/vldc-bot
+    https://github.com/vldc-hq/vldc-bot
 """
 import logging
 
