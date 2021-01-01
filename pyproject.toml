@@ -17,19 +17,19 @@ authors = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-python-telegram-bot = "13.0"
-pymongo = "^3.11.0"
+python-telegram-bot = "^13"
+pymongo = "^3.11"
+grpcio = "==1.33.2"
 google-cloud-translate = "2.0.0"
 google-cloud-automl = "0.10.0"
 google-cloud-speech = "2.0.0"
 sentry-sdk = "^0.19"
 Pillow = "^8.0"
-toml = "0.10.2"
+toml = "^0.10"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3"
-pylint = "^2"
-pytest = "5.1.2"
+pytest = "^6"
 mypy = "0.790"
 ptvsd = "4.3.2"
 

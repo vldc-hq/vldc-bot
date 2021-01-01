@@ -6,7 +6,7 @@ from telegram.ext import Updater, Dispatcher, CommandHandler, CallbackContext, r
 logger = logging.getLogger(__name__)
 
 MSG = "Would you like to make PR for this?\n" \
-      "You can start by forking me at https://github.com/egregors/vldc-bot\n" \
+      "You can start by forking me at https://github.com/vldc-hq/vldc-bot\n" \
       "💪😎"
 
 
