@@ -29,6 +29,7 @@ toml = "^0.10"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3"
+pylint = "^2"
 pytest = "^6"
 mypy = "0.790"
 ptvsd = "4.3.2"
