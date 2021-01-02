@@ -6,10 +6,10 @@ from typing import Callable
 from google.cloud import translate
 
 from telegram import Update, User
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async
 
-from mode import Mode, OFF
+from bot.mode import Mode, OFF
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ def mesaĝa_traduko(update: Update, context: CallbackContext):
     try:
         context.bot.delete_message(
             chat_id, update.effective_message.message_id)
-    except BadRequest as err:
-        logger.info(f"can't delete msg: {err}")
+    except (BadRequest, TelegramError) as err:
+        logger.info("can't delete msg: %s", err)
 
     # akiri avataron kaj lingvon por uzanto kiel Jedajo
     magia_nombro = sum([ord(c) for c in user.full_name])
@@ -48,8 +48,8 @@ def mesaĝa_traduko(update: Update, context: CallbackContext):
     try:
         context.bot.send_message(
             chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}")
-    except Exception as err:
-        logger.info(f"can't translate msg: {text}, because of: {err}")
+    except TelegramError as err:
+        logger.info("can't translate msg: %s, because of: %s", text, err)
 
 
 def f(text: str, lingvo: str) -> str:

@@ -12,17 +12,17 @@ import requests
 from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
                       PhotoSize, ChatPermissions)
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
 from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
                           JobQueue, MessageHandler)
 from telegram.ext.filters import Filters
 
-from config import get_group_chat_id
-from db.mongo import get_db
-from filters import admin_filter, only_admin_on_others
-from mode import cleanup_update_context, cleanup_bot_queue, Mode, OFF
-from skills.mute import mute_user_for_time
-from skills.roll import _get_username
+from bot.config import get_group_chat_id
+from bot.db.mongo import get_db
+from bot.filters import admin_filter, only_admin_on_others
+from bot.mode import cleanup_update_context, cleanup_bot_queue, Mode, OFF
+from bot.skills.mute import mute_user_for_time
+from bot.skills.roll import _get_username
 
 logger = logging.getLogger(__name__)
 
@@ -197,9 +197,9 @@ def cure_all(queue: JobQueue, bot: Bot) -> None:
                 can_send_messages=True
             )
             bot.restrict_chat_member(get_group_chat_id(), user.id, unmute_perm)
-            logger.debug(f"user: {_get_username(user)} was unrestrict")
-        except Exception as err:
-            logger.warning(f"can't unrestrict {_get_username(user)}: {err}")
+            logger.debug("user: %s was unrestrict", _get_username(user))
+        except TelegramError as err:
+            logger.warning("can't unrestrict %s: %s", _get_username(user), err)
     _db.remove_all()
 
     # clean up the jobs queue
@@ -223,7 +223,7 @@ def start_pandemic(queue: JobQueue, bot: Bot) -> None:
 
 
 @run_async
-def temp(update: Update, context: CallbackContext):
+def temp(update: Update):
     message: Message = update.message
     user: User = message.from_user
 
@@ -242,9 +242,9 @@ def temp(update: Update, context: CallbackContext):
     if temp_appendix == 0:
         temp_appendix = random() + 1.5 * random()
 
-    temp = str(round(36 + temp_appendix, 2))
+    temperature = str(round(36 + temp_appendix, 2))
 
-    message.reply_text(f"У {user.full_name} температура {temp} С")
+    message.reply_text(f"У {user.full_name} температура {temperature} С")
 
 
 @run_async
@@ -288,12 +288,12 @@ def quarantine(update: Update, context: CallbackContext):
         until = since + QUARANTINE_MUTE_DURATION
         _db.add_quarantine(user.id, since, until)
         mute_user_for_time(update, context, user, QUARANTINE_MUTE_DURATION)
-    except Exception as err:
+    except TelegramError as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
 @run_async
-def test(update: Update, context: CallbackContext):
+def test(update: Update):
     reply_user: User = update.message.reply_to_message.from_user
 
     if _db.is_user_infected(reply_user.id):
@@ -326,7 +326,7 @@ def cough(update: Update, context: CallbackContext):
 
 @run_async
 @cleanup_update_context(seconds=600)
-def infect_admin(update: Update, context: CallbackContext):
+def infect_admin(update: Update):
     infect_user: User = update.message.reply_to_message.from_user
     _db.add(infect_user)
     _db.infect(infect_user.id)
@@ -336,7 +336,7 @@ def infect_admin(update: Update, context: CallbackContext):
 
 @run_async
 @cleanup_bot_queue(seconds=30)
-def random_cough(bot: Bot, queue: JobQueue):
+def random_cough(bot: Bot):
     users = _db.find_all()
 
     message = ''
@@ -353,8 +353,8 @@ def random_cough(bot: Bot, queue: JobQueue):
 
 
 @run_async
-def random_fate(bot: Bot, queue: JobQueue):
-    "health or death"
+def random_fate(bot: Bot):
+    """ health or death """
 
     users = _db.find_all()
 
@@ -424,7 +424,7 @@ def infect_user_masked_condition(user: User, masked_probability: float, unmasked
     has_mask = False
     photo_bytearray = get_single_user_photo(user)
 
-    if get_single_user_photo(user) is not [0]:
+    if not get_single_user_photo(user):
         has_mask = is_avatar_has_mask(
             photo_bytearray, user, context)
 
@@ -438,7 +438,7 @@ def infect_user_masked_condition(user: User, masked_probability: float, unmasked
 
     logger.debug(str(infecting))
     if infecting:
-        logger.debug(f"User {user.full_name} infected")
+        logger.debug("User %s infected", user.full_name)
         _db.infect(user.id)
 
 
@@ -482,11 +482,11 @@ def container_predict(img: bytearray, key: str) -> bool:
     url = 'http://serving:8501/v1/models/default:predict'
     start = timer()
     response = requests.post(url, data=json.dumps(instances)).json()
-    logger.info(f"inference time is {timer() - start}")
-    hasMask = sorted(zip(response['predictions'][0]['labels'],
-                         response['predictions'][0]['scores']),
-                     key=lambda x: -x[1])[0][0] == 'good'
-    return hasMask
+    logger.info("inference time is %d", timer() - start)
+    has_mask = sorted(zip(response['predictions'][0]['labels'],
+                          response['predictions'][0]['scores']),
+                      key=lambda x: -x[1])[0][0] == 'good'
+    return has_mask
 
 
 def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> bool:
@@ -508,12 +508,13 @@ def is_avatar_has_mask(img: bytearray, user: User, context: CallbackContext) -> 
             context.bot_data[cache_key] = {}
 
         context.bot_data[cache_key][hash_] = is_good
-        message = f"User {user.full_name} {'has' if is_good else 'does not have'} mask on"
+        mask_message = 'has' if is_good else 'does not have'
+        message = f"User {user.full_name} {mask_message} mask on"
         context.bot.send_message(get_group_chat_id(), message)
         return is_good
 
-    except Exception as err:
-        logger.error(f"can't check mask: {err}")
+    except TelegramError as err:
+        logger.error("can't check mask: %s", err)
         return False
 
 

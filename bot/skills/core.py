@@ -14,13 +14,13 @@ def add_core(upd: Updater, core_handlers_group: int):
 
 
 @run_async
-def start(update: Update, context: CallbackContext):
+def start(update: Update):
     update.message.reply_text("I'm a VLDC Bot. 😼\n\n"
                               "My source: https://github.com/vldc-hq/vldc-bot")
 
 
 @run_async
-def help_(update: Update, context: CallbackContext):
+def help_(update: Update):
     """ List of ALL commands """
     update.message.reply_text(
         "The bot should be an admin with all admins permissions\n\n"

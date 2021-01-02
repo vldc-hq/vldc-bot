@@ -8,9 +8,9 @@ from pymongo.collection import Collection
 from telegram import Update
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CommandHandler
 
-from db.mongo import get_db
-from filters import admin_filter
-from mode import cleanup_update_context
+from bot.db.mongo import get_db
+from bot.filters import admin_filter
+from bot.mode import cleanup_update_context
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ def add_prism(upd: Updater, handlers_group: int):
 
 
 @run_async
-def extract_words(update: Update, context: CallbackContext):
+def extract_words(update: Update):
     _db.add_words(_normalize_words(_get_words(update.message.text)))
 
 
@@ -73,9 +73,10 @@ def _eval_filter(words: List[Dict], pred: str):
     def inner_pred(word):
         w = word["word"]
         c = word["count"]
+        # pylint: disable=eval-used
         return eval("lambda w, c: " + _normalize_pred(pred))(w, c)
 
-    return list(filter(inner_pred, [word for word in words]))
+    return list(filter(inner_pred, words.copy()))
 
 
 @run_async
@@ -85,7 +86,7 @@ def show_top(update: Update, context: CallbackContext):
 
     try:
         words = _eval_filter(default_words, _get_pred(context))
-    except Exception as err:
+    except (ValueError, TypeError) as err:
         logger.exception(err)
         words = default_words
 
