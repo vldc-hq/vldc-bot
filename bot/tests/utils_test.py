@@ -28,6 +28,12 @@ class DurationParserTestCase(TestCase):
             minutes=45,
             seconds=5,
         ))
+        self.assertEqual(get_duration('1w 2d 3h 4m 5s'), timedelta(
+            days=9,
+            hours=3,
+            minutes=4,
+            seconds=5,
+        ))
         self.assertEqual(get_duration('2w 4d'), timedelta(weeks=2, days=4))
 
     def test_wrong_order(self):

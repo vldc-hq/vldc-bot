@@ -25,7 +25,7 @@ def add_mute(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("unmute", unmute, filters=admin_filter), handlers_group)
 
 
-def _get_minutes(args: List[str]):
+def _get_minutes(args: List[str]) -> timedelta:
     # cmd should be a reply for going to mute user message like "/mute 90"
     if len(args) < 1:
         raise Exception("mute cmd should be a reply for going to mute user message like '/mute 90', "
