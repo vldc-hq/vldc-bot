@@ -24,6 +24,7 @@ from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
+from skills.ban import add_ban
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ skills: List[Dict] = [
     _make_skill(add_70k, "🛠 more than 70k?", " try to hire!"),
     _make_skill(add_pr, "💻 got sk1lzz?", " put them to use!"),
     _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
+    _make_skill(add_ban, "🔨 ban!", "ban! ban! ban!"),
 
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
@@ -106,7 +108,8 @@ commands_list: List[Tuple[str, str]] = [
     ("coc", "VLDC/GDG VL Code of Conduct"),
     ("70k", "try to hire!"),
     ("pr", "got sk1lzz?"),
-    ("prism", "top N PRISM words with optional predicate")
+    ("prism", "top N PRISM words with optional predicate"),
+    ("🔨 ban!", "ban! ban! ban!"),
 ]
 
 
