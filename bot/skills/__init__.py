@@ -109,7 +109,7 @@ commands_list: List[Tuple[str, str]] = [
     ("70k", "try to hire!"),
     ("pr", "got sk1lzz?"),
     ("prism", "top N PRISM words with optional predicate"),
-    ("🔨 ban!", "ban! ban! ban!"),
+    ("ban", "ban! ban! ban!"),
 ]
 
 
