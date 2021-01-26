@@ -17,6 +17,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 🤭 mute –  mute user for N minutes
 * 🔫 roll –  life is so cruel... isn't it?
 * ⚔️ banme –  commit sudoku
+* 🔪 ban –  ban! ban! ban!
 * 🎄 tree –  advent of code time!
 * ⛔🤬 coc –  VLDC/GDG VL Code of Conduct
 * 🛠 more than 70k? –  try to hire!
