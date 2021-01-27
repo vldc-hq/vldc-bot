@@ -18,7 +18,21 @@ SPEECH_MODEL = "default"
 
 logger = logging.getLogger(__name__)
 
-speech_client = speech.SpeechClient()
+
+class Dummy:
+    "dummy class to substitute speech client when in dev mode"
+
+    def __getattribute__(self, name):
+        def funcoff(*args, **kwargs):
+            raise Exception("google speech failed to initialize, voice recognition unavailable")
+        return funcoff
+
+
+try:
+    speech_client = speech.SpeechClient()
+except:
+    logger.error("failed to initialize google speech")
+    speech_client = Dummy()
 
 
 def _get_audio_file_data(file_id):
