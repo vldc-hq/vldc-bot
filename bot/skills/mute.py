@@ -13,7 +13,7 @@ from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
 
-MIN_MUTE_TIME = timedelta(minutes=31)
+MIN_MUTE_TIME = timedelta(minutes=1)
 MAX_MUTE_TIME = timedelta(days=365)
 
 
