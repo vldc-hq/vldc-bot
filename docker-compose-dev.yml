@@ -21,7 +21,7 @@ services:
         max-file: "10"
 
   serving:
-    image: gcr.io/automl-vision-ondevice/gcloud-container-1.12.0:latest
+    image: gcr.io/cloud-devrel-public-resources/gcloud-container-1.14.0:latest
     ports:
       - 8501:8501
     volumes:
