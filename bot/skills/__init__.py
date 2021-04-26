@@ -15,6 +15,7 @@ from skills.covid_mode import add_covid_mode
 from skills.fools import add_fools_mode
 from skills.mute import add_mute
 from skills.nastya_mode import add_nastya_mode
+from skills.nya import add_nya
 from skills.pr import add_pr
 from skills.prism import add_prism
 from skills.roll import add_roll
@@ -83,7 +84,8 @@ skills: List[Dict] = [
     _make_skill(add_70k, "🛠 more than 70k?", " try to hire!"),
     _make_skill(add_pr, "💻 got sk1lzz?", " put them to use!"),
     _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
-    _make_skill(add_ban, "🔨 ban!", "ban! ban! ban!"),
+    _make_skill(add_ban, "🔨 ban!", " ban! ban! ban!"),
+    _make_skill(add_nya, "😺 meow", " Simon says wat?"),
 
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
@@ -110,6 +112,7 @@ commands_list: List[Tuple[str, str]] = [
     ("pr", "got sk1lzz?"),
     ("prism", "top N PRISM words with optional predicate"),
     ("ban", "ban! ban! ban!"),
+    ("nya", "Simon says wat?"),
 ]
 
 
