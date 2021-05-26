@@ -97,22 +97,22 @@ skills: List[Dict] = [
 ]
 
 commands_list: List[Tuple[str, str]] = [
-    ("version", "show this message"),
-    ("still", "do u remember it?"),
+    ("nya", "😼 Simon says wat?"),
     ("mute", "😼 mute user for N minutes"),
     ("unmute", "😼 unmute user"),
-    ("roll", "life is so cruel... isn't it?"),
-    ("gdpr_me", "wipe all my hussar history"),
     ("hussars", "😼 show hussars leaderboard"),
     ("wipe_hussars", "😼 wipe all hussars history"),
-    ("banme", "commit sudoku"),
-    ("tree", "advent of code time!"),
-    ("coc", "VLDC/GDG VL Code of Conduct"),
-    ("70k", "try to hire!"),
     ("pr", "got sk1lzz?"),
-    ("prism", "top N PRISM words with optional predicate"),
+    ("70k", "try to hire!"),
+    ("coc", "VLDC/GDG VL Code of Conduct"),
     ("ban", "ban! ban! ban!"),
-    ("nya", "Simon says wat?"),
+    ("roll", "life is so cruel... isn't it?"),
+    ("tree", "advent of code time!"),
+    ("still", "do u remember it?"),
+    ("banme", "commit sudoku"),
+    ("prism", "top N PRISM words with optional predicate"),
+    ("version", "show this message"),
+    ("gdpr_me", "wipe all my hussar history"),
 ]
 
 
