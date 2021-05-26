@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vldc-bot"
-version = "0.5.5"
+version = "0.5.6"
 description = "VLDC nyan bot ^_^"
 authors = [
     #tg

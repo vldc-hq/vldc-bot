@@ -270,7 +270,7 @@ def show_hussars(update: Update, context: CallbackContext):
 
 
 @run_async
-@cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
+@cleanup_update_context(seconds=120)
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
     # check if hussar already exist or create new one
