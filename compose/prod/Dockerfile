@@ -2,13 +2,10 @@ FROM python:3.9-slim
 
 RUN apt-get -y update && apt-get install -y ffmpeg
 
-ENV POETRY_VERSION=1.1.4
-
 COPY . /app
 WORKDIR /app
 
-RUN pip install "poetry==$POETRY_VERSION"
-RUN poetry config virtualenvs.create false
-RUN poetry install --no-dev
+RUN pip install pipenv
+RUN pipenv install --system
 
 CMD ["python", "bot/main.py"]

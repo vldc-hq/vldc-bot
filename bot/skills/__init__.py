@@ -35,12 +35,11 @@ def _add_version(upd: Updater, version_handlers_group: int):
                                   filters=admin_filter), version_handlers_group)
 
 
-def _get_version_from_pyproject() -> str:
+def _get_version_from_pipfile() -> str:
     """ Parse toml file for version """
-    with open('pyproject.toml', 'r') as pyproject:
-        toml_dict = toml.loads(pyproject.read())
-
-    version = toml_dict["tool"]["poetry"]["version"]
+    with open('Pipfile', 'r') as pipfile:
+        toml_dict = toml.loads(pipfile.read())
+    version = toml_dict["description"]["version"]
     return version
 
 
@@ -49,7 +48,7 @@ def _get_version_from_pyproject() -> str:
 def _version(update: Update, context: CallbackContext):
     """ Show a current version of bot """
 
-    version = _get_version_from_pyproject()
+    version = _get_version_from_pipfile()
 
     logger.info("current ver.: %s", version)
 
