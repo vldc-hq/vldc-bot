@@ -41,7 +41,7 @@ def _get_version_from_pipfile() -> str:
     """ Parse toml file for version """
     with open('Pipfile', 'r') as pipfile:
         toml_dict = toml.loads(pipfile.read())
-    version = toml_dict["description"]["version"]
+    version = toml_dict["description"][0]["version"]
     return version
 
 

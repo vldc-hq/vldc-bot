@@ -23,7 +23,7 @@ class ConfigTestCase(TestCase):
 
     def test_get_config(self):
         c: Dict = get_config()
-        self.assertEqual(c["DEBUG"], self.env_debug)
+        self.assertEqual(c["DEBUG"], True)
         self.assertEqual(c["GROUP_CHAT_ID"], self.env_chat_id)
         self.assertEqual(c["TOKEN"], self.env_token)
         self.assertEqual(c["MONGO_USER"], self.env_mongo_initdb_root_username)
