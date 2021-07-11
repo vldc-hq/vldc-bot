@@ -30,7 +30,8 @@ class Dummy:
 
 try:
     speech_client = speech.SpeechClient()
-except:
+# pylint: disable=W0702
+except:  # noqa
     logger.error("failed to initialize google speech")
     speech_client = Dummy()
 
