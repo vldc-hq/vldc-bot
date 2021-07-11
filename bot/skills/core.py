@@ -1,7 +1,7 @@
 import logging
 
 from telegram import Update
-from telegram.ext import run_async, CommandHandler, Updater, CallbackContext
+from telegram.ext import CommandHandler, Updater, CallbackContext
 
 logger = logging.getLogger(__name__)
 
@@ -9,17 +9,15 @@ logger = logging.getLogger(__name__)
 def add_core(upd: Updater, core_handlers_group: int):
     logger.info("register smile-mode handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("start", start), core_handlers_group)
-    dp.add_handler(CommandHandler("help", help_), core_handlers_group)
+    dp.add_handler(CommandHandler("start", start, run_async=True), core_handlers_group)
+    dp.add_handler(CommandHandler("help", help_, run_async=True), core_handlers_group)
 
 
-@run_async
 def start(update: Update):
     update.message.reply_text("I'm a VLDC Bot. 😼\n\n"
                               "My source: https://github.com/vldc-hq/vldc-bot")
 
 
-@run_async
 def help_(update: Update):
     """ List of ALL commands """
     update.message.reply_text(

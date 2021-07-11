@@ -3,8 +3,7 @@ from functools import wraps
 from typing import Callable, List, Optional
 
 from telegram import Update, Bot, Message
-from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
-                          Dispatcher, JobQueue)
+from telegram.ext import (Updater, CommandHandler, CallbackContext, Dispatcher, JobQueue)
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from filters import admin_filter
@@ -56,9 +55,28 @@ class Mode:
             raise ValueError(f"wrong mode state. expect [True, False], got: {state}")
 
     def _add_on_off_handlers(self):
-        self._dp.add_handler(CommandHandler(f"{self.name}_on", self._mode_on, filters=admin_filter), self.handlers_gr)
-        self._dp.add_handler(CommandHandler(f"{self.name}_off", self._mode_off, filters=admin_filter), self.handlers_gr)
-        self._dp.add_handler(CommandHandler(f"{self.name}", self._mode_status), self.handlers_gr)
+        self._dp.add_handler(
+            CommandHandler(
+                f"{self.name}_on",
+                self._mode_on,
+                filters=admin_filter,
+                run_async=True,
+            ), self.handlers_gr)
+        self._dp.add_handler(
+            CommandHandler(
+                f"{self.name}_off",
+                self._mode_off,
+                filters=admin_filter,
+                run_async=True
+            ), self.handlers_gr,
+        )
+        self._dp.add_handler(
+            CommandHandler(
+                f"{self.name}",
+                self._mode_status,
+                run_async=True
+            ), self.handlers_gr,
+        )
 
     def _remove_mode_handlers(self):
         for h in self._mode_handlers:
@@ -68,7 +86,6 @@ class Mode:
         for h in self._mode_handlers:
             self._dp.add_handler(h, self.handlers_gr)
 
-    @run_async
     def _mode_on(self, update: Update, context: CallbackContext):
         logger.info("%s switch to ON", self.name)
         mode = self._get_mode_state(context)
@@ -86,7 +103,6 @@ class Mode:
             if self.pin_info_msg is True:
                 context.bot.pin_chat_message(update.effective_chat.id, msg.message_id, disable_notification=True)
 
-    @run_async
     def _mode_off(self, update: Update, context: CallbackContext):
         logger.info("%s switch to OFF", self.name)
         mode = self._get_mode_state(context)
@@ -104,7 +120,6 @@ class Mode:
             if self.pin_info_msg is True:
                 context.bot.unpin_chat_message(update.effective_chat.id)
 
-    @run_async
     def _mode_status(self, update: Update, context: CallbackContext):
         status = "ON" if self._get_mode_state(context) is ON else "OFF"
         msg = f"{self.name} status is {status}"
@@ -149,7 +164,6 @@ def _hook_message(bot: Bot, callback_after=lambda x: x):
     return orig_fn
 
 
-@run_async
 def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
     logger.debug("Scheduling cleanup of message %s \
                    in %d seconds", message, seconds)

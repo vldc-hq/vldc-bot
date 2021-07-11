@@ -1,13 +1,14 @@
 import logging
 from typing import List, Dict, Callable, Tuple
 
-from telegram import Update
-from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 import toml
+from telegram import Update
+from telegram.ext import CommandHandler, Updater, CallbackContext
 
 from filters import admin_filter
 from mode import cleanup_update_context
 from skills.at_least_70k import add_70k
+from skills.ban import add_ban
 from skills.banme import add_banme
 from skills.coc import add_coc
 from skills.core import add_core
@@ -25,7 +26,6 @@ from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
-from skills.ban import add_ban
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("version", _version,
-                                  filters=admin_filter), version_handlers_group)
+                                  filters=admin_filter, run_async=True), version_handlers_group)
 
 
 def _get_version_from_pipfile() -> str:
@@ -45,7 +45,6 @@ def _get_version_from_pipfile() -> str:
     return version
 
 
-@run_async
 @cleanup_update_context(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
     """ Show a current version of bot """

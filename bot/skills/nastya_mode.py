@@ -2,7 +2,7 @@ import logging
 from datetime import timedelta
 
 from telegram import Update, User
-from telegram.ext import Updater, Dispatcher, MessageHandler, Filters, run_async, CallbackContext
+from telegram.ext import Updater, Dispatcher, MessageHandler, Filters, CallbackContext
 
 from mode import Mode
 from skills.mute import mute_user_for_time
@@ -22,10 +22,11 @@ def add_nastya_mode(upd: Updater, handlers_group: int):
     logger.info("registering nastya handlers")
     dp: Dispatcher = upd.dispatcher
 
-    dp.add_handler(MessageHandler(Filters.voice & ~ Filters.status_update, handle_voice), handlers_group)
+    dp.add_handler(
+        MessageHandler(Filters.voice & ~ Filters.status_update, handle_voice, run_async=True), handlers_group
+    )
 
 
-@run_async
 def handle_voice(update: Update, context: CallbackContext):
     user: User = update.effective_user
     chat_id = update.effective_chat.id

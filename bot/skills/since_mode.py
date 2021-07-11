@@ -24,8 +24,8 @@ mode = Mode(mode_name="since_mode", default=False, pin_info_msg=False)
 def add_since_mode(upd: Updater, handlers_group: int):
     logger.info("register since-mode handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("since", since_callback), handlers_group)
-    dp.add_handler(CommandHandler("since_list", since_list_callback), handlers_group)
+    dp.add_handler(CommandHandler("since", since_callback, run_async=True), handlers_group)
+    dp.add_handler(CommandHandler("since_list", since_list_callback, run_async=True), handlers_group)
 
 
 def _get_topic(t: str) -> Dict:

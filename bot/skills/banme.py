@@ -21,7 +21,7 @@ def get_mute_minutes() -> timedelta:
 def add_banme(upd: Updater, handlers_group: int):
     logger.info("registering banme handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("banme", banme), handlers_group)
+    dp.add_handler(CommandHandler("banme", banme, run_async=True), handlers_group)
 
 
 def banme(update: Update, context: CallbackContext):

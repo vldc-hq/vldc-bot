@@ -6,7 +6,7 @@ import pymongo
 import telegram
 from pymongo.collection import Collection
 from telegram import Update
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CommandHandler
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, CommandHandler
 
 from db.mongo import get_db
 from filters import admin_filter
@@ -41,12 +41,11 @@ _db = DB(db_name='words')
 def add_prism(upd: Updater, handlers_group: int):
     logger.info("register words handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("top", show_top, filters=admin_filter), handlers_group)
-    dp.add_handler(MessageHandler(Filters.text, extract_words), handlers_group)
+    dp.add_handler(CommandHandler("top", show_top, filters=admin_filter, run_async=True), handlers_group)
+    dp.add_handler(MessageHandler(Filters.text, extract_words, run_async=True), handlers_group)
 
 
-@run_async
-def extract_words(update: Update):
+def extract_words(update: Update, _: CallbackContext):
     _db.add_words(_normalize_words(_get_words(update.message.text)))
 
 
@@ -79,7 +78,6 @@ def _eval_filter(words: List[Dict], pred: str):
     return list(filter(inner_pred, words.copy()))
 
 
-@run_async
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_top(update: Update, context: CallbackContext):
     default_words = _db.find_all()
