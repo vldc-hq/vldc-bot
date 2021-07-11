@@ -1,7 +1,7 @@
 from datetime import timedelta
 from unittest import TestCase
 
-from bot.utils.time import get_duration
+from utils.time import get_duration
 
 
 class DurationParserTestCase(TestCase):

@@ -6,10 +6,10 @@ from typing import List
 from telegram import Update, User, ChatPermissions, TelegramError
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
-from bot.mode import cleanup_update_context
+from mode import cleanup_update_context
 
-from bot.filters import admin_filter
-from bot.utils.time import get_duration
+from filters import admin_filter
+from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ import os
 from typing import Dict
 from unittest import TestCase
 
-from bot.config import get_config
+from config import get_config
 
 
 class ConfigTestCase(TestCase):

@@ -7,8 +7,8 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from telegram.ext import Updater, CommandHandler
 
-from bot.config import get_config
-from bot.mode import Mode
+from config import get_config
+from mode import Mode
 
 conf = get_config()
 

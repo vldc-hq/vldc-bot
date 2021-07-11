@@ -8,9 +8,9 @@ from pymongo.collection import Collection
 from telegram import Update
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CommandHandler
 
-from bot.db.mongo import get_db
-from bot.filters import admin_filter
-from bot.mode import cleanup_update_context
+from db.mongo import get_db
+from filters import admin_filter
+from mode import cleanup_update_context
 
 logger = logging.getLogger(__name__)
 

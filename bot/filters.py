@@ -3,7 +3,7 @@ import re
 from telegram import Message
 from telegram.ext import MessageFilter
 
-from bot.config import get_debug
+from config import get_debug
 
 
 class AdminFilter(MessageFilter):
