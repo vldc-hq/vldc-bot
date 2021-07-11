@@ -126,21 +126,19 @@ def get_mute_minutes(shots_remain: int) -> int:
 
 
 def _shot(context: CallbackContext) -> Tuple[bool, int]:
-    barrel_lock.acquire()
+    with barrel_lock:
+        barrel = context.chat_data.get("barrel")
+        if barrel is None or len(barrel) == 0:
+            barrel = _reload(context)
 
-    barrel = context.chat_data.get("barrel")
-    if barrel is None or len(barrel) == 0:
-        barrel = _reload(context)
+        logger.debug("barrel before shot: %s", barrel)
 
-    logger.debug("barrel before shot: %s", barrel)
+        fate = barrel.pop()
+        context.chat_data["barrel"] = barrel
+        shots_remained = len(barrel)  # number before reload
+        if fate:
+            _reload(context)
 
-    fate = barrel.pop()
-    context.chat_data["barrel"] = barrel
-    shots_remained = len(barrel)  # number before reload
-    if fate:
-        _reload(context)
-
-    barrel_lock.release()
     return fate, shots_remained
 
 
@@ -200,16 +198,15 @@ def _add_text_to_image(text, image_path):
 
 
 def from_text_to_image(text, limit):
-    if limit < HUSSARS_LIMIT_FOR_IMAGE:
-        limit = HUSSARS_LIMIT_FOR_IMAGE
+    limit = max(limit, HUSSARS_LIMIT_FOR_IMAGE)
     logger.info("Getting temp dir")
     tmp_dir = gettempdir()
     file_name = str(uuid4())
     image_path = f"{tmp_dir}/{file_name}{EXTENSION}"
     _create_empty_image(image_path, limit)
     _add_text_to_image(text, image_path)
-    image = open(image_path, "rb")
-    return image, image_path
+    with open(image_path, "rb") as image:
+        return image, image_path
 
 
 @run_async
