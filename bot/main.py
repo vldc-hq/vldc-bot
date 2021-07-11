@@ -10,8 +10,8 @@ import sentry_sdk
 from telegram.ext import Updater
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
-from bot.config import get_config
-from bot.skills import skills, commands_list
+from config import get_config
+from skills import skills, commands_list
 
 logger = logging.getLogger(__name__)
 
