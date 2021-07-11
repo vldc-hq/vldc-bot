@@ -1,13 +1,14 @@
 import logging
 from typing import List, Dict, Callable, Tuple
 
-from telegram import Update
-from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 import toml
+from telegram import Update
+from telegram.ext import CommandHandler, Updater, CallbackContext
 
 from filters import admin_filter
 from mode import cleanup_update_context
 from skills.at_least_70k import add_70k
+from skills.ban import add_ban
 from skills.banme import add_banme
 from skills.coc import add_coc
 from skills.core import add_core
@@ -25,7 +26,6 @@ from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
-from skills.ban import add_ban
 
 logger = logging.getLogger(__name__)
 

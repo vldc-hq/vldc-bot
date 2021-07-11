@@ -45,7 +45,7 @@ def add_prism(upd: Updater, handlers_group: int):
     dp.add_handler(MessageHandler(Filters.text, extract_words, run_async=True), handlers_group)
 
 
-def extract_words(update: Update):
+def extract_words(update: Update, _: CallbackContext):
     _db.add_words(_normalize_words(_get_words(update.message.text)))
 
 

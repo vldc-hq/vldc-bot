@@ -9,6 +9,7 @@ from filters import uwu_filter
 logger = logging.getLogger(__name__)
 
 
+# FIXME: uwu is broken: telegram.error.BadRequest: Wrong file identifier/http url specified
 def add_uwu(upd: Updater, handlers_group: int):
     logger.info("register uwu handlers")
     dp = upd.dispatcher
