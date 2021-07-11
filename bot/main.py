@@ -7,7 +7,6 @@
 import logging
 
 import sentry_sdk
-import ptvsd
 from telegram.ext import Updater
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
@@ -28,8 +27,10 @@ def main():
     )
 
     if conf["DEBUGGER"]:
+        import ptvsd
         ptvsd.enable_attach(address=('0.0.0.0', 5678))
         ptvsd.wait_for_attach()
+
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         level=logging.DEBUG if conf["DEBUG"] else logging.INFO)
 
