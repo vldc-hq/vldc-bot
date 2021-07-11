@@ -34,10 +34,8 @@ def _get_minutes(args: List[str]) -> timedelta:
 
 
 def mute_user_for_time(update: Update, context: CallbackContext, user: User, mute_duration: timedelta):
-    if mute_duration < MIN_MUTE_TIME:
-        mute_duration = MIN_MUTE_TIME
-    if mute_duration > MAX_MUTE_TIME:
-        mute_duration = MAX_MUTE_TIME
+    mute_duration = max(mute_duration, MIN_MUTE_TIME)
+    mute_duration = min(mute_duration, MAX_MUTE_TIME)
     try:
         until = datetime.now() + mute_duration
         logger.info("user: %s[%d] will be muted for %s", user.full_name, user.id, mute_duration)

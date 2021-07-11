@@ -57,7 +57,7 @@ def f(text: str, lingvo: str) -> str:
 
     client = translate.TranslationServiceClient()
 
-    parent = client.location_path(project_id, "global")
+    parent = client.common_location_path(project_id, "global")
 
     response = client.translate_text(
         parent=parent,

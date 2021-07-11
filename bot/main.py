@@ -21,6 +21,7 @@ def main():
     """ 🐈🐈🐈 """
     conf = get_config()
 
+    # pylint: disable=abstract-class-instantiated
     sentry_sdk.init(
         conf["SENTRY_DSN"],
         traces_sample_rate=1.0
