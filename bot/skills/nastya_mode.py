@@ -4,9 +4,9 @@ from datetime import timedelta
 from telegram import Update, User
 from telegram.ext import Updater, Dispatcher, MessageHandler, Filters, run_async, CallbackContext
 
-from bot.mode import Mode
-from bot.skills.mute import mute_user_for_time
-from bot.utils.voice_recognition import get_text_from_speech
+from mode import Mode
+from skills.mute import mute_user_for_time
+from utils.voice_recognition import get_text_from_speech
 
 logger = logging.getLogger(__name__)
 

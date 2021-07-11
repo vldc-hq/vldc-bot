@@ -17,12 +17,12 @@ from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
                           JobQueue, MessageHandler)
 from telegram.ext.filters import Filters
 
-from bot.config import get_group_chat_id
-from bot.db.mongo import get_db
-from bot.filters import admin_filter, only_admin_on_others
-from bot.mode import cleanup_update_context, cleanup_bot_queue, Mode, OFF
-from bot.skills.mute import mute_user_for_time
-from bot.skills.roll import _get_username
+from config import get_group_chat_id
+from db.mongo import get_db
+from filters import admin_filter, only_admin_on_others
+from mode import cleanup_update_context, cleanup_bot_queue, Mode, OFF
+from skills.mute import mute_user_for_time
+from skills.roll import _get_username
 
 logger = logging.getLogger(__name__)
 

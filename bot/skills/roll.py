@@ -15,10 +15,10 @@ from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext, run_async
 from telegram.ext.filters import Filters
 
-from bot.db.mongo import get_db
-from bot.filters import admin_filter
-from bot.mode import cleanup_update_context
-from bot.skills.mute import mute_user_for_time
+from db.mongo import get_db
+from filters import admin_filter
+from mode import cleanup_update_context
+from skills.mute import mute_user_for_time
 
 logger = logging.getLogger(__name__)
 

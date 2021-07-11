@@ -8,9 +8,9 @@ from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
 
-from bot.config import get_config
-from bot.db.mongo import get_db
-from bot.mode import Mode
+from config import get_config
+from db.mongo import get_db
+from mode import Mode
 
 MAGIC_NUMBER = "42"
 QUARANTINE_TIME = 60

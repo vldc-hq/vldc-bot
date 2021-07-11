@@ -9,7 +9,7 @@ from telegram import Update, User
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async
 
-from bot.mode import Mode, OFF
+from mode import Mode, OFF
 
 logger = logging.getLogger(__name__)
 
