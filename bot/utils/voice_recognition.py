@@ -30,7 +30,8 @@ class Dummy:
 
 try:
     speech_client = speech.SpeechClient()
-except:
+# pylint: disable=W0702
+except:  # noqa
     logger.error("failed to initialize google speech")
     speech_client = Dummy()
 
@@ -102,5 +103,8 @@ def get_text_from_speech(file_id):
         logger.info("Result of voice recognition: %s", result)
         return result
     except (AttributeError, ValueError, RuntimeError) as ex:
-        logger.error("Error during voice recognition", {"exception": ex, "file_id": file_id})
+        logger.error("Error during voice recognition %s", {"exception": ex, "file_id": file_id})
         return None
+
+
+__all__ = ['get_text_from_speech']

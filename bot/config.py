@@ -1,16 +1,24 @@
 import os
-from typing import Dict, Union
+from typing import Dict, Optional
 
 
-def get_debug() -> Union[str, bool]:
-    return os.getenv("DEBUG", False)
+def get_debug() -> Optional[str]:
+    """ Get debug value DEBUG ENV """
+    debug_is_on = os.getenv("DEBUG", None)
+    if debug_is_on is None:
+        raise ValueError("can't get DEBUG")
+    return debug_is_on
 
 
-def get_debugger() -> Union[str, bool]:
-    return os.getenv("DEBUGGER", False)
+def get_debugger() -> Optional[str]:
+    """ Get debugger value DEBUGGER ENV """
+    debugger_is_on = os.getenv("DEBUGGER", None)
+    if debugger_is_on is None:
+        raise ValueError("can't get DEBUGGER")
+    return debugger_is_on
 
 
-def get_group_chat_id() -> str:
+def get_group_chat_id() -> Optional[str]:
     """ Get VLDC chat id ENV """
     chat_id = os.getenv("CHAT_ID", None)
     if chat_id is None:
@@ -18,7 +26,7 @@ def get_group_chat_id() -> str:
     return chat_id
 
 
-def get_token() -> str:
+def get_token() -> Optional[str]:
     """ Get Telegram bot Token from ENV """
     token = os.getenv("TOKEN", None)
     if token is None:

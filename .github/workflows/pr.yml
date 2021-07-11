@@ -16,10 +16,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install poetry
-        poetry config virtualenvs.create false
-        poetry install
-    - name: Lint with flake8 and type check with mypy
+        pip install pipenv==2021.5.29
+        pipenv install --system --dev
+    - name: Lint
       run: make lint
     - name: Test with pytest
       run: export PYTHONPATH=./bot && pytest

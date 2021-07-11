@@ -33,7 +33,7 @@ def get_duration(raw_duration: str) -> timedelta:
             return _dispatcher[mark](acc, count)
 
         except ValueError as err:
-            logger.error(f"can't convert durations: {err}")
+            logger.error("can't convert durations: %s", err)
             return acc
 
     return reduce(f, filter(lambda x: x, raw_duration.split(' ')), timedelta())

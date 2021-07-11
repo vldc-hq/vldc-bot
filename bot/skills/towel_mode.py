@@ -8,9 +8,9 @@ from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
 
-from config import get_config
-from db.mongo import get_db
-from mode import Mode
+from bot.config import get_config
+from bot.db.mongo import get_db
+from bot.mode import Mode
 
 MAGIC_NUMBER = "42"
 QUARANTINE_TIME = 60
@@ -72,7 +72,7 @@ def _delete_user_rel_messages(chat_id: int, user_id: str, context: CallbackConte
         try:
             context.bot.delete_message(chat_id, msg_id)
         except BadRequest as err:
-            logger.info(f"can't delete msg: {err}")
+            logger.info("can't delete msg: %s", err)
 
 
 @mode.add
@@ -101,7 +101,7 @@ def add_towel_mode(upd: Updater, handlers_group: int):
 
 @run_async
 def quarantine_user(user: User, chat_id: str, context: CallbackContext):
-    logger.info(f"put {user} in quarantine")
+    logger.info("put %s in quarantine", user)
     db.add_user(user.id)
 
     markup = InlineKeyboardMarkup([
@@ -177,7 +177,7 @@ def i_am_a_bot_btn(update: Update, context: CallbackContext):
 @run_async
 def ban_user(context: CallbackContext):
     chat_id = context.bot.get_chat(chat_id=context.job.context["chat_id"]).id
-    logger.debug(f"get chat.id: {chat_id}")
+    logger.debug("get chat.id: %s", chat_id)
 
     for user in db.find_all_users():
         if _is_time_gone(user):
@@ -189,4 +189,4 @@ def ban_user(context: CallbackContext):
 
             db.delete_user(user['_id'])
 
-            logger.info(f"user banned: {user}")
+            logger.info("user banned: %s", user)

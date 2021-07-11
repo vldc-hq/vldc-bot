@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 from random import choice
 from typing import List
 
-from telegram import Update, User, ChatPermissions
+from telegram import Update, User, ChatPermissions, TelegramError
 from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
 
-from mode import cleanup_update_context
+from bot.mode import cleanup_update_context
 
-from filters import admin_filter
-from utils.time import get_duration
+from bot.filters import admin_filter
+from bot.utils.time import get_duration
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +34,11 @@ def _get_minutes(args: List[str]) -> timedelta:
 
 
 def mute_user_for_time(update: Update, context: CallbackContext, user: User, mute_duration: timedelta):
-    if mute_duration < MIN_MUTE_TIME:
-        mute_duration = MIN_MUTE_TIME
-    if mute_duration > MAX_MUTE_TIME:
-        mute_duration = MAX_MUTE_TIME
+    mute_duration = max(mute_duration, MIN_MUTE_TIME)
+    mute_duration = min(mute_duration, MAX_MUTE_TIME)
     try:
         until = datetime.now() + mute_duration
-        logger.info(
-            f"user: {user.full_name}[{user.id}] will be muted for {mute_duration}")
+        logger.info("user: %s[%d] will be muted for %s", user.full_name, user.id, mute_duration)
 
         update.message.reply_text(
             f"Таймаут для {user.full_name} на {mute_duration}")
@@ -54,8 +51,8 @@ def mute_user_for_time(update: Update, context: CallbackContext, user: User, mut
         )
         context.bot.restrict_chat_member(
             update.effective_chat.id, user.id, mute_perm, until)
-    except Exception as err:
-        logger.error(f"can't mute user {user}: {err}")
+    except TelegramError as err:
+        logger.error("can't mute user %s: %s", user, err)
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
@@ -96,7 +93,7 @@ def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
         )
         context.bot.restrict_chat_member(
             update.effective_chat.id, user.id, unmute_perm)
-    except Exception as err:
+    except TelegramError as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 

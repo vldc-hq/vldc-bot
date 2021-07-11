@@ -7,11 +7,12 @@
 import logging
 
 import sentry_sdk
+import ptvsd
 from telegram.ext import Updater
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
-from config import get_config
-from skills import skills, commands_list
+from bot.config import get_config
+from bot.skills import skills, commands_list
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +21,13 @@ def main():
     """ 🐈🐈🐈 """
     conf = get_config()
 
+    # pylint: disable=abstract-class-instantiated
     sentry_sdk.init(
         conf["SENTRY_DSN"],
         traces_sample_rate=1.0
     )
 
     if conf["DEBUGGER"]:
-        import ptvsd
         ptvsd.enable_attach(address=('0.0.0.0', 5678))
         ptvsd.wait_for_attach()
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

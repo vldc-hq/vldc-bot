@@ -3,7 +3,7 @@ import re
 from telegram import Message
 from telegram.ext import MessageFilter
 
-from config import get_debug
+from bot.config import get_debug
 
 
 class AdminFilter(MessageFilter):
@@ -38,8 +38,8 @@ class OnlyAdminOnOthersFilter(MessageFilter):
             return message.from_user.id in {
                 a.user.id for a in message.chat.get_administrators()
             }
-        else:
-            return True
+
+        return True
 
 
 admin_filter = AdminFilter()

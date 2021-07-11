@@ -1,12 +1,11 @@
 import logging
 from datetime import timedelta
+from random import randint
 
-from telegram import Update, User
+from telegram import Update, User, TelegramError
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
-from skills.mute import mute_user_for_time
-
-from random import randint
+from bot.skills.mute import mute_user_for_time
 
 MUTE_MINUTES = 24 * 60  # 24h
 MIN_MULT = 1
@@ -29,5 +28,5 @@ def banme(update: Update, context: CallbackContext):
     try:
         user: User = update.message.from_user
         mute_user_for_time(update, context, user, get_mute_minutes())
-    except Exception as err:
+    except TelegramError as err:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")

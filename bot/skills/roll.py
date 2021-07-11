@@ -15,10 +15,10 @@ from telegram import Update, User
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext, run_async
 from telegram.ext.filters import Filters
 
-from db.mongo import get_db
-from filters import admin_filter
-from mode import cleanup_update_context
-from skills.mute import mute_user_for_time
+from bot.db.mongo import get_db
+from bot.filters import admin_filter
+from bot.mode import cleanup_update_context
+from bot.skills.mute import mute_user_for_time
 
 logger = logging.getLogger(__name__)
 
@@ -113,12 +113,12 @@ def _reload(context: CallbackContext) -> List[bool]:
 
 
 def get_miss_string(shots_remain: int) -> str:
-    S = ['😕', '😟', '😥', '😫', '😱']
+    s = ['😕', '😟', '😥', '😫', '😱']
     misses = ['🔘'] * (NUM_BULLETS - shots_remain)
     chances = ['⚪️'] * shots_remain
     barrel_str = "".join(misses + chances)
     h = get_mute_minutes(shots_remain - 1) // 60
-    return f"{S[NUM_BULLETS - shots_remain - 1]}🔫 MISS! Barrel: {barrel_str}, {h}h"
+    return f"{s[NUM_BULLETS - shots_remain - 1]}🔫 MISS! Barrel: {barrel_str}, {h}h"
 
 
 def get_mute_minutes(shots_remain: int) -> int:
@@ -126,22 +126,19 @@ def get_mute_minutes(shots_remain: int) -> int:
 
 
 def _shot(context: CallbackContext) -> Tuple[bool, int]:
-    global barrel_lock
-    barrel_lock.acquire()
+    with barrel_lock:
+        barrel = context.chat_data.get("barrel")
+        if barrel is None or len(barrel) == 0:
+            barrel = _reload(context)
 
-    barrel = context.chat_data.get("barrel")
-    if barrel is None or len(barrel) == 0:
-        barrel = _reload(context)
+        logger.debug("barrel before shot: %s", barrel)
 
-    logger.debug(f"barrel before shot: {barrel}")
+        fate = barrel.pop()
+        context.chat_data["barrel"] = barrel
+        shots_remained = len(barrel)  # number before reload
+        if fate:
+            _reload(context)
 
-    fate = barrel.pop()
-    context.chat_data["barrel"] = barrel
-    shots_remained = len(barrel)  # number before reload
-    if fate:
-        _reload(context)
-
-    barrel_lock.release()
     return fate, shots_remained
 
 
@@ -174,48 +171,42 @@ def _create_empty_image(image_path, limit):
     try:
         image.save(image_path, JPEG)
         logger.info("Empty image saved")
-    except Exception as ex:
-        logger.error("Error during image saving", ex)
-        return
+    except (ValueError, OSError) as ex:
+        logger.error("Error during image saving, error: %s", ex)
+        return None
     return image
 
 
-def _add_text_to_image(text, image_path, output_path):
+def _add_text_to_image(text, image_path):
     logger.info("Adding text to image")
     image = Image.open(image_path)
     logger.info("Getting font")
     font_path = os.path.join("fonts", FONT)
     font = ImageFont.truetype(font_path, FONT_SIZE)
-    logger.info(f"Font {FONT} has been found")
+    logger.info("Font %s has been found", FONT)
     draw = ImageDraw.Draw(image)
     position = (45, 0)
     draw.text(xy=position, text=text, font=font)
     try:
         image.save(image_path, JPEG)
         logger.info("Image with text saved")
-    except Exception as ex:
-        logger.error("Error during image with text saving", ex)
+    except (ValueError, OSError) as ex:
+        logger.error("Error during image with text saving, error: %s", ex)
         os.remove(image_path)
-        return
+        return None
     return image
 
 
 def from_text_to_image(text, limit):
-    logger.info("Getting an image from text")
-    if limit < HUSSARS_LIMIT_FOR_IMAGE:
-        limit = HUSSARS_LIMIT_FOR_IMAGE
+    limit = max(limit, HUSSARS_LIMIT_FOR_IMAGE)
     logger.info("Getting temp dir")
     tmp_dir = gettempdir()
-    logger.info(f"Temp dir path {tmp_dir}")
     file_name = str(uuid4())
     image_path = f"{tmp_dir}/{file_name}{EXTENSION}"
-    logger.info(f"Image temp path {image_path}")
     _create_empty_image(image_path, limit)
-    _add_text_to_image(text, image_path, image_path)
-    logger.info("Attempt to open an image with text")
-    image = open(image_path, "rb")
-    logger.info(f"Image bin by path {image_path} found")
-    return image, image_path
+    _add_text_to_image(text, image_path)
+    with open(image_path, "rb") as image:
+        return image, image_path
 
 
 @run_async
@@ -257,8 +248,8 @@ def show_hussars(update: Update, context: CallbackContext):
     board += f"{''.rjust(51, '-')}"
     try:
         board_image, board_image_path = from_text_to_image(board, hussars_length)
-    except Exception as ex:
-        logger.error("Cannot get image from text, hussars error", ex)
+    except (ValueError, RuntimeError, OSError) as ex:
+        logger.error("Cannot get image from text, hussars error: %s", ex)
         return
 
     if hussars_length <= HUSSARS_LIMIT_FOR_IMAGE:
@@ -274,11 +265,13 @@ def show_hussars(update: Update, context: CallbackContext):
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
     # check if hussar already exist or create new one
-    _db.find(user_id=user.id) or _db.add(user=user)
+    existing_user = _db.find(user_id=user.id)
+    if existing_user is None:
+        _db.add(user=user)
 
     is_shot, shots_remained = _shot(context)
-    logger.info(f"user: {user.full_name}[{user.id}] is rolling and... "
-                f"{'he is dead!' if is_shot else 'miss!'}")
+    shot_result = 'he is dead!' if is_shot else 'miss!'
+    logger.info("user: %s[%s] is rolling and... %s", user.full_name, user.id, shot_result)
 
     if is_shot:
         # todo: https://github.com/vldc-hq/vldc-bot/issues/93
@@ -302,7 +295,7 @@ def roll(update: Update, context: CallbackContext):
 # noinspection PyPep8Naming
 @run_async
 @cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
-def satisfy_GDPR(update: Update, context: CallbackContext):
+def satisfy_GDPR(update: Update):
     user: User = update.effective_user
     _db.remove(user.id)
     logger.info("%s was removed from DB", user.full_name)
@@ -311,7 +304,7 @@ def satisfy_GDPR(update: Update, context: CallbackContext):
 
 @run_async
 @cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
-def wipe_hussars(update: Update, context: CallbackContext):
+def wipe_hussars(update: Update):
     _db.remove_all()
     logger.info("all hussars was removed from DB")
     update.message.reply_text("👍", disable_notification=True)
