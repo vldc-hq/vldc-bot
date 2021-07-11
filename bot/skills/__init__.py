@@ -5,25 +5,27 @@ from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, run_async
 import toml
 
-from bot.filters import admin_filter
-from bot.mode import cleanup_update_context
-from bot.skills.at_least_70k import add_70k
-from bot.skills.banme import add_banme
-from bot.skills.coc import add_coc
-from bot.skills.core import add_core
-from bot.skills.covid_mode import add_covid_mode
-from bot.skills.fools import add_fools_mode
-from bot.skills.mute import add_mute
-from bot.skills.nastya_mode import add_nastya_mode
-from bot.skills.pr import add_pr
-from bot.skills.prism import add_prism
-from bot.skills.roll import add_roll
-from bot.skills.since_mode import add_since_mode
-from bot.skills.smile_mode import add_smile_mode
-from bot.skills.still import add_still
-from bot.skills.towel_mode import add_towel_mode
-from bot.skills.tree import add_tree
-from bot.skills.uwu import add_uwu
+from filters import admin_filter
+from mode import cleanup_update_context
+from skills.at_least_70k import add_70k
+from skills.banme import add_banme
+from skills.coc import add_coc
+from skills.core import add_core
+from skills.covid_mode import add_covid_mode
+from skills.fools import add_fools_mode
+from skills.mute import add_mute
+from skills.nastya_mode import add_nastya_mode
+from skills.nya import add_nya
+from skills.pr import add_pr
+from skills.prism import add_prism
+from skills.roll import add_roll
+from skills.since_mode import add_since_mode
+from skills.smile_mode import add_smile_mode
+from skills.still import add_still
+from skills.towel_mode import add_towel_mode
+from skills.tree import add_tree
+from skills.uwu import add_uwu
+from skills.ban import add_ban
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ def _version(update: Update, context: CallbackContext):
 
     version = _get_version_from_pyproject()
 
-    logger.info("current ver.: %s", version)
+    logger.info(f"current ver.: {version}")
 
     chat_id = update.effective_chat.id
 
@@ -82,6 +84,8 @@ skills: List[Dict] = [
     _make_skill(add_70k, "🛠 more than 70k?", " try to hire!"),
     _make_skill(add_pr, "💻 got sk1lzz?", " put them to use!"),
     _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
+    _make_skill(add_ban, "🔨 ban!", " ban! ban! ban!"),
+    _make_skill(add_nya, "😺 meow", " Simon says wat?"),
 
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
@@ -93,20 +97,22 @@ skills: List[Dict] = [
 ]
 
 commands_list: List[Tuple[str, str]] = [
-    ("version", "show this message"),
-    ("still", "do u remember it?"),
+    ("nya", "😼 Simon says wat?"),
     ("mute", "😼 mute user for N minutes"),
     ("unmute", "😼 unmute user"),
-    ("roll", "life is so cruel... isn't it?"),
-    ("gdpr_me", "wipe all my hussar history"),
     ("hussars", "😼 show hussars leaderboard"),
     ("wipe_hussars", "😼 wipe all hussars history"),
-    ("banme", "commit sudoku"),
-    ("tree", "advent of code time!"),
-    ("coc", "VLDC/GDG VL Code of Conduct"),
-    ("70k", "try to hire!"),
     ("pr", "got sk1lzz?"),
-    ("prism", "top N PRISM words with optional predicate")
+    ("70k", "try to hire!"),
+    ("coc", "VLDC/GDG VL Code of Conduct"),
+    ("ban", "ban! ban! ban!"),
+    ("roll", "life is so cruel... isn't it?"),
+    ("tree", "advent of code time!"),
+    ("still", "do u remember it?"),
+    ("banme", "commit sudoku"),
+    ("prism", "top N PRISM words with optional predicate"),
+    ("version", "show this message"),
+    ("gdpr_me", "wipe all my hussar history"),
 ]
 
 

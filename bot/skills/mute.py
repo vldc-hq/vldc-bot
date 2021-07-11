@@ -14,7 +14,7 @@ from bot.utils.time import get_duration
 logger = logging.getLogger(__name__)
 
 MIN_MUTE_TIME = timedelta(minutes=1)
-MAX_MUTE_TIME = timedelta(days=7)
+MAX_MUTE_TIME = timedelta(days=365)
 
 
 def add_mute(upd: Updater, handlers_group: int):
@@ -25,7 +25,7 @@ def add_mute(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("unmute", unmute, filters=admin_filter), handlers_group)
 
 
-def _get_minutes(args: List[str]):
+def _get_minutes(args: List[str]) -> timedelta:
     # cmd should be a reply for going to mute user message like "/mute 90"
     if len(args) < 1:
         raise Exception("mute cmd should be a reply for going to mute user message like '/mute 90', "
@@ -69,7 +69,7 @@ def mute(update: Update, context: CallbackContext):
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def mute_self(update: Update, context: CallbackContext):
     user: User = update.effective_user
-    mute_user_for_time(update, context, user, timedelta(minutes=60))
+    mute_user_for_time(update, context, user, timedelta(days=1))
     self_mute_messages = [
         f"Да как эта штука работает вообще, {user.name}?",
         f"Не озоруй, {user.name}, мало ли кто увидит",
