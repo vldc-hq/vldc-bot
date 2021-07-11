@@ -7,7 +7,7 @@ ENV PYTHONPATH /app
 COPY . /app
 WORKDIR /app
 
-RUN pip install pipenv
+RUN pip install pipenv==2021.5.29
 RUN pipenv install --dev --system
 
 # source from mounted volume (see docker-compose-dev.yml)
