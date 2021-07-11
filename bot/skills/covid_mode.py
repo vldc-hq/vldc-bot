@@ -13,7 +13,7 @@ from pymongo.collection import Collection
 from telegram import (Update, User, Bot, Message, UserProfilePhotos, File,
                       PhotoSize, ChatPermissions)
 from telegram.error import BadRequest, TelegramError
-from telegram.ext import (Updater, CommandHandler, CallbackContext, run_async,
+from telegram.ext import (Updater, CommandHandler, CallbackContext,
                           JobQueue, MessageHandler)
 from telegram.ext.filters import Filters
 
@@ -153,17 +153,52 @@ mode = Mode(
 def add_covid_mode(upd: Updater, handlers_group: int):
     logger.info("registering covid handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler(
-        "check", test, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("infect", infect_admin,
-                                  filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("cough", cough), handlers_group)
-    dp.add_handler(CommandHandler("quarantine", quarantine,
-                                  filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler(
-        "stats", stats, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler(
-        "temp", temp, filters=only_admin_on_others), handlers_group)
+    dp.add_handler(
+        CommandHandler(
+            "check",
+            test,
+            filters=admin_filter,
+            run_async=True,
+        ), handlers_group)
+
+    dp.add_handler(
+        CommandHandler(
+            "infect",
+            infect_admin,
+            filters=admin_filter,
+            run_async=True,
+        ), handlers_group)
+
+    dp.add_handler(
+        CommandHandler(
+            "cough",
+            cough,
+            run_async=True
+        ), handlers_group)
+
+    dp.add_handler(
+        CommandHandler(
+            "quarantine",
+            quarantine,
+            filters=admin_filter,
+            run_async=True
+        ), handlers_group)
+
+    dp.add_handler(
+        CommandHandler(
+            "stats",
+            stats,
+            filters=admin_filter,
+            run_async=True,
+        ), handlers_group)
+
+    dp.add_handler(
+        CommandHandler(
+            "temp",
+            temp,
+            filters=only_admin_on_others,
+            run_async=True,
+        ), handlers_group)
 
     # We must do this, since bot api doesnt present a way to get all members
     # of chat at once
@@ -222,7 +257,6 @@ def start_pandemic(queue: JobQueue, bot: Bot) -> None:
     bot.send_message(get_group_chat_id(), "ALARM!!! CORONAVIRUS IS SPREADING")
 
 
-@run_async
 def temp(update: Update):
     message: Message = update.message
     user: User = message.from_user
@@ -247,7 +281,6 @@ def temp(update: Update):
     message.reply_text(f"У {user.full_name} температура {temperature} С")
 
 
-@run_async
 def stats(update: Update, context: CallbackContext):
     users = _db.find_all()
 
@@ -278,7 +311,6 @@ def stats(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 
-@run_async
 def quarantine(update: Update, context: CallbackContext):
     try:
         user: User = update.message.reply_to_message.from_user
@@ -292,7 +324,6 @@ def quarantine(update: Update, context: CallbackContext):
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
-@run_async
 def test(update: Update):
     reply_user: User = update.message.reply_to_message.from_user
 
@@ -302,7 +333,6 @@ def test(update: Update):
         update.message.reply_text(f"{reply_user.full_name} здоров")
 
 
-@run_async
 @cleanup_update_context(seconds=600)
 def cough(update: Update, context: CallbackContext):
     user: User = update.effective_user
@@ -324,7 +354,6 @@ def cough(update: Update, context: CallbackContext):
             context)
 
 
-@run_async
 @cleanup_update_context(seconds=600)
 def infect_admin(update: Update):
     infect_user: User = update.message.reply_to_message.from_user
@@ -334,7 +363,6 @@ def infect_admin(update: Update):
         f"{update.effective_user.full_name} опрокинул колбу с коронавирусом на {infect_user.full_name}")
 
 
-@run_async
 @cleanup_bot_queue(seconds=30)
 def random_cough(bot: Bot):
     users = _db.find_all()
@@ -352,7 +380,6 @@ def random_cough(bot: Bot):
         bot.send_message(get_group_chat_id(), message)
 
 
-@run_async
 def random_fate(bot: Bot):
     """ health or death """
 

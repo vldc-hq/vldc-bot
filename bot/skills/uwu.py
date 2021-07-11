@@ -2,7 +2,7 @@ import logging
 import random
 
 from telegram import Update
-from telegram.ext import MessageHandler, Updater, CallbackContext, run_async
+from telegram.ext import MessageHandler, Updater, CallbackContext
 
 from filters import uwu_filter
 
@@ -12,10 +12,9 @@ logger = logging.getLogger(__name__)
 def add_uwu(upd: Updater, handlers_group: int):
     logger.info("register uwu handlers")
     dp = upd.dispatcher
-    dp.add_handler(MessageHandler(uwu_filter, uwu), handlers_group)
+    dp.add_handler(MessageHandler(uwu_filter, uwu, run_async=True), handlers_group)
 
 
-@run_async
 def uwu(update: Update, context: CallbackContext):
     well_prepared_anti_UwU_imgs = [
         'AgADAgADKqwxG9gDCEk48KXBcoIEgkpOyw4ABAEAAwIAA20AA6DsAAIWBA',

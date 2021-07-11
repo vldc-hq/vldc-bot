@@ -34,7 +34,7 @@ def _add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
     dp.add_handler(CommandHandler("version", _version,
-                                  filters=admin_filter), version_handlers_group)
+                                  filters=admin_filter, run_async=True), version_handlers_group)
 
 
 def _get_version_from_pipfile() -> str:
@@ -45,7 +45,6 @@ def _get_version_from_pipfile() -> str:
     return version
 
 
-@run_async
 @cleanup_update_context(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
     """ Show a current version of bot """

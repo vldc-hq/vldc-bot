@@ -1,13 +1,11 @@
 import logging
 import os
-
 from typing import Callable
 
 from google.cloud import translate
-
 from telegram import Update, User
 from telegram.error import BadRequest, TelegramError
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
 
 from mode import Mode, OFF
 
@@ -22,10 +20,9 @@ def add_fools_mode(upd: Updater, handlers_group: int):
     dp = upd.dispatcher
 
     dp.add_handler(MessageHandler(Filters.group & ~
-                                  Filters.status_update, mesaĝa_traduko), handlers_group)
+    Filters.status_update, mesaĝa_traduko, run_async=True), handlers_group)
 
 
-@run_async
 def mesaĝa_traduko(update: Update, context: CallbackContext):
     text = update.message['text']
     user: User = update.effective_user

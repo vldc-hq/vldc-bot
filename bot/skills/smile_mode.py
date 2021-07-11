@@ -15,7 +15,7 @@ def add_smile_mode(upd: Updater, handlers_group: int):
     """ Set up all handler for SmileMode """
     logger.info("registering smile-mode handlers")
     dp = upd.dispatcher
-    dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile), handlers_group)
+    dp.add_handler(MessageHandler(~Filters.sticker & ~Filters.animation, smile, run_async=True), handlers_group)
 
 
 def smile(update: Update, context: CallbackContext):

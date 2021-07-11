@@ -1,18 +1,17 @@
 import logging
+import os
 from datetime import datetime, timedelta
 from random import randint
+from tempfile import gettempdir
 from threading import Lock
 from typing import List, Tuple, Dict
 from uuid import uuid4
 
-import os
-from tempfile import gettempdir
-from PIL import Image, ImageDraw, ImageFont
-
 import pymongo
+from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
 from telegram import Update, User
-from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext, run_async
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
 from telegram.ext.filters import Filters
 
 from db.mongo import get_db
@@ -93,10 +92,10 @@ def add_roll(upd: Updater, handlers_group: int):
     logger.info("registering roll handlers")
     dp = upd.dispatcher
     dp.add_handler(MessageHandler(Filters.dice, roll), handlers_group)
-    dp.add_handler(CommandHandler("roll", roll), handlers_group)
-    dp.add_handler(CommandHandler("gdpr_me", satisfy_GDPR), handlers_group)
-    dp.add_handler(CommandHandler("hussars", show_hussars, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("wipe_hussars", wipe_hussars, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("roll", roll, run_async=True), handlers_group)
+    dp.add_handler(CommandHandler("gdpr_me", satisfy_GDPR, run_async=True), handlers_group)
+    dp.add_handler(CommandHandler("hussars", show_hussars, filters=admin_filter, run_async=True), handlers_group)
+    dp.add_handler(CommandHandler("wipe_hussars", wipe_hussars, filters=admin_filter, run_async=True), handlers_group)
 
 
 barrel_lock = Lock()
@@ -209,7 +208,6 @@ def from_text_to_image(text, limit):
         return image, image_path
 
 
-@run_async
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_hussars(update: Update, context: CallbackContext):
     """ Show leader board, I believe it should looks like smth like:
@@ -260,7 +258,6 @@ def show_hussars(update: Update, context: CallbackContext):
     os.remove(board_image_path)
 
 
-@run_async
 @cleanup_update_context(seconds=120)
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
@@ -293,7 +290,6 @@ def roll(update: Update, context: CallbackContext):
 
 
 # noinspection PyPep8Naming
-@run_async
 @cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
 def satisfy_GDPR(update: Update):
     user: User = update.effective_user
@@ -302,7 +298,6 @@ def satisfy_GDPR(update: Update):
     update.message.reply_text("ok, boomer 😒", disable_notification=True)
 
 
-@run_async
 @cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
 def wipe_hussars(update: Update):
     _db.remove_all()

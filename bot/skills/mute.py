@@ -4,11 +4,10 @@ from random import choice
 from typing import List
 
 from telegram import Update, User, ChatPermissions, TelegramError
-from telegram.ext import Updater, CommandHandler, CallbackContext, run_async
-
-from mode import cleanup_update_context
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
 from filters import admin_filter
+from mode import cleanup_update_context
 from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
@@ -20,9 +19,9 @@ MAX_MUTE_TIME = timedelta(days=365)
 def add_mute(upd: Updater, handlers_group: int):
     logger.info("registering mute handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("mute", mute, filters=admin_filter), handlers_group)
-    dp.add_handler(CommandHandler("mute", mute_self), handlers_group)
-    dp.add_handler(CommandHandler("unmute", unmute, filters=admin_filter), handlers_group)
+    dp.add_handler(CommandHandler("mute", mute, filters=admin_filter, run_async=True), handlers_group)
+    dp.add_handler(CommandHandler("mute", mute_self, run_async=True), handlers_group)
+    dp.add_handler(CommandHandler("unmute", unmute, filters=admin_filter, run_async=True), handlers_group)
 
 
 def _get_minutes(args: List[str]) -> timedelta:
@@ -56,14 +55,12 @@ def mute_user_for_time(update: Update, context: CallbackContext, user: User, mut
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
-@run_async
 def mute(update: Update, context: CallbackContext):
     user: User = update.message.reply_to_message.from_user
     mute_minutes = _get_minutes(context.args)
     mute_user_for_time(update, context, user, mute_minutes)
 
 
-@run_async
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def mute_self(update: Update, context: CallbackContext):
     user: User = update.effective_user
@@ -78,7 +75,6 @@ def mute_self(update: Update, context: CallbackContext):
     update.message.reply_text(choice(self_mute_messages))
 
 
-@run_async
 def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
     try:
         update.message.reply_text(
@@ -97,7 +93,6 @@ def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
-@run_async
 def unmute(update: Update, context: CallbackContext) -> None:
     user = update.message.reply_to_message.from_user
     unmute_user(update, context, user)

@@ -6,7 +6,7 @@ from typing import Dict
 from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, run_async, CallbackQueryHandler
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 
 from config import get_config
 from db.mongo import get_db
@@ -81,17 +81,17 @@ def add_towel_mode(upd: Updater, handlers_group: int):
     dp = upd.dispatcher
 
     # catch all new users and drop the towel
-    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, catch_new_user),
+    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, catch_new_user, run_async=True),
                    handlers_group)
 
     # check for reply or remove messages
     dp.add_handler(MessageHandler(
-        Filters.group & ~Filters.status_update, catch_reply),
+        Filters.group & ~Filters.status_update, catch_reply, run_async=True),
         handlers_group
     )
 
     # "i am a bot button"
-    dp.add_handler(CallbackQueryHandler(i_am_a_bot_btn), handlers_group)
+    dp.add_handler(CallbackQueryHandler(i_am_a_bot_btn, run_async=True), handlers_group)
 
     # ban quarantine users, if time is gone
     upd.job_queue.run_repeating(ban_user, interval=60, first=60, context={
@@ -99,7 +99,6 @@ def add_towel_mode(upd: Updater, handlers_group: int):
     })
 
 
-@run_async
 def quarantine_user(user: User, chat_id: str, context: CallbackContext):
     logger.info("put %s in quarantine", user)
     db.add_user(user.id)
@@ -119,13 +118,11 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
     ).message_id)
 
 
-@run_async
 def catch_new_user(update: Update, context: CallbackContext):
     for user in update.message.new_chat_members:
         quarantine_user(user, update.effective_chat.id, context)
 
 
-@run_async
 def catch_reply(update: Update, context: CallbackContext):
     # todo: cache it
     user_id = update.effective_user.id
@@ -147,7 +144,6 @@ def catch_reply(update: Update, context: CallbackContext):
         )
 
 
-@run_async
 def quarantine_filter(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     # todo: cache it
@@ -160,7 +156,6 @@ def quarantine_filter(update: Update, context: CallbackContext):
         )
 
 
-@run_async
 def i_am_a_bot_btn(update: Update, context: CallbackContext):
     user = update.effective_user
     query = update.callback_query
@@ -174,7 +169,6 @@ def i_am_a_bot_btn(update: Update, context: CallbackContext):
         context.bot.answer_callback_query(query.id, msg, show_alert=True)
 
 
-@run_async
 def ban_user(context: CallbackContext):
     chat_id = context.bot.get_chat(chat_id=context.job.context["chat_id"]).id
     logger.debug("get chat.id: %s", chat_id)
