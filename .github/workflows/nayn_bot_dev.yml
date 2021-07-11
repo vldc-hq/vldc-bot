@@ -30,7 +30,7 @@ jobs:
     - name: Publish to Registry
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
-        name: egregors/vldc-bot/bot_dev
+        name: vldc-hq/vldc-bot/bot_dev
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         registry: docker.pkg.github.com
