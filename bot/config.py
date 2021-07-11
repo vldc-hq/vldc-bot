@@ -12,10 +12,7 @@ def get_debug() -> Optional[str]:
 
 def get_debugger() -> Optional[str]:
     """ Get debugger value DEBUGGER ENV """
-    debugger_is_on = os.getenv("DEBUGGER", None)
-    if debugger_is_on is None:
-        raise ValueError("can't get DEBUGGER")
-    return debugger_is_on
+    return os.getenv("DEBUGGER", "")
 
 
 def get_group_chat_id() -> Optional[str]:
