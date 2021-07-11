@@ -2,12 +2,9 @@ import os
 from typing import Dict, Optional
 
 
-def get_debug() -> Optional[str]:
+def get_debug() -> bool:
     """ Get debug value DEBUG ENV """
-    debug_is_on = os.getenv("DEBUG", None)
-    if debug_is_on is None:
-        raise ValueError("can't get DEBUG")
-    return debug_is_on
+    return os.getenv("DEBUG", "False").lower() == "true"
 
 
 def get_debugger() -> Optional[str]:
