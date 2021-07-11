@@ -19,7 +19,7 @@ def add_fools_mode(upd: Updater, handlers_group: int):
     logger.info("registering fools handlers")
     dp = upd.dispatcher
 
-    dp.add_handler(MessageHandler(Filters.group & ~
+    dp.add_handler(MessageHandler(Filters.chat_type.group & ~
     Filters.status_update, mesaĝa_traduko, run_async=True), handlers_group)
 
 
