@@ -3,10 +3,17 @@ from datetime import datetime
 from typing import List, Dict
 
 import pymongo
+from pymongo.cursor import Cursor
 import telegram
 from pymongo.collection import Collection
 from telegram import Update
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext, CommandHandler
+from telegram.ext import (
+    Updater,
+    MessageHandler,
+    Filters,
+    CallbackContext,
+    CommandHandler,
+)
 
 from db.mongo import get_db
 from filters import admin_filter
@@ -22,27 +29,33 @@ class DB:
         self._coll: Collection = get_db(db_name).words
 
     def add_word(self, word: str):
-        self._coll.update_one({"word": word}, {
-            "$inc": {"count": 1},
-            "$set": {"last_use": datetime.now()}
-        }, upsert=True)
+        self._coll.update_one(
+            {"word": word},
+            {"$inc": {"count": 1}, "$set": {"last_use": datetime.now()}},
+            upsert=True,
+        )
 
     def add_words(self, words: List[str]):
         for word in words:
             self.add_word(word)
 
-    def find_all(self):
-        return self._coll.find({}).sort("count", pymongo.DESCENDING)
+    def find_all(self) -> list[str]:
+        return list(self._coll.find({}).sort("count", pymongo.DESCENDING))
 
 
-_db = DB(db_name='words')
+_db = DB(db_name="words")
 
 
 def add_prism(upd: Updater, handlers_group: int):
     logger.info("register words handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("top", show_top, filters=admin_filter, run_async=True), handlers_group)
-    dp.add_handler(MessageHandler(Filters.text, extract_words, run_async=True), handlers_group)
+    dp.add_handler(
+        CommandHandler("top", show_top, filters=admin_filter, run_async=True),
+        handlers_group,
+    )
+    dp.add_handler(
+        MessageHandler(Filters.text, extract_words, run_async=True), handlers_group
+    )
 
 
 def extract_words(update: Update, _: CallbackContext):
@@ -50,18 +63,15 @@ def extract_words(update: Update, _: CallbackContext):
 
 
 def _get_words(t: str) -> List[str]:
-    return t.split(' ')
+    return t.split(" ")
 
 
 def _normalize_words(words: List[str]) -> List[str]:
-    return [w.lower() for w in words if w[0] != '/']
+    return [w.lower() for w in words if w[0] != "/"]
 
 
 def _normalize_pred(pred: str) -> str:
-    return pred.replace('“', '"') \
-        .replace('”', '"') \
-        .replace("‘", "'") \
-        .replace("’", "'")
+    return pred.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'")
 
 
 def _get_pred(context: CallbackContext) -> str:
@@ -89,6 +99,9 @@ def show_top(update: Update, context: CallbackContext):
         words = default_words
 
     top = "\n".join([f"{w['word']}: {w['count']}" for w in words[:DEFAULT_TOP_LIMIT]])
-    context.bot.send_message(chat_id=update.effective_chat.id,
-                             text=f"```\n{top}\n```", disable_notification=True,
-                             parse_mode=telegram.ParseMode.MARKDOWN)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"```\n{top}\n```",
+        disable_notification=True,
+        parse_mode=telegram.ParseMode.MARKDOWN,
+    )
