@@ -204,8 +204,9 @@ def from_text_to_image(text, limit):
     image_path = f"{tmp_dir}/{file_name}{EXTENSION}"
     _create_empty_image(image_path, limit)
     _add_text_to_image(text, image_path)
-    with open(image_path, "rb") as image:
-        return image, image_path
+    # pylint: disable=consider-using-with
+    image = open(image_path, "rb")
+    return image, image_path
 
 
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
