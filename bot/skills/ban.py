@@ -21,4 +21,4 @@ def ban(update: Union[str, Update], context: CallbackContext):
     chat_id = update.effective_chat.id
 
     if user and chat_id:
-        context.bot.send_message(chat_id, f'Пользователь {user.name} был забанен')
+        context.bot.send_message(chat_id, f"Пользователь {user.name} был забанен")

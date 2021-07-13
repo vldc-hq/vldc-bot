@@ -24,7 +24,10 @@ class Dummy:
 
     def __getattribute__(self, name):
         def funcoff(*args, **kwargs):
-            raise Exception("google speech failed to initialize, voice recognition unavailable")
+            raise Exception(
+                "google speech failed to initialize, voice recognition unavailable"
+            )
+
         return funcoff
 
 
@@ -37,11 +40,13 @@ except:  # noqa
 
 
 def _get_audio_file_data(file_id):
-    """ Gets audio file. """
+    """Gets audio file."""
     url = f"https://api.telegram.org/bot{TOKEN}/getFile?file_id={file_id}"
     response = requests.get(url)
     json_response = response.json()
-    logger.info("Voice data has been obtained: \n%s", json.dumps(json_response, indent=4))
+    logger.info(
+        "Voice data has been obtained: \n%s", json.dumps(json_response, indent=4)
+    )
     return json_response["result"]
 
 
@@ -55,9 +60,11 @@ def _get_binary_content(file):
         tmp_voice.write(response.content)
 
         tmp_voice_filename_ogg = tmp_voice.name
-        tmp_voice_filename_wav = tmp_voice_filename_ogg[:-len(suffix)] + ".wav"
+        tmp_voice_filename_wav = tmp_voice_filename_ogg[: -len(suffix)] + ".wav"
 
-        subprocess.call(['ffmpeg', '-i', tmp_voice_filename_ogg, tmp_voice_filename_wav])
+        subprocess.call(
+            ["ffmpeg", "-i", tmp_voice_filename_ogg, tmp_voice_filename_wav]
+        )
 
         with open(tmp_voice_filename_wav, "rb") as converted_wav:
             converted_wav_bin = converted_wav.read()
@@ -68,7 +75,7 @@ def _get_binary_content(file):
 
 
 def _send_binary_to_google_speech(content):
-    """ Sends binary data of voice to google speech. """
+    """Sends binary data of voice to google speech."""
     config = {
         "language_code": LANG,
         "sample_rate_hertz": SAMPLE_RATE_HERTZ,
@@ -94,7 +101,7 @@ def _check_google_speech_response(response):
 
 
 def get_text_from_speech(file_id):
-    """ Gets text from voice. """
+    """Gets text from voice."""
     try:
         file = _get_audio_file_data(file_id)
         content = _get_binary_content(file)
@@ -103,8 +110,10 @@ def get_text_from_speech(file_id):
         logger.info("Result of voice recognition: %s", result)
         return result
     except (AttributeError, ValueError, RuntimeError) as ex:
-        logger.error("Error during voice recognition %s", {"exception": ex, "file_id": file_id})
+        logger.error(
+            "Error during voice recognition %s", {"exception": ex, "file_id": file_id}
+        )
         return None
 
 
-__all__ = ['get_text_from_speech']
+__all__ = ["get_text_from_speech"]

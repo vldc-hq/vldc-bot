@@ -18,5 +18,4 @@ def add_coc(upd: Updater, handlers_group: int):
 
 @cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def coc(update: Update, context: CallbackContext):
-    context.bot.send_message(update.effective_chat.id,
-                             f"Please behave! {COC_LINK}")
+    context.bot.send_message(update.effective_chat.id, f"Please behave! {COC_LINK}")

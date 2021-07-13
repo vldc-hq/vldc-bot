@@ -7,8 +7,9 @@ from config import get_debug
 
 
 class AdminFilter(MessageFilter):
-    """ Messages only from admins """
-    name = 'Filters.admin'
+    """Messages only from admins"""
+
+    name = "Filters.admin"
 
     def filter(self, message) -> bool:
         return message.from_user.id in {
@@ -17,19 +18,21 @@ class AdminFilter(MessageFilter):
 
 
 class UwuFilter(MessageFilter):
-    """ Regexp check for UwU """
-    name = 'Filters.uwu'
+    """Regexp check for UwU"""
+
+    name = "Filters.uwu"
 
     def filter(self, message) -> bool:
         if message.text:
-            return bool(re.search(r'\bu[wv]+u\b', message.text, re.IGNORECASE))
+            return bool(re.search(r"\bu[wv]+u\b", message.text, re.IGNORECASE))
 
         return False
 
 
 class OnlyAdminOnOthersFilter(MessageFilter):
-    """ Messages only from admins with reply """
-    name = 'Filters.onlyAdminOnOthers'
+    """Messages only from admins with reply"""
+
+    name = "Filters.onlyAdminOnOthers"
 
     def filter(self, message: Message) -> bool:
         if get_debug():

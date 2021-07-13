@@ -3,7 +3,7 @@ from functools import wraps
 from typing import Callable, List, Optional
 
 from telegram import Update, Bot, Message
-from telegram.ext import (Updater, CommandHandler, CallbackContext, Dispatcher, JobQueue)
+from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, JobQueue
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from filters import admin_filter
@@ -14,17 +14,19 @@ ON, OFF = True, False
 
 
 class Mode:
-    """ Todo: add docstring (no) """
+    """Todo: add docstring (no)"""
+
     _dp: Dispatcher
     _mode_handlers: List[CommandHandler] = []
 
     def __init__(
-            self,
-            mode_name: str,
-            default: bool = True,
-            pin_info_msg: bool = False,
-            off_callback: Optional[Callable[[Dispatcher], None]] = None,
-            on_callback: Optional[Callable[[Dispatcher], None]] = None) -> None:
+        self,
+        mode_name: str,
+        default: bool = True,
+        pin_info_msg: bool = False,
+        off_callback: Optional[Callable[[Dispatcher], None]] = None,
+        on_callback: Optional[Callable[[Dispatcher], None]] = None,
+    ) -> None:
         self.name = mode_name
         self.default = default
         self.chat_data_key = self._gen_chat_data_key(mode_name)
@@ -61,21 +63,18 @@ class Mode:
                 self._mode_on,
                 filters=admin_filter,
                 run_async=True,
-            ), self.handlers_gr)
-        self._dp.add_handler(
-            CommandHandler(
-                f"{self.name}_off",
-                self._mode_off,
-                filters=admin_filter,
-                run_async=True
-            ), self.handlers_gr,
+            ),
+            self.handlers_gr,
         )
         self._dp.add_handler(
             CommandHandler(
-                f"{self.name}",
-                self._mode_status,
-                run_async=True
-            ), self.handlers_gr,
+                f"{self.name}_off", self._mode_off, filters=admin_filter, run_async=True
+            ),
+            self.handlers_gr,
+        )
+        self._dp.add_handler(
+            CommandHandler(f"{self.name}", self._mode_status, run_async=True),
+            self.handlers_gr,
         )
 
     def _remove_mode_handlers(self):
@@ -99,9 +98,13 @@ class Mode:
                     logger.error("can't eval mode_on callback: %s", err)
                     raise err
 
-            msg = context.bot.send_message(update.effective_chat.id, f"{self.name} is ON")
+            msg = context.bot.send_message(
+                update.effective_chat.id, f"{self.name} is ON"
+            )
             if self.pin_info_msg is True:
-                context.bot.pin_chat_message(update.effective_chat.id, msg.message_id, disable_notification=True)
+                context.bot.pin_chat_message(
+                    update.effective_chat.id, msg.message_id, disable_notification=True
+                )
 
     def _mode_off(self, update: Update, context: CallbackContext):
         logger.info("%s switch to OFF", self.name)
@@ -136,7 +139,9 @@ class Mode:
             func(upd, self.handlers_gr)
 
             self._mode_handlers = upd.dispatcher.handlers[self.handlers_gr].copy()
-            logger.info("registered %d %s handlers", len(self._mode_handlers), self.name)
+            logger.info(
+                "registered %d %s handlers", len(self._mode_handlers), self.name
+            )
 
             self._add_on_off_handlers()
             # todo:
@@ -153,33 +158,44 @@ class Mode:
 
 # https://github.com/vldc-hq/vldc-bot/issues/72
 def _hook_message(bot: Bot, callback_after=lambda x: x):
-    orig_fn = getattr(bot, '_message')
+    orig_fn = getattr(bot, "_message")
 
     def wrapped_fn(*args, **kwargs):
         result = orig_fn(*args, **kwargs)
         callback_after(result)
         return result
 
-    setattr(bot, '_message', wrapped_fn)
+    setattr(bot, "_message", wrapped_fn)
     return orig_fn
 
 
 def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
-    logger.debug("Scheduling cleanup of message %s \
-                   in %d seconds", message, seconds)
-    job_queue.run_once(lambda _: message.delete(), seconds,
-                       context=message.chat_id)
+    logger.debug(
+        "Scheduling cleanup of message %s \
+                   in %d seconds",
+        message,
+        seconds,
+    )
+    job_queue.run_once(lambda _: message.delete(), seconds, context=message.chat_id)
 
 
-def cleanup_inner_wrapper(seconds: int, remove_cmd, remove_reply,
-                          args, kwargs, func,
-                          bot: Bot, queue: JobQueue, message: Optional[Message]):
+def cleanup_inner_wrapper(
+    seconds: int,
+    remove_cmd,
+    remove_reply,
+    args,
+    kwargs,
+    func,
+    bot: Bot,
+    queue: JobQueue,
+    message: Optional[Message],
+):
     # Hook message method on Bot
     # So everything after that will be catched
     # And also removed
-    orig_fn = _hook_message(bot, lambda msg: (
-        _remove_message_after(msg, queue, seconds)
-    ))
+    orig_fn = _hook_message(
+        bot, lambda msg: (_remove_message_after(msg, queue, seconds))
+    )
 
     if message:
         if remove_cmd:
@@ -194,7 +210,7 @@ def cleanup_inner_wrapper(seconds: int, remove_cmd, remove_reply,
         result = func(*args, **kwargs)
     except (ValueError, TypeError) as err:
         logger.error(str(err))
-    setattr(bot, '_message', orig_fn)
+    setattr(bot, "_message", orig_fn)
     return result
 
 
@@ -223,8 +239,17 @@ def cleanup_update_context(seconds: int, remove_cmd=True, remove_reply=False):
             bot: Bot = context.bot
             message: Message = update.message
 
-            return cleanup_inner_wrapper(seconds, remove_cmd, remove_reply, args,
-                                         kwargs, func, bot, queue, message)
+            return cleanup_inner_wrapper(
+                seconds,
+                remove_cmd,
+                remove_reply,
+                args,
+                kwargs,
+                func,
+                bot,
+                queue,
+                message,
+            )
 
         return cleanup_wrapper
 
@@ -248,8 +273,9 @@ def cleanup_bot_queue(seconds: int):
             bot: Bot = args[0]
             queue: JobQueue = args[1]
 
-            return cleanup_inner_wrapper(seconds, False, False, args,
-                                         kwargs, func, bot, queue, None)
+            return cleanup_inner_wrapper(
+                seconds, False, False, args, kwargs, func, bot, queue, None
+            )
 
         return cleanup_wrapper
 

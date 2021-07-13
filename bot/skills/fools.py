@@ -21,34 +21,36 @@ def add_fools_mode(upd: Updater, handlers_group: int):
 
     dp.add_handler(
         MessageHandler(
-            Filters.chat_type.group & ~ Filters.status_update,
+            Filters.chat_type.group & ~Filters.status_update,
             mesaĝa_traduko,
-            run_async=True
-        ), handlers_group)
+            run_async=True,
+        ),
+        handlers_group,
+    )
 
 
 def mesaĝa_traduko(update: Update, context: CallbackContext):
-    text = update.message['text']
+    text = update.message["text"]
     user: User = update.effective_user
     chat_id = update.effective_chat.id
 
     try:
-        context.bot.delete_message(
-            chat_id, update.effective_message.message_id)
+        context.bot.delete_message(chat_id, update.effective_message.message_id)
     except (BadRequest, TelegramError) as err:
         logger.info("can't delete msg: %s", err)
 
     # akiri avataron kaj lingvon por uzanto kiel Jedajo
     magia_nombro = sum([ord(c) for c in user.full_name])
-    lingvoj = ['ro', 'uk', 'sr', 'sk', 'sl', 'uz', 'bg', 'mn', 'kk']
+    lingvoj = ["ro", "uk", "sr", "sk", "sl", "uz", "bg", "mn", "kk"]
     lingvo = lingvoj[magia_nombro % len(lingvoj)]
-    emoji = chr(ord('😀') + magia_nombro % 75)
+    emoji = chr(ord("😀") + magia_nombro % 75)
     if user.name == "@KittyHawk1":
         lingvo = "he"
         emoji = "🧘‍♂️"
     try:
         context.bot.send_message(
-            chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}")
+            chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}"
+        )
     except TelegramError as err:
         logger.info("can't translate msg: %s, because of: %s", text, err)
 

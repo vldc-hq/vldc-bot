@@ -37,13 +37,13 @@ The official [VLDC](https://vldc.org) telegram group bot.
 Setup your env vars in `example.env` and rename it to `.env`. Don't push `.env` to public repos!
 
 ```
-docker-compose up -d && docker-compose logs -f --tail=10
+make up
 ```
 
 ## Build local image
 
 ```
-docker-compose -f docker-compose-dev.yml build
+make build
 ```
 
 ## Developing
@@ -58,13 +58,17 @@ task                 help
 ------               ----
 build                Build all
 up                   Up All and show logs
+update               Restart bot after files changing
 stop                 Stop all
 down                 Down all
 test                 Run tests
-lint                 Run linters (flake8, mypy)
+lint                 Run linters (black, flake8, mypy, pylint)
+format               Format code (black)
                      
 help                 Show help message
 ```
+
+Don't forget run `make lint` and `make test` before commit! For code formatting we are use [black](https://github.com/psf/black), so, just run `make format` to fire it :3
 
 ### Setting Up Debugger in VS Code
 
