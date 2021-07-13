@@ -33,13 +33,15 @@ logger = logging.getLogger(__name__)
 def _add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("version", _version,
-                                  filters=admin_filter, run_async=True), version_handlers_group)
+    dp.add_handler(
+        CommandHandler("version", _version, filters=admin_filter, run_async=True),
+        version_handlers_group,
+    )
 
 
 def _get_version_from_pipfile() -> str:
-    """ Parse toml file for version """
-    with open('Pipfile', 'r') as pipfile:
+    """Parse toml file for version"""
+    with open("Pipfile", "r") as pipfile:
         toml_dict = toml.loads(pipfile.read())
     version = toml_dict["description"][0]["version"]
     return version
@@ -47,7 +49,7 @@ def _get_version_from_pipfile() -> str:
 
 @cleanup_update_context(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
-    """ Show a current version of bot """
+    """Show a current version of bot"""
 
     version = _get_version_from_pipfile()
 
@@ -56,16 +58,13 @@ def _version(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
 
     context.bot.send_message(
-        chat_id, f"~=~~=~=~=_ver.:{version}_~=~=~=[,,_,,]:3\n\n"
-                 f"{_get_skills_hints(skills)}")
+        chat_id,
+        f"~=~~=~=~=_ver.:{version}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
+    )
 
 
 def _make_skill(add_handlers: Callable, name: str, hint: str) -> Dict:
-    return {
-        "name": name,
-        "add_handlers": add_handlers,
-        "hint": hint
-    }
+    return {"name": name, "add_handlers": add_handlers, "hint": hint}
 
 
 skills: List[Dict] = [
@@ -84,14 +83,13 @@ skills: List[Dict] = [
     _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
     _make_skill(add_ban, "🔨 ban!", " ban! ban! ban!"),
     _make_skill(add_nya, "😺 meow", " Simon says wat?"),
-
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
     _make_skill(add_covid_mode, "🦠 covid mode", " fun and gamez"),
-    _make_skill(add_nastya_mode, "🤫 nastya mode", " stop. just stop")
+    _make_skill(add_nastya_mode, "🤫 nastya mode", " stop. just stop"),
 ]
 
 commands_list: List[Tuple[str, str]] = [

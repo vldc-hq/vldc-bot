@@ -14,7 +14,7 @@ mode = Mode(mode_name="nastya_mode", default=True)
 
 MAX_VOICE_DURATION = 60  # seconds
 VOICE_USER_MUTE_DURATION = timedelta(minutes=10)
-EXCLUDING = ['@ravino_doul']
+EXCLUDING = ["@ravino_doul"]
 
 
 @mode.add
@@ -23,7 +23,10 @@ def add_nastya_mode(upd: Updater, handlers_group: int):
     dp: Dispatcher = upd.dispatcher
 
     dp.add_handler(
-        MessageHandler(Filters.voice & ~ Filters.status_update, handle_voice, run_async=True), handlers_group
+        MessageHandler(
+            Filters.voice & ~Filters.status_update, handle_voice, run_async=True
+        ),
+        handlers_group,
     )
 
 
@@ -54,8 +57,10 @@ def handle_voice(update: Update, context: CallbackContext):
         if recognized_text is None:
             message_text = default_message
         else:
-            message_text = f"🤫🤫🤫 Групповой чат – не место для войсов, @{user.username}!" \
-                           f"\n@{user.username} пытался сказать: {recognized_text}"
+            message_text = (
+                f"🤫🤫🤫 Групповой чат – не место для войсов, @{user.username}!"
+                f"\n@{user.username} пытался сказать: {recognized_text}"
+            )
 
     context.bot.send_message(chat_id=chat_id, text=message_text)
 

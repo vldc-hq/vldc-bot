@@ -3,17 +3,17 @@ from typing import Dict, Optional
 
 
 def get_debug() -> bool:
-    """ Get debug value DEBUG ENV """
+    """Get debug value DEBUG ENV"""
     return os.getenv("DEBUG", "False").lower() == "true"
 
 
 def get_debugger() -> Optional[str]:
-    """ Get debugger value DEBUGGER ENV """
+    """Get debugger value DEBUGGER ENV"""
     return os.getenv("DEBUGGER", "")
 
 
 def get_group_chat_id() -> Optional[str]:
-    """ Get VLDC chat id ENV """
+    """Get VLDC chat id ENV"""
     chat_id = os.getenv("CHAT_ID", None)
     if chat_id is None:
         raise ValueError("can't get CHAT_ID")
@@ -21,7 +21,7 @@ def get_group_chat_id() -> Optional[str]:
 
 
 def get_token() -> Optional[str]:
-    """ Get Telegram bot Token from ENV """
+    """Get Telegram bot Token from ENV"""
     token = os.getenv("TOKEN", None)
     if token is None:
         raise ValueError("can't get tg token")
@@ -52,5 +52,5 @@ def get_config() -> Dict:
         "MONGO_PASS": get_mongo_pass(),
         "MONGO_HOST": os.getenv("MONGO_HOST", "mongo"),
         "MONGO_PORT": os.getenv("MONGO_PORT", "27017"),
-        "SENTRY_DSN": os.getenv("SENTRY_DSN", None)
+        "SENTRY_DSN": os.getenv("SENTRY_DSN", None),
     }

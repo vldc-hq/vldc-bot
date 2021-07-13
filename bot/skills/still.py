@@ -18,8 +18,8 @@ def to_2k_year(year: int):
     year_2k = str(year)
     if (year // 100) % 10 == 0:
         y = list(str(year))
-        y[-3] = 'k'
-        year_2k = ''.join(y)
+        y[-3] = "k"
+        year_2k = "".join(y)
     return year_2k
 
 
@@ -32,4 +32,6 @@ def still(update: Update, context: CallbackContext):
         logger.info("can't delete msg: %s", err)
 
     if text:
-        context.bot.send_message(chat_id, f"Вот бы сейчас {text} в {to_2k_year(datetime.now().year)} лул 😹😹😹")
+        context.bot.send_message(
+            chat_id, f"Вот бы сейчас {text} в {to_2k_year(datetime.now().year)} лул 😹😹😹"
+        )

@@ -17,23 +17,23 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    """ 🐈🐈🐈 """
+    """🐈🐈🐈"""
     conf = get_config()
 
     # pylint: disable=abstract-class-instantiated
-    sentry_sdk.init(
-        conf["SENTRY_DSN"],
-        traces_sample_rate=1.0
-    )
+    sentry_sdk.init(conf["SENTRY_DSN"], traces_sample_rate=1.0)
 
     if conf["DEBUGGER"]:
         # pylint: disable=import-outside-toplevel
         import ptvsd
-        ptvsd.enable_attach(address=('0.0.0.0', 5678))
+
+        ptvsd.enable_attach(address=("0.0.0.0", 5678))
         ptvsd.wait_for_attach()
 
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        level=logging.DEBUG if conf["DEBUG"] else logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.DEBUG if conf["DEBUG"] else logging.INFO,
+    )
 
     updater = Updater(conf["TOKEN"], use_context=True)
 
@@ -48,5 +48,5 @@ def main():
     updater.idle()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -15,9 +15,11 @@ def add_tree(upd: Updater, handlers_group: int):
 
 
 def tree(update: Update, context: CallbackContext):
-    text = f"🎄🎄🎄 Присоединяйся к ежегодному решению елки! 🎄🎄🎄 \n" \
-        f"👉👉👉 https://adventofcode.com/ 👈👈👈 \n" \
-        f"😼😼😼 VLDC leaderboard: {AOC_LEADERBOARD_LINK} \n" \
+    text = (
+        f"🎄🎄🎄 Присоединяйся к ежегодному решению елки! 🎄🎄🎄 \n"
+        f"👉👉👉 https://adventofcode.com/ 👈👈👈 \n"
+        f"😼😼😼 VLDC leaderboard: {AOC_LEADERBOARD_LINK} \n"
         f"Join Code: `458538-e2a0698b`"
+    )
 
     context.bot.send_message(update.effective_chat.id, text)
