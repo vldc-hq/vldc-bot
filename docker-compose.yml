@@ -27,7 +27,7 @@ services:
         max-file: "10"
 
   mongo:
-    image: mongo
+    image: mongo:4.2.15
     volumes:
       - /opt/mongo/data/db:/data/db
     env_file:
