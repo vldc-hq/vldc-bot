@@ -34,7 +34,7 @@ services:
         max-file: "10"
 
   mongo:
-    image: mongo
+    image: mongo:4.2.15
     ports:
       - 27017:27017
     env_file:
