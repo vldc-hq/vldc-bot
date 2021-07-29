@@ -21,7 +21,7 @@ def add_fools_mode(upd: Updater, handlers_group: int):
 
     dp.add_handler(
         MessageHandler(
-            Filters.chat_type.group & ~Filters.status_update,
+            Filters.chat_type.groups & ~Filters.status_update,
             mesaĝa_traduko,
             run_async=True,
         ),
