@@ -107,7 +107,7 @@ def add_towel_mode(upd: Updater, handlers_group: int):
     # check for reply or remove messages
     dp.add_handler(
         MessageHandler(
-            Filters.chat_type.group & ~Filters.status_update,
+            Filters.chat_type.groups & ~Filters.status_update,
             catch_reply,
             run_async=True,
         ),
