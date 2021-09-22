@@ -85,8 +85,14 @@ def mute_self(update: Update, context: CallbackContext):
     ]
     result = update.message.reply_text(choice(self_mute_messages))
 
-    cleanup_queue_update(context.job_queue, update.message, result, 600,
-                         remove_cmd=True, remove_reply=True)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=True,
+    )
 
 
 def unmute_user(update: Update, context: CallbackContext, user: User) -> None:

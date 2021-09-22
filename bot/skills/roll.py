@@ -280,7 +280,7 @@ def show_hussars(update: Update, context: CallbackContext):
         logger.error("Cannot get image from text, hussars error: %s", ex)
         return
 
-    result: Optional[Message] = None 
+    result: Optional[Message] = None
 
     if hussars_length <= HUSSARS_LIMIT_FOR_IMAGE:
         result = context.bot.send_photo(
@@ -295,8 +295,14 @@ def show_hussars(update: Update, context: CallbackContext):
             disable_notification=True,
         )
 
-    cleanup_queue_update(context.job_queue, update.message, result, 600,
-                         remove_cmd=True, remove_reply=True)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=True,
+    )
 
     os.remove(board_image_path)
 
@@ -337,8 +343,14 @@ def roll(update: Update, context: CallbackContext):
             f"{user.full_name}: {get_miss_string(shots_remained)}",
         )
 
-    cleanup_queue_update(context.job_queue, update.message, result, 120,
-                         remove_cmd=True, remove_reply=False)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=False,
+    )
 
 
 # noinspection PyPep8Naming
@@ -349,8 +361,14 @@ def satisfy_GDPR(update: Update, context: CallbackContext):
     logger.info("%s was removed from DB", user.full_name)
     result = update.message.reply_text("ok, boomer 😒", disable_notification=True)
 
-    cleanup_queue_update(context.job_queue, update.message, result, 120,
-                         remove_cmd=True, remove_reply=True)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=True,
+    )
 
 
 def wipe_hussars(update: Update, context: CallbackContext):
@@ -358,5 +376,11 @@ def wipe_hussars(update: Update, context: CallbackContext):
     logger.info("all hussars was removed from DB")
     result = update.message.reply_text("👍", disable_notification=True)
 
-    cleanup_queue_update(context.job_queue, update.message, result, 120,
-                         remove_cmd=True, remove_reply=True)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=True,
+    )

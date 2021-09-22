@@ -61,8 +61,14 @@ def _version(update: Update, context: CallbackContext):
         f"~=~~=~=~=_ver.:{version}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
     )
 
-    cleanup_queue_update(context.job_queue, update.message, result, 120,
-                         remove_cmd=True, remove_reply=True)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=True,
+    )
 
 
 def _make_skill(add_handlers: Callable, name: str, hint: str) -> Dict:

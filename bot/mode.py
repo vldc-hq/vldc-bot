@@ -156,13 +156,14 @@ class Mode:
         return wrapper
 
 
-def cleanup_queue_update(queue: JobQueue,
-                         cmd: Optional[Message],
-                         result: Optional[Message],
-                         seconds: int,
-                         remove_cmd=True,
-                         remove_reply=False
-                         ):
+def cleanup_queue_update(
+    queue: JobQueue,
+    cmd: Optional[Message],
+    result: Optional[Message],
+    seconds: int,
+    remove_cmd=True,
+    remove_reply=False,
+):
     _remove_message_after(result, queue, seconds)
 
     if remove_cmd and cmd:

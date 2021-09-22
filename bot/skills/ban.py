@@ -20,6 +20,14 @@ def ban(update: Union[str, Update], context: CallbackContext):
     chat_id = update.effective_chat.id
 
     if user and chat_id:
-        result = context.bot.send_message(chat_id, f"Пользователь {user.name} был забанен")
-        cleanup_queue_update(context.job_queue, update.message, result, 600,
-                             remove_cmd=True, remove_reply=True)
+        result = context.bot.send_message(
+            chat_id, f"Пользователь {user.name} был забанен"
+        )
+        cleanup_queue_update(
+            context.job_queue,
+            update.message,
+            result,
+            600,
+            remove_cmd=True,
+            remove_reply=True,
+        )

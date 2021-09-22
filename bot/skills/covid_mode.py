@@ -363,15 +363,29 @@ def cough(update: Update, context: CallbackContext):
 
     if update.message.reply_to_message is None:
         result = update.message.reply_text(f"{user.full_name} чихнул в пространство")
-        cleanup_queue_update(context.job_queue, update.message, result, 600,
-                             remove_cmd=True, remove_reply=False)
+        cleanup_queue_update(
+            context.job_queue,
+            update.message,
+            result,
+            600,
+            remove_cmd=True,
+            remove_reply=False,
+        )
         return
 
     reply_user: User = update.message.reply_to_message.from_user
 
-    result = update.message.reply_text(f"{user.full_name} чихнул на {reply_user.full_name}")
-    cleanup_queue_update(context.job_queue, update.message, result, 600,
-                         remove_cmd=True, remove_reply=False)
+    result = update.message.reply_text(
+        f"{user.full_name} чихнул на {reply_user.full_name}"
+    )
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=False,
+    )
 
     if _db.is_user_infected(user.id):
         infect_user_masked_condition(
@@ -389,8 +403,14 @@ def infect_admin(update: Update, context: CallbackContext):
     result = update.message.reply_text(
         f"{update.effective_user.full_name} опрокинул колбу с коронавирусом на {infect_user.full_name}"
     )
-    cleanup_queue_update(context.job_queue, update.message, result, 600,
-                         remove_cmd=True, remove_reply=True)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=True,
+    )
 
 
 def random_cough(bot: Bot, queue: JobQueue):
@@ -407,8 +427,9 @@ def random_cough(bot: Bot, queue: JobQueue):
 
     if message:
         result = bot.send_message(get_group_chat_id(), message)
-        cleanup_queue_update(queue, None, result, 30,
-                             remove_cmd=True, remove_reply=False)
+        cleanup_queue_update(
+            queue, None, result, 30, remove_cmd=True, remove_reply=False
+        )
 
 
 def random_fate(bot: Bot):

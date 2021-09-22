@@ -17,6 +17,14 @@ def add_coc(upd: Updater, handlers_group: int):
 
 
 def coc(update: Update, context: CallbackContext):
-    result = context.bot.send_message(update.effective_chat.id, f"Please behave! {COC_LINK}")
-    cleanup_queue_update(context.job_queue, update.message, result, 600,
-                         remove_cmd=True, remove_reply=True)
+    result = context.bot.send_message(
+        update.effective_chat.id, f"Please behave! {COC_LINK}"
+    )
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=True,
+    )

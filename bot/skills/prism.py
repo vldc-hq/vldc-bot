@@ -104,5 +104,11 @@ def show_top(update: Update, context: CallbackContext):
         parse_mode=telegram.ParseMode.MARKDOWN,
     )
 
-    cleanup_queue_update(context.job_queue, update.message, result, 600,
-                         remove_cmd=True, remove_reply=True)
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=True,
+    )
