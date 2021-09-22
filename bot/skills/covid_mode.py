@@ -33,7 +33,7 @@ from telegram.ext.filters import Filters
 from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter, only_admin_on_others
-from mode import cleanup_update_context, cleanup_bot_queue, Mode, OFF
+from mode import cleanup_queue_update, Mode, OFF
 from skills.mute import mute_user_for_time
 from skills.roll import _get_username
 
@@ -358,17 +358,34 @@ def test(update: Update):
         update.message.reply_text(f"{reply_user.full_name} здоров")
 
 
-@cleanup_update_context(seconds=600)
 def cough(update: Update, context: CallbackContext):
     user: User = update.effective_user
 
     if update.message.reply_to_message is None:
-        update.message.reply_text(f"{user.full_name} чихнул в пространство")
+        result = update.message.reply_text(f"{user.full_name} чихнул в пространство")
+        cleanup_queue_update(
+            context.job_queue,
+            update.message,
+            result,
+            600,
+            remove_cmd=True,
+            remove_reply=False,
+        )
         return
 
     reply_user: User = update.message.reply_to_message.from_user
 
-    update.message.reply_text(f"{user.full_name} чихнул на {reply_user.full_name}")
+    result = update.message.reply_text(
+        f"{user.full_name} чихнул на {reply_user.full_name}"
+    )
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=False,
+    )
 
     if _db.is_user_infected(user.id):
         infect_user_masked_condition(
@@ -379,18 +396,24 @@ def cough(update: Update, context: CallbackContext):
         )
 
 
-@cleanup_update_context(seconds=600)
-def infect_admin(update: Update):
+def infect_admin(update: Update, context: CallbackContext):
     infect_user: User = update.message.reply_to_message.from_user
     _db.add(infect_user)
     _db.infect(infect_user.id)
-    update.message.reply_text(
+    result = update.message.reply_text(
         f"{update.effective_user.full_name} опрокинул колбу с коронавирусом на {infect_user.full_name}"
+    )
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=False,
     )
 
 
-@cleanup_bot_queue(seconds=30)
-def random_cough(bot: Bot):
+def random_cough(bot: Bot, queue: JobQueue):
     users = _db.find_all()
 
     message = ""
@@ -403,7 +426,10 @@ def random_cough(bot: Bot):
             message += f"{full_name} чихнул в пространство \n"
 
     if message:
-        bot.send_message(get_group_chat_id(), message)
+        result = bot.send_message(get_group_chat_id(), message)
+        cleanup_queue_update(
+            queue, None, result, 30, remove_cmd=True, remove_reply=False
+        )
 
 
 def random_fate(bot: Bot):

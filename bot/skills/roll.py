@@ -4,19 +4,19 @@ from datetime import datetime, timedelta
 from random import randint
 from tempfile import gettempdir
 from threading import Lock
-from typing import List, Tuple, Dict
+from typing import List, Optional, Tuple, Dict
 from uuid import uuid4
 
 import pymongo
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
-from telegram import Update, User
+from telegram import Update, User, Message
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
 from telegram.ext.filters import Filters
 
 from db.mongo import get_db
 from filters import admin_filter
-from mode import cleanup_update_context
+from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
 
 logger = logging.getLogger(__name__)
@@ -235,7 +235,6 @@ def from_text_to_image(text, limit):
     return image, image_path
 
 
-@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_hussars(update: Update, context: CallbackContext):
     """Show leader board, I believe it should looks like smth like:
 
@@ -281,25 +280,36 @@ def show_hussars(update: Update, context: CallbackContext):
         logger.error("Cannot get image from text, hussars error: %s", ex)
         return
 
+    result: Optional[Message] = None
+
     if hussars_length <= HUSSARS_LIMIT_FOR_IMAGE:
-        context.bot.send_photo(
+        result = context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=board_image,
             disable_notification=True,
         )
     else:
-        context.bot.send_document(
+        result = context.bot.send_document(
             chat_id=update.effective_chat.id,
             document=board_image,
             disable_notification=True,
         )
 
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=True,
+    )
+
     os.remove(board_image_path)
 
 
-@cleanup_update_context(seconds=120)
 def roll(update: Update, context: CallbackContext):
     user: User = update.effective_user
+    result: Optional[Message] = None
     # check if hussar already exist or create new one
     existing_user = _db.find(user_id=user.id)
     if existing_user is None:
@@ -316,7 +326,7 @@ def roll(update: Update, context: CallbackContext):
         #  if bot can't restrict user, user should be passed into towel-mode like state
 
         mute_min = get_mute_minutes(shots_remained)
-        context.bot.send_message(
+        result = context.bot.send_message(
             update.effective_chat.id,
             f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]",
         )
@@ -328,23 +338,49 @@ def roll(update: Update, context: CallbackContext):
         # lucky one
         _db.miss(user.id)
 
-        context.bot.send_message(
+        result = context.bot.send_message(
             update.effective_chat.id,
             f"{user.full_name}: {get_miss_string(shots_remained)}",
         )
 
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=False,
+    )
+
 
 # noinspection PyPep8Naming
-@cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
-def satisfy_GDPR(update: Update):
+def satisfy_GDPR(update: Update, context: CallbackContext):
     user: User = update.effective_user
+
     _db.remove(user.id)
     logger.info("%s was removed from DB", user.full_name)
-    update.message.reply_text("ok, boomer 😒", disable_notification=True)
+    result = update.message.reply_text("ok, boomer 😒", disable_notification=True)
+
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=True,
+    )
 
 
-@cleanup_update_context(seconds=120, remove_cmd=True, remove_reply=True)
-def wipe_hussars(update: Update):
+def wipe_hussars(update: Update, context: CallbackContext):
     _db.remove_all()
     logger.info("all hussars was removed from DB")
-    update.message.reply_text("👍", disable_notification=True)
+    result = update.message.reply_text("👍", disable_notification=True)
+
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=True,
+    )

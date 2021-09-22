@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext
 
 from filters import admin_filter
-from mode import cleanup_update_context
+from mode import cleanup_queue_update
 from skills.at_least_70k import add_70k
 from skills.ban import add_ban
 from skills.banme import add_banme
@@ -47,7 +47,6 @@ def _get_version_from_pipfile() -> str:
     return version
 
 
-@cleanup_update_context(seconds=20, remove_cmd=True)
 def _version(update: Update, context: CallbackContext):
     """Show a current version of bot"""
 
@@ -57,9 +56,18 @@ def _version(update: Update, context: CallbackContext):
 
     chat_id = update.effective_chat.id
 
-    context.bot.send_message(
+    result = context.bot.send_message(
         chat_id,
         f"~=~~=~=~=_ver.:{version}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
+    )
+
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=False,
     )
 
 

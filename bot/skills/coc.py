@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
-from mode import cleanup_update_context
+from mode import cleanup_queue_update
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,15 @@ def add_coc(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("coc", coc, run_async=True), handlers_group)
 
 
-@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def coc(update: Update, context: CallbackContext):
-    context.bot.send_message(update.effective_chat.id, f"Please behave! {COC_LINK}")
+    result = context.bot.send_message(
+        update.effective_chat.id, f"Please behave! {COC_LINK}"
+    )
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        600,
+        remove_cmd=True,
+        remove_reply=True,
+    )
