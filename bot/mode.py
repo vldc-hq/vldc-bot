@@ -2,7 +2,7 @@ import logging
 from functools import wraps
 from typing import Callable, List, Optional
 
-from telegram import Update, Bot, Message
+from telegram import Update, Message
 from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, JobQueue
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
