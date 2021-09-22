@@ -16,7 +16,7 @@ from telegram.ext import (
 
 from db.mongo import get_db
 from filters import admin_filter
-from mode import cleanup_update_context
+from mode import cleanup_queue_update
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,6 @@ def _eval_filter(words: List[Dict], pred: str):
     return list(filter(inner_pred, words.copy()))
 
 
-@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def show_top(update: Update, context: CallbackContext):
     default_words = _db.find_all()
 
@@ -98,9 +97,12 @@ def show_top(update: Update, context: CallbackContext):
         words = default_words
 
     top = "\n".join([f"{w['word']}: {w['count']}" for w in words[:DEFAULT_TOP_LIMIT]])
-    context.bot.send_message(
+    result = context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"```\n{top}\n```",
         disable_notification=True,
         parse_mode=telegram.ParseMode.MARKDOWN,
     )
+
+    cleanup_queue_update(context.job_queue, update.message, result, 600,
+                         remove_cmd=True, remove_reply=True)

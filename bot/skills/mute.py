@@ -7,7 +7,7 @@ from telegram import Update, User, ChatPermissions, TelegramError
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 from filters import admin_filter
-from mode import cleanup_update_context
+from mode import cleanup_queue_update
 from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,6 @@ def mute(update: Update, context: CallbackContext):
     mute_user_for_time(update, context, user, mute_minutes)
 
 
-@cleanup_update_context(seconds=600, remove_cmd=True, remove_reply=True)
 def mute_self(update: Update, context: CallbackContext):
     user: User = update.effective_user
     mute_user_for_time(update, context, user, timedelta(days=1))
@@ -84,7 +83,10 @@ def mute_self(update: Update, context: CallbackContext):
         f"Насилие порождает насилие, {user.name}",
         f"Опять ты, {user.name}!",
     ]
-    update.message.reply_text(choice(self_mute_messages))
+    result = update.message.reply_text(choice(self_mute_messages))
+
+    cleanup_queue_update(context.job_queue, update.message, result, 600,
+                         remove_cmd=True, remove_reply=True)
 
 
 def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
