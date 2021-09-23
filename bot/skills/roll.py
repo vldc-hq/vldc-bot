@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from random import randint
+from random import randint, choice
 from tempfile import gettempdir
 from threading import Lock
 from typing import List, Optional, Tuple, Dict
@@ -10,7 +10,7 @@ from uuid import uuid4
 import pymongo
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
-from telegram import Update, User, Message
+from telegram import Update, User, Message, ChatMember
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
 from telegram.ext.filters import Filters
 
@@ -25,6 +25,8 @@ MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
 HUSSARS_LIMIT_FOR_IMAGE = 25
 FONT = "firacode.ttf"
+
+HONORED_HUSSARS_EMOJIS = ["🦷", "🤡", "🤖", "👾", "🤠", "🤐", "🥶", "🥷", "🦄", "🐗", "🐈"]
 
 
 class DB:
@@ -110,6 +112,12 @@ def add_roll(upd: Updater, handlers_group: int):
     )
     dp.add_handler(
         CommandHandler("hussars", show_hussars, filters=admin_filter, run_async=True),
+        handlers_group,
+    )
+    dp.add_handler(
+        CommandHandler(
+            "htop", show_active_hussars, filters=admin_filter, run_async=True
+        ),
         handlers_group,
     )
     dp.add_handler(
@@ -305,6 +313,39 @@ def show_hussars(update: Update, context: CallbackContext):
     )
 
     os.remove(board_image_path)
+
+
+def show_active_hussars(update: Update, context: CallbackContext):
+    hussars = _db.find_all()
+
+    message = "No hussars in da club 😒"
+
+    restricted_hussars = []
+
+    for hussar in hussars:
+        chat_member = context.bot.get_chat_member(
+            update.effective_chat.id, hussar.get("_id")
+        )
+
+        if chat_member.status == ChatMember.RESTRICTED:
+            restricted_hussars.append(hussar)
+
+    if len(restricted_hussars) > 0:
+        message = "Right meow in da club ☠️:\n"
+
+        for hussar in restricted_hussars:
+            message += f"{choice(HONORED_HUSSARS_EMOJIS)} {_get_username(hussar)} \n"
+
+    result = context.bot.send_message(update.effective_chat.id, message)
+
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=False,
+    )
 
 
 def roll(update: Update, context: CallbackContext):
