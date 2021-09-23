@@ -115,7 +115,9 @@ def add_roll(upd: Updater, handlers_group: int):
         handlers_group,
     )
     dp.add_handler(
-        CommandHandler("htop", show_active_hussars, filters=admin_filter, run_async=True),
+        CommandHandler(
+            "htop", show_active_hussars, filters=admin_filter, run_async=True
+        ),
         handlers_group,
     )
     dp.add_handler(
