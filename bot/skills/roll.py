@@ -7,6 +7,8 @@ from threading import Lock
 from typing import List, Optional, Tuple, Dict
 from uuid import uuid4
 
+import re
+
 import pymongo
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
@@ -101,12 +103,16 @@ class DB:
 
 _db = DB(db_name="roll")
 
+MEME_REGEX = re.compile(r"\/[rрp][оo0][1lл]{2}", re.IGNORECASE)
+
 
 def add_roll(upd: Updater, handlers_group: int):
     logger.info("registering roll handlers")
     dp = upd.dispatcher
     dp.add_handler(MessageHandler(Filters.dice, roll), handlers_group)
-    dp.add_handler(CommandHandler("roll", roll, run_async=True), handlers_group)
+    dp.add_handler(
+        MessageHandler(Filters.regex(MEME_REGEX), roll, run_async=True), handlers_group
+    )
     dp.add_handler(
         CommandHandler("gdpr_me", satisfy_GDPR, run_async=True), handlers_group
     )
@@ -349,6 +355,9 @@ def show_active_hussars(update: Update, context: CallbackContext):
 
 
 def roll(update: Update, context: CallbackContext):
+    if update.message is None:
+        return
+
     user: User = update.effective_user
     result: Optional[Message] = None
     # check if hussar already exist or create new one
