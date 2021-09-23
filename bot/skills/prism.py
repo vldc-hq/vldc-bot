@@ -58,7 +58,8 @@ def add_prism(upd: Updater, handlers_group: int):
 
 
 def extract_words(update: Update, _: CallbackContext):
-    _db.add_words(_normalize_words(_get_words(update.message.text)))
+    text = update.message.text if update.message else update.edited_message.text
+    _db.add_words(_normalize_words(_get_words(text)))
 
 
 def _get_words(t: str) -> List[str]:
