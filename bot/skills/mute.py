@@ -4,7 +4,15 @@ from random import choice
 from typing import List
 
 from telegram import Update, User, ChatPermissions, TelegramError
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    CallbackContext,
+    Filters,
+    MessageHandler,
+)
+
+from skills.towel_like_mode import catch_message, quarantine_user, unquarantine_user
 
 from filters import admin_filter
 from mode import cleanup_queue_update
@@ -26,6 +34,14 @@ def add_mute(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("mute", mute_self, run_async=True), handlers_group)
     dp.add_handler(
         CommandHandler("unmute", unmute, filters=admin_filter, run_async=True),
+        handlers_group,
+    )
+    dp.add_handler(
+        MessageHandler(
+            Filters.chat_type.groups & ~Filters.status_update,
+            catch_message,
+            run_async=True,
+        ),
         handlers_group,
     )
 
@@ -65,6 +81,8 @@ def mute_user_for_time(
     except TelegramError as err:
         logger.error("can't mute user %s: %s", user, err)
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
+        update.message.reply_text("Ну и что? Кинем полотенчик 🧻")
+        quarantine_user(user, mute_duration)
 
 
 def mute(update: Update, context: CallbackContext):
@@ -114,3 +132,4 @@ def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
 def unmute(update: Update, context: CallbackContext) -> None:
     user = update.message.reply_to_message.from_user
     unmute_user(update, context, user)
+    unquarantine_user(user.id)
