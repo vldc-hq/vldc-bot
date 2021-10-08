@@ -354,7 +354,7 @@ def quarantine(update: Update, context: CallbackContext):
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
-def test(update: Update, context: CallbackContext):
+def test(update: Update, _: CallbackContext):
     reply_user: User = update.message.reply_to_message.from_user
 
     if _db.is_user_infected(reply_user.id):
