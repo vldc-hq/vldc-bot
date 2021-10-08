@@ -6,7 +6,7 @@ from telegram import Update, Message
 from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, JobQueue
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
-from filters import admin_filter
+from filters import admin_filter, group_filter
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +61,14 @@ class Mode:
             CommandHandler(
                 f"{self.name}_on",
                 self._mode_on,
-                filters=admin_filter,
+                filters=group_filter & admin_filter,
                 run_async=True,
             ),
             self.handlers_gr,
         )
         self._dp.add_handler(
             CommandHandler(
-                f"{self.name}_off", self._mode_off, filters=admin_filter, run_async=True
+                f"{self.name}_off", self._mode_off, filters=group_filter & admin_filter, run_async=True
             ),
             self.handlers_gr,
         )

@@ -17,7 +17,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContex
 from telegram.ext.filters import Filters
 
 from db.mongo import get_db
-from filters import admin_filter
+from filters import admin_filter, group_filter
 from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
 
@@ -117,18 +117,18 @@ def add_roll(upd: Updater, handlers_group: int):
         CommandHandler("gdpr_me", satisfy_GDPR, run_async=True), handlers_group
     )
     dp.add_handler(
-        CommandHandler("hussars", show_hussars, filters=admin_filter, run_async=True),
+        CommandHandler("hussars", show_hussars, filters=~group_filter | admin_filter, run_async=True),
         handlers_group,
     )
     dp.add_handler(
         CommandHandler(
-            "htop", show_active_hussars, filters=admin_filter, run_async=True
+            "htop", show_active_hussars, filters=~group_filter | admin_filter, run_async=True
         ),
         handlers_group,
     )
     dp.add_handler(
         CommandHandler(
-            "wipe_hussars", wipe_hussars, filters=admin_filter, run_async=True
+            "wipe_hussars", wipe_hussars, filters=group_filter & admin_filter, run_async=True
         ),
         handlers_group,
     )

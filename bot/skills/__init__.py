@@ -5,7 +5,7 @@ import toml
 from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext
 
-from filters import admin_filter
+from filters import admin_filter, group_filter
 from mode import cleanup_queue_update
 from skills.at_least_70k import add_70k
 from skills.ban import add_ban
@@ -34,7 +34,7 @@ def _add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("version", _version, filters=admin_filter, run_async=True),
+        CommandHandler("version", _version, filters=group_filter & admin_filter, run_async=True),
         version_handlers_group,
     )
 

@@ -32,7 +32,7 @@ from telegram.ext.filters import Filters
 
 from config import get_group_chat_id
 from db.mongo import get_db
-from filters import admin_filter, only_admin_on_others
+from filters import admin_filter, group_filter, only_admin_on_others
 from mode import cleanup_queue_update, Mode, OFF
 from skills.mute import mute_user_for_time
 from skills.roll import _get_username
@@ -168,7 +168,7 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "check",
             test,
-            filters=admin_filter,
+            filters=group_filter & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -178,7 +178,7 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "infect",
             infect_admin,
-            filters=admin_filter,
+            filters=group_filter & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -187,7 +187,7 @@ def add_covid_mode(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("cough", cough, run_async=True), handlers_group)
 
     dp.add_handler(
-        CommandHandler("quarantine", quarantine, filters=admin_filter, run_async=True),
+        CommandHandler("quarantine", quarantine, filters=group_filter & admin_filter, run_async=True),
         handlers_group,
     )
 
@@ -195,7 +195,7 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "stats",
             stats,
-            filters=admin_filter,
+            filters=group_filter & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -349,7 +349,7 @@ def quarantine(update: Update, context: CallbackContext):
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
-def test(update: Update):
+def test(update: Update, context: CallbackContext):
     reply_user: User = update.message.reply_to_message.from_user
 
     if _db.is_user_infected(reply_user.id):

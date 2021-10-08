@@ -6,7 +6,7 @@ from typing import List
 from telegram import Update, User, ChatPermissions, TelegramError
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
-from filters import admin_filter
+from filters import admin_filter, group_filter
 from mode import cleanup_queue_update
 from utils.time import get_duration
 
@@ -20,12 +20,12 @@ def add_mute(upd: Updater, handlers_group: int):
     logger.info("registering mute handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("mute", mute, filters=admin_filter, run_async=True),
+        CommandHandler("mute", mute, filters=group_filter & admin_filter, run_async=True),
         handlers_group,
     )
     dp.add_handler(CommandHandler("mute", mute_self, run_async=True), handlers_group)
     dp.add_handler(
-        CommandHandler("unmute", unmute, filters=admin_filter, run_async=True),
+        CommandHandler("unmute", unmute, filters=group_filter & admin_filter, run_async=True),
         handlers_group,
     )
 

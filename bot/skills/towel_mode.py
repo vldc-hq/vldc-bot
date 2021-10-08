@@ -134,19 +134,32 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
         [[InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]]
     )
 
+    message_id = context.bot.send_message(
+        chat_id,
+        f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
+        "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
+        "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
+        f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
+        "Ничего личного, просто боты одолели.\n",
+        reply_markup=markup,
+        ).message_id
+
     # messages from `rel_message` will be deleted after greeting or ban
     db.add_user_rel_message(
         user.id,
-        context.bot.send_message(
-            chat_id,
-            f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
-            "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
-            "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
-            f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
-            "Ничего личного, просто боты одолели.\n",
-            reply_markup=markup,
-        ).message_id,
+        message_id,
     )
+
+    if user.id == context.bot.get_me().id:
+        message_id = context.bot.send_message(
+            chat_id,
+            "Я простой бот из Владивостока.\n"
+            "В-основном занимаюсь тем, что бросаю полотенца в новичков.\n"
+            "Увлекаюсь переписыванием себя на раст, но на это постоянно не хватает времени.\n",
+            reply_to_message_id=message_id).message_id
+
+        db.delete_user(user_id=user["_id"])
+        context.bot.send_message(chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id)
 
 
 def catch_new_user(update: Update, context: CallbackContext):
