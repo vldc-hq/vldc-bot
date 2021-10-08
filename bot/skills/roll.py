@@ -117,7 +117,12 @@ def add_roll(upd: Updater, handlers_group: int):
         CommandHandler("gdpr_me", satisfy_GDPR, run_async=True), handlers_group
     )
     dp.add_handler(
-        CommandHandler("hussars", show_hussars, filters=~group_filter | admin_filter, run_async=True),
+        CommandHandler(
+            "hussars",
+            show_hussars,
+            filters=~group_filter | admin_filter,
+            run_async=True,
+        ),
         handlers_group,
     )
     dp.add_handler(
@@ -128,7 +133,10 @@ def add_roll(upd: Updater, handlers_group: int):
     )
     dp.add_handler(
         CommandHandler(
-            "wipe_hussars", wipe_hussars, filters=group_filter & admin_filter, run_async=True
+            "wipe_hussars",
+            wipe_hussars,
+            filters=group_filter & admin_filter,
+            run_async=True,
         ),
         handlers_group,
     )

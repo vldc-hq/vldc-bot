@@ -20,12 +20,16 @@ def add_mute(upd: Updater, handlers_group: int):
     logger.info("registering mute handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("mute", mute, filters=group_filter & admin_filter, run_async=True),
+        CommandHandler(
+            "mute", mute, filters=group_filter & admin_filter, run_async=True
+        ),
         handlers_group,
     )
     dp.add_handler(CommandHandler("mute", mute_self, run_async=True), handlers_group)
     dp.add_handler(
-        CommandHandler("unmute", unmute, filters=group_filter & admin_filter, run_async=True),
+        CommandHandler(
+            "unmute", unmute, filters=group_filter & admin_filter, run_async=True
+        ),
         handlers_group,
     )
 

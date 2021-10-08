@@ -34,7 +34,9 @@ def _add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("version", _version, filters=group_filter & admin_filter, run_async=True),
+        CommandHandler(
+            "version", _version, filters=group_filter & admin_filter, run_async=True
+        ),
         version_handlers_group,
     )
 

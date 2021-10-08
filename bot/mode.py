@@ -68,7 +68,10 @@ class Mode:
         )
         self._dp.add_handler(
             CommandHandler(
-                f"{self.name}_off", self._mode_off, filters=group_filter & admin_filter, run_async=True
+                f"{self.name}_off",
+                self._mode_off,
+                filters=group_filter & admin_filter,
+                run_async=True,
             ),
             self.handlers_gr,
         )

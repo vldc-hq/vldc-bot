@@ -49,7 +49,9 @@ def add_prism(upd: Updater, handlers_group: int):
     logger.info("register words handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("top", show_top, filters=group_filter & admin_filter, run_async=True),
+        CommandHandler(
+            "top", show_top, filters=group_filter & admin_filter, run_async=True
+        ),
         handlers_group,
     )
     dp.add_handler(

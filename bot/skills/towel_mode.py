@@ -142,7 +142,7 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
         f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
         "Ничего личного, просто боты одолели.\n",
         reply_markup=markup,
-        ).message_id
+    ).message_id
 
     # messages from `rel_message` will be deleted after greeting or ban
     db.add_user_rel_message(
@@ -156,10 +156,13 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
             "Я простой бот из Владивостока.\n"
             "В-основном занимаюсь тем, что бросаю полотенца в новичков.\n"
             "Увлекаюсь переписыванием себя на раст, но на это постоянно не хватает времени.\n",
-            reply_to_message_id=message_id).message_id
+            reply_to_message_id=message_id,
+        ).message_id
 
         db.delete_user(user_id=user["_id"])
-        context.bot.send_message(chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id)
+        context.bot.send_message(
+            chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id
+        )
 
 
 def catch_new_user(update: Update, context: CallbackContext):

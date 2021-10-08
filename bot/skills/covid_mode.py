@@ -187,7 +187,12 @@ def add_covid_mode(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("cough", cough, run_async=True), handlers_group)
 
     dp.add_handler(
-        CommandHandler("quarantine", quarantine, filters=group_filter & admin_filter, run_async=True),
+        CommandHandler(
+            "quarantine",
+            quarantine,
+            filters=group_filter & admin_filter,
+            run_async=True,
+        ),
         handlers_group,
     )
 

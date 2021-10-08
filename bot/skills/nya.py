@@ -13,7 +13,8 @@ def add_nya(upd: Updater, handlers_group: int):
     logger.info("registering nya handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("nya", nya, filters=group_filter & admin_filter, run_async=True), handlers_group
+        CommandHandler("nya", nya, filters=group_filter & admin_filter, run_async=True),
+        handlers_group,
     )
 
 
