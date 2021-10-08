@@ -35,8 +35,6 @@ def main():
         level=logging.DEBUG if conf["DEBUG"] else logging.INFO,
     )
 
-    logging.warn(f"loaded config %s", conf)
-
     updater = Updater(conf["TOKEN"], use_context=True)
 
     for handler_group, skill in enumerate(skills, DEFAULT_GROUP + 1):

@@ -4,7 +4,6 @@ from telegram import Message
 from telegram.ext import MessageFilter
 
 from config import get_debug, get_group_chat_id
-import logging
 
 
 class GroupFilter(MessageFilter):
