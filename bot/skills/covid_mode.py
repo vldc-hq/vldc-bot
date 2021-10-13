@@ -32,7 +32,7 @@ from telegram.ext.filters import Filters
 
 from config import get_group_chat_id
 from db.mongo import get_db
-from filters import admin_filter, group_filter, only_admin_on_others
+from filters import admin_filter, only_admin_on_others
 from mode import cleanup_queue_update, Mode, OFF
 from skills.mute import mute_user_for_time
 from skills.roll import _get_username
@@ -168,7 +168,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "check",
             test,
-            filters=group_filter & admin_filter,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -178,7 +179,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "infect",
             infect_admin,
-            filters=group_filter & admin_filter,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -190,7 +192,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "quarantine",
             quarantine,
-            filters=group_filter & admin_filter,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -200,7 +203,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "stats",
             stats,
-            filters=group_filter & admin_filter,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -210,7 +214,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "temp",
             temp,
-            filters=only_admin_on_others,
+            filters=only_admin_on_others
+            & Filters.chat(username=get_group_chat_id().strip("@")),
             run_async=True,
         ),
         handlers_group,
@@ -218,7 +223,13 @@ def add_covid_mode(upd: Updater, handlers_group: int):
 
     # We must do this, since bot api doesnt present a way to get all members
     # of chat at once
-    dp.add_handler(MessageHandler(Filters.all, callback=catch_message), handlers_group)
+    dp.add_handler(
+        MessageHandler(
+            Filters.chat(username=get_group_chat_id().strip("@")),
+            callback=catch_message,
+        ),
+        handlers_group,
+    )
 
 
 def set_handlers(queue: JobQueue, bot: Bot):

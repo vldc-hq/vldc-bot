@@ -6,6 +6,7 @@ from google.cloud import translate
 from telegram import Update, User
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
+from config import get_group_chat_id
 
 from mode import Mode, OFF
 
@@ -21,7 +22,8 @@ def add_fools_mode(upd: Updater, handlers_group: int):
 
     dp.add_handler(
         MessageHandler(
-            Filters.chat_type.groups & ~Filters.status_update,
+            ~Filters.status_update
+            & Filters.chat(username=get_group_chat_id().strip("@")),
             mesaĝa_traduko,
             run_async=True,
         ),

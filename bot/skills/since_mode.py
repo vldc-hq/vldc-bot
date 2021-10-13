@@ -5,9 +5,9 @@ from typing import Dict, List
 
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, CommandHandler, Filters
 
-from config import get_config
+from config import get_config, get_group_chat_id
 from mode import Mode
 
 conf = get_config()
@@ -25,10 +25,21 @@ def add_since_mode(upd: Updater, handlers_group: int):
     logger.info("register since-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("since", since_callback, run_async=True), handlers_group
+        CommandHandler(
+            "since",
+            since_callback,
+            filters=Filters.chat(username=get_group_chat_id().strip("@")),
+            run_async=True,
+        ),
+        handlers_group,
     )
     dp.add_handler(
-        CommandHandler("since_list", since_list_callback, run_async=True),
+        CommandHandler(
+            "since_list",
+            since_list_callback,
+            filters=Filters.chat(username=get_group_chat_id().strip("@")),
+            run_async=True,
+        ),
         handlers_group,
     )
 

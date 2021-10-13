@@ -6,15 +6,6 @@ from telegram.ext import MessageFilter
 from config import get_debug, get_group_chat_id
 
 
-class GroupFilter(MessageFilter):
-    """Bot is intended to be used in one group only"""
-
-    name = "Filters.group"
-
-    def filter(self, message) -> bool:
-        return message.chat.username == get_group_chat_id().strip("@")
-
-
 class AdminFilter(MessageFilter):
     """Messages only from admins"""
 
@@ -57,4 +48,3 @@ class OnlyAdminOnOthersFilter(MessageFilter):
 admin_filter = AdminFilter()
 uwu_filter = UwuFilter()
 only_admin_on_others = OnlyAdminOnOthersFilter()
-group_filter = GroupFilter()

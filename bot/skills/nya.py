@@ -2,9 +2,10 @@ import logging
 
 from telegram import Update
 from telegram.error import BadRequest
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext, Filters
 
-from filters import admin_filter, group_filter
+from filters import admin_filter
+from config import get_group_chat_id
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,13 @@ def add_nya(upd: Updater, handlers_group: int):
     logger.info("registering nya handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("nya", nya, filters=group_filter & admin_filter, run_async=True),
+        CommandHandler(
+            "nya",
+            nya,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
+            run_async=True,
+        ),
         handlers_group,
     )
 
