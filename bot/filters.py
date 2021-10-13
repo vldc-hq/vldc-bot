@@ -3,7 +3,7 @@ import re
 from telegram import Message
 from telegram.ext import MessageFilter
 
-from config import get_debug, get_group_chat_id
+from config import get_debug
 
 
 class AdminFilter(MessageFilter):
