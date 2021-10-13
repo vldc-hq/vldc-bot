@@ -12,7 +12,6 @@ from telegram.ext import (
     Filters,
     CallbackContext,
     CommandHandler,
-    Filters,
 )
 
 from db.mongo import get_db
