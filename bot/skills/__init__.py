@@ -3,10 +3,11 @@ from typing import List, Dict, Callable, Tuple
 
 import toml
 from telegram import Update
-from telegram.ext import CommandHandler, Updater, CallbackContext
+from telegram.ext import CommandHandler, Updater, CallbackContext, Filters
 
 from filters import admin_filter
 from mode import cleanup_queue_update
+from config import get_group_chat_id
 from skills.at_least_70k import add_70k
 from skills.ban import add_ban
 from skills.banme import add_banme
@@ -34,7 +35,13 @@ def _add_version(upd: Updater, version_handlers_group: int):
     logger.info("register version handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("version", _version, filters=admin_filter, run_async=True),
+        CommandHandler(
+            "version",
+            _version,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
+            run_async=True,
+        ),
         version_handlers_group,
     )
 

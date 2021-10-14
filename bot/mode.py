@@ -3,10 +3,18 @@ from functools import wraps
 from typing import Callable, List, Optional
 
 from telegram import Update, Message
-from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher, JobQueue
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    CallbackContext,
+    Dispatcher,
+    JobQueue,
+    Filters,
+)
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from filters import admin_filter
+from config import get_group_chat_id
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +69,19 @@ class Mode:
             CommandHandler(
                 f"{self.name}_on",
                 self._mode_on,
-                filters=admin_filter,
+                filters=Filters.chat(username=get_group_chat_id().strip("@"))
+                & admin_filter,
                 run_async=True,
             ),
             self.handlers_gr,
         )
         self._dp.add_handler(
             CommandHandler(
-                f"{self.name}_off", self._mode_off, filters=admin_filter, run_async=True
+                f"{self.name}_off",
+                self._mode_off,
+                filters=Filters.chat(username=get_group_chat_id().strip("@"))
+                & admin_filter,
+                run_async=True,
             ),
             self.handlers_gr,
         )

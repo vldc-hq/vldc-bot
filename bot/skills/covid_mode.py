@@ -168,7 +168,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "check",
             test,
-            filters=admin_filter,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -178,7 +179,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "infect",
             infect_admin,
-            filters=admin_filter,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -187,7 +189,13 @@ def add_covid_mode(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("cough", cough, run_async=True), handlers_group)
 
     dp.add_handler(
-        CommandHandler("quarantine", quarantine, filters=admin_filter, run_async=True),
+        CommandHandler(
+            "quarantine",
+            quarantine,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
+            run_async=True,
+        ),
         handlers_group,
     )
 
@@ -195,7 +203,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "stats",
             stats,
-            filters=admin_filter,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
             run_async=True,
         ),
         handlers_group,
@@ -205,7 +214,8 @@ def add_covid_mode(upd: Updater, handlers_group: int):
         CommandHandler(
             "temp",
             temp,
-            filters=only_admin_on_others,
+            filters=only_admin_on_others
+            & Filters.chat(username=get_group_chat_id().strip("@")),
             run_async=True,
         ),
         handlers_group,
@@ -213,7 +223,13 @@ def add_covid_mode(upd: Updater, handlers_group: int):
 
     # We must do this, since bot api doesnt present a way to get all members
     # of chat at once
-    dp.add_handler(MessageHandler(Filters.all, callback=catch_message), handlers_group)
+    dp.add_handler(
+        MessageHandler(
+            Filters.chat(username=get_group_chat_id().strip("@")),
+            callback=catch_message,
+        ),
+        handlers_group,
+    )
 
 
 def set_handlers(queue: JobQueue, bot: Bot):
@@ -349,7 +365,7 @@ def quarantine(update: Update, context: CallbackContext):
         update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
-def test(update: Update):
+def test(update: Update, _: CallbackContext):
     reply_user: User = update.message.reply_to_message.from_user
 
     if _db.is_user_infected(reply_user.id):

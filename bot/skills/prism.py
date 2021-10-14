@@ -16,6 +16,7 @@ from telegram.ext import (
 
 from db.mongo import get_db
 from filters import admin_filter
+from config import get_group_chat_id
 from mode import cleanup_queue_update
 
 logger = logging.getLogger(__name__)
@@ -49,11 +50,22 @@ def add_prism(upd: Updater, handlers_group: int):
     logger.info("register words handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("top", show_top, filters=admin_filter, run_async=True),
+        CommandHandler(
+            "top",
+            show_top,
+            filters=Filters.chat(username=get_group_chat_id().strip("@"))
+            & admin_filter,
+            run_async=True,
+        ),
         handlers_group,
     )
     dp.add_handler(
-        MessageHandler(Filters.text, extract_words, run_async=True), handlers_group
+        MessageHandler(
+            Filters.text & Filters.chat(username=get_group_chat_id().strip("@")),
+            extract_words,
+            run_async=True,
+        ),
+        handlers_group,
     )
 
 

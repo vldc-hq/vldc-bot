@@ -20,6 +20,7 @@ from db.mongo import get_db
 from filters import admin_filter
 from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
+from config import get_group_chat_id
 
 logger = logging.getLogger(__name__)
 
@@ -114,21 +115,41 @@ def add_roll(upd: Updater, handlers_group: int):
         MessageHandler(Filters.regex(MEME_REGEX), roll, run_async=True), handlers_group
     )
     dp.add_handler(
-        CommandHandler("gdpr_me", satisfy_GDPR, run_async=True), handlers_group
-    )
-    dp.add_handler(
-        CommandHandler("hussars", show_hussars, filters=admin_filter, run_async=True),
-        handlers_group,
-    )
-    dp.add_handler(
         CommandHandler(
-            "htop", show_active_hussars, filters=admin_filter, run_async=True
+            "gdpr_me",
+            satisfy_GDPR,
+            filters=Filters.chat(username=get_group_chat_id().strip("@")),
+            run_async=True,
         ),
         handlers_group,
     )
     dp.add_handler(
         CommandHandler(
-            "wipe_hussars", wipe_hussars, filters=admin_filter, run_async=True
+            "hussars",
+            show_hussars,
+            filters=~Filters.chat(username=get_group_chat_id().strip("@"))
+            | admin_filter,
+            run_async=True,
+        ),
+        handlers_group,
+    )
+    dp.add_handler(
+        CommandHandler(
+            "htop",
+            show_active_hussars,
+            filters=admin_filter
+            & Filters.chat(username=get_group_chat_id().strip("@")),
+            run_async=True,
+        ),
+        handlers_group,
+    )
+    dp.add_handler(
+        CommandHandler(
+            "wipe_hussars",
+            wipe_hussars,
+            filters=admin_filter
+            & Filters.chat(username=get_group_chat_id().strip("@")),
+            run_async=True,
         ),
         handlers_group,
     )
