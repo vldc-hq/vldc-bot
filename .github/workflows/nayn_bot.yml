@@ -45,4 +45,4 @@ jobs:
         DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         DEPLOY_KEY: ${{ secrets.DEPLOY_KEY_PROD }}
       run: |
-        curl --fail --insecure --max-time 60 "https://\"$DEPLOY_HOST\"/deploy/bot-prod?secret=\"$DEPLOY_KEY\"&sync=true"
+        curl --fail --insecure --max-time 60 "https://$DEPLOY_HOST/deploy/bot-prod?secret=$DEPLOY_KEY"'&sync=true'
