@@ -27,6 +27,7 @@ from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
+from skills.kozula import add_kozula
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ skills: List[Dict] = [
     _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
     _make_skill(add_ban, "🔨 ban!", " ban! ban! ban!"),
     _make_skill(add_nya, "😺 meow", " Simon says wat?"),
+    _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
@@ -119,6 +121,7 @@ commands_list: List[Tuple[str, str]] = [
     ("ban", "ban! ban! ban!"),
     ("roll", "life is so cruel... isn't it?"),
     ("tree", "advent of code time!"),
+    ("kozula", "💰 kozula", " Don't argue with kozula rate!"),
     ("still", "do u remember it?"),
     ("banme", "commit sudoku"),
     ("prism", "top N PRISM words with optional predicate"),
