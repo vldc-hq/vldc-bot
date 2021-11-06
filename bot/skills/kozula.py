@@ -1,10 +1,13 @@
 import logging
 import xml.etree.ElementTree as ET
-import requests
-from mode import cleanup_queue_update
+from typing import Optional
 
+import requests
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
+
+from mode import cleanup_queue_update
+from utils.cache import timed_lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -18,39 +21,37 @@ def add_kozula(upd: Updater, handlers_group: int):
     dp.add_handler(CommandHandler("kozula", kozula, run_async=True), handlers_group)
 
 
-def kozula(update: Update, context: CallbackContext):
+@timed_lru_cache(ttl=3600)
+def _get_usd_rate() -> Optional[float]:
+    rate: Optional[float] = None
     try:
         request = requests.get(CBR_URL)
         root = ET.fromstring(request.content)
         for child in root:
             if child.attrib["ID"] == "R01235":
-                usd_rate = float(child.find("Value").text.replace(",", "."))
-
-                logger.info("USD rate: %s", usd_rate)
-                kozula_usd = round(KOZULA_RATE / usd_rate, 2)
-                kozula_usd_formated = "${:,.2f}".format(kozula_usd)
-                kozula_rub_formated = "{:,} ₽".format(KOZULA_RATE).replace(",", " ")
-
-                text = (
-                    f"Текущий курс Козули в RUB: {kozula_rub_formated}\n"
-                    f"Текущий курс Козули в USD ~ {kozula_usd_formated}\n"
-                    f"Курс USD/RUB: {round(usd_rate, 2)}"
-                )
-            else:
-                logger.info("Error! Can't get USD rate!")
-                text = (
-                    f"Текущий курс Козули в RUB: {kozula_rub_formated}\n"
-                    f"Курса в USD почему-то нет :( \n"
-                )
-
-        result = context.bot.send_message(update.effective_chat.id, text)
-        cleanup_queue_update(
-            context.job_queue,
-            update.message,
-            result,
-            300,
-            remove_cmd=True,
-            remove_reply=True,
-        )
+                rate = float(child.find("Value").text.replace(",", "."))
     except requests.exceptions.RequestException as e:
-        logger.info("Error! Requests module from Kazula failed: %s", e)
+        logger.error("can't get USD rate: %s", e)
+
+    return rate
+
+
+def kozula(update: Update, context: CallbackContext):
+    usd_rate = _get_usd_rate()
+    kozula_rates = [
+        f"{KOZULA_RATE}₽",
+        f"${round(KOZULA_RATE / usd_rate, 2)}" if usd_rate is not None else "",
+    ]
+
+    result = context.bot.send_message(
+        update.effective_chat.id,
+        f"Текущий курс Козули: {' | '.join(filter(bool, kozula_rates))}",
+    )
+
+    cleanup_queue_update(
+        queue=context.job_queue,
+        cmd=update.message,
+        result=result,
+        seconds=300,
+        remove_reply=True,
+    )
