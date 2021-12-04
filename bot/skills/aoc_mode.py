@@ -187,9 +187,11 @@ def process_aoc_update(data, bot: Bot):
                 aoc_time_since_day_start(first_one[1][1]),
             )
 
-            message = f"""Wow! @{member['name']} just solves Day {current_day}
-            problem in {str(max_delta)}, gaining {member['stars']} ⭐️!
-            Gut Gemacht! 🔥🔥🔥"""
+            message = (
+                f"Wow! @{member['name']} just solves Day {current_day}"
+                f" problem in {str(max_delta)}, gaining {member['stars']} ⭐️!"
+                " Gut Gemacht! 🔥🔥🔥"
+            )
 
             bot.send_message(get_group_chat_id(), message)
 
