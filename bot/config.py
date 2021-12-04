@@ -2,6 +2,11 @@ import os
 from typing import Dict, Optional
 
 
+def get_aoc_session() -> Optional[str]:
+    """Get AOC session valuie ENV"""
+    return os.getenv("AOC_SESSION", None)
+
+
 def get_debug() -> bool:
     """Get debug value DEBUG ENV"""
     return os.getenv("DEBUG", "False").lower() == "true"
@@ -47,6 +52,7 @@ def get_config() -> Dict:
         "DEBUG": get_debug(),
         "DEBUGGER": get_debugger(),
         "TOKEN": get_token(),
+        "AOC_SESSION": get_aoc_session(),
         "GROUP_CHAT_ID": get_group_chat_id(),
         "MONGO_USER": get_mongo_user(),
         "MONGO_PASS": get_mongo_pass(),
