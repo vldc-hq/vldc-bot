@@ -9,6 +9,7 @@ from filters import admin_filter
 from mode import cleanup_queue_update
 from config import get_group_chat_id
 from skills.at_least_70k import add_70k
+from skills.aoc_mode import add_aoc_mode
 from skills.ban import add_ban
 from skills.banme import add_banme
 from skills.coc import add_coc
@@ -87,6 +88,7 @@ skills: List[Dict] = [
     # commands
     _make_skill(add_core, "😼 core", " core"),
     _make_skill(_add_version, "😼 version", " show this message"),
+    _make_skill(add_aoc_mode, "🎄 AOC notifier", "kekV"),
     _make_skill(add_still, "😻 still", "do u remember it?"),
     _make_skill(add_uwu, "😾 uwu", " don't uwu!"),
     _make_skill(add_mute, "🤭 mute", " mute user for N minutes"),
