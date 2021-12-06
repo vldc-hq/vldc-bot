@@ -59,7 +59,9 @@ def start_aoc_handlers(queue: JobQueue, bot: Bot):
     logger.info("registering aoc handlers")
     update_aoc_data(bot, queue)
     queue.run_repeating(
-        lambda _: update_aoc_data(bot, queue), AOC_UPDATE_INTERVAL, name=JOB_AOC_UPDATE,
+        lambda _: update_aoc_data(bot, queue),
+        AOC_UPDATE_INTERVAL,
+        name=JOB_AOC_UPDATE,
     )
 
 
@@ -77,7 +79,12 @@ def test(update: Update, context: CallbackContext):
 def add_aoc_mode(upd: Updater, handlers_group: int):
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler("aoc_test", test, run_async=True,), handlers_group,
+        CommandHandler(
+            "aoc_test",
+            test,
+            run_async=True,
+        ),
+        handlers_group,
     )
     upd.job_queue.run_repeating(
         lambda _: update_aoc_data(upd.bot, upd.job_queue),
