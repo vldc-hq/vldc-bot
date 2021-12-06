@@ -8,7 +8,7 @@ import requests
 from config import get_group_chat_id, get_aoc_session
 
 from db.mongo import get_db
-from mode import Mode, OFF
+from mode import Mode, ON
 
 from pymongo.collection import Collection
 
@@ -49,7 +49,7 @@ class DB:
 _db = DB(db_name="aoc")
 mode = Mode(
     mode_name="aoc_mode",
-    default=OFF,
+    default=ON,
     on_callback=lambda dp: start_aoc_handlers(dp.job_queue, dp.bot),
     off_callback=lambda dp: stop_aoc_handlers(dp.job_queue, dp.bot),
 )
@@ -59,9 +59,7 @@ def start_aoc_handlers(queue: JobQueue, bot: Bot):
     logger.info("registering aoc handlers")
     update_aoc_data(bot, queue)
     queue.run_repeating(
-        lambda _: update_aoc_data(bot, queue),
-        AOC_UPDATE_INTERVAL,
-        name=JOB_AOC_UPDATE,
+        lambda _: update_aoc_data(bot, queue), AOC_UPDATE_INTERVAL, name=JOB_AOC_UPDATE,
     )
 
 
@@ -79,12 +77,12 @@ def test(update: Update, context: CallbackContext):
 def add_aoc_mode(upd: Updater, handlers_group: int):
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler(
-            "aoc_test",
-            test,
-            run_async=True,
-        ),
-        handlers_group,
+        CommandHandler("aoc_test", test, run_async=True,), handlers_group,
+    )
+    upd.job_queue.run_repeating(
+        lambda _: update_aoc_data(upd.bot, upd.job_queue),
+        AOC_UPDATE_INTERVAL,
+        name=JOB_AOC_UPDATE,
     )
 
 
@@ -108,18 +106,15 @@ def cmp(_x, _y):
         return 0
 
     if len(x) == len(y) == 2:
-        if x[0] == y[0]:
-            return inner_cmp([x[1]], [y[1]])
-        return inner_cmp([x[0]], [y[0]])
+        return inner_cmp(x[1], y[1])
     if len(x) >= 1 and len(y) >= 1:
         return inner_cmp(x[0], y[0])
     return 0
 
 
-def calculate_solved_by(members):
+def calculate_solved_by(members, current_day):
     new_day_solved_by = {}
-    current_day = int(aoc_day_from_datetime(datetime.utcnow())) + 1
-    logger.info(current_day)
+
     for memberId, member in members.items():
         if str(current_day) not in member["completion_day_level"]:
             continue
@@ -141,8 +136,6 @@ def calculate_solved_by(members):
             continue
 
         new_day_solved_by[memberId] = solved
-
-    logger.info(new_day_solved_by)
     return dict(sorted(new_day_solved_by.items(), key=cmp_to_key(cmp)))
 
 
@@ -151,15 +144,16 @@ def process_aoc_update(data, bot: Bot):
 
     # It is okay for a first mode run, just store this one
     if cached_data is None:
-        _db.update(data)
         # Return?
         cached_data = {"members": {}}
 
+    _db.update(data)
+
     current_day = int(aoc_day_from_datetime(datetime.utcnow())) + 1
+    logger.info("Current AOC day is %d", current_day)
 
-    day_solved_by = calculate_solved_by(cached_data["members"])
-
-    updated_day_solved_by = calculate_solved_by(data["members"])
+    day_solved_by = calculate_solved_by(cached_data["members"], current_day)
+    updated_day_solved_by = calculate_solved_by(data["members"], current_day)
 
     solved_both = False
     for _, tasks in day_solved_by.items():
