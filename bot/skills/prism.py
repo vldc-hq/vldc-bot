@@ -111,5 +111,5 @@ def show_top(update: Update, context: CallbackContext):
         result,
         600,
         remove_cmd=True,
-        remove_reply=True,
+        remove_reply=False,
     )

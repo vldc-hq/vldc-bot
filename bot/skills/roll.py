@@ -315,7 +315,7 @@ def show_hussars(update: Update, context: CallbackContext):
         result,
         600,
         remove_cmd=True,
-        remove_reply=True,
+        remove_reply=False,
     )
 
     os.remove(board_image_path)
@@ -417,7 +417,7 @@ def satisfy_GDPR(update: Update, context: CallbackContext):
         result,
         120,
         remove_cmd=True,
-        remove_reply=True,
+        remove_reply=False,
     )
 
 
@@ -432,5 +432,5 @@ def wipe_hussars(update: Update, context: CallbackContext):
         result,
         120,
         remove_cmd=True,
-        remove_reply=True,
+        remove_reply=False,
     )

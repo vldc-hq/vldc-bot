@@ -91,7 +91,7 @@ def mute_self(update: Update, context: CallbackContext):
         result,
         600,
         remove_cmd=True,
-        remove_reply=True,
+        remove_reply=False,
     )
 
 
