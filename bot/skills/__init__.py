@@ -102,7 +102,7 @@ skills: List[Dict] = [
     _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
     _make_skill(add_ban, "🔨 ban!", " ban! ban! ban!"),
     _make_skill(add_nya, "😺 meow", " Simon says wat?"),
-    _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),\
+    _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     _make_skill(add_length, "🍆 length", " length of your instrument"),
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
