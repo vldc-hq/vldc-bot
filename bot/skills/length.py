@@ -67,7 +67,7 @@ class DB:
 
     def get_best_n(self, n: int = 10) -> List[PeninsulaDataType]:
         return list(
-            self._coll.find({}).limit(n).sort(PENINSULA_LENGTH_FIELD, pymongo.ASCENDING)
+            self._coll.find({}).sort(PENINSULA_LENGTH_FIELD, pymongo.ASCENDING).limit(n)
         )
 
     def add(self, user: User) -> UpdateResult:
