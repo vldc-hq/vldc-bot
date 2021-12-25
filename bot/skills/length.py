@@ -18,13 +18,9 @@ from pymongo.results import UpdateResult
 
 logger = logging.getLogger(__name__)
 
-PENINSULA_LENGTH_FIELD = "peninsula_length"
-PENINSULA_MAXIMAL_LENGTH = 20
-
 
 class PeninsulaDataType(TypedDict):
     _id: str
-    peninsula_length: int
     meta: User
 
 
@@ -56,29 +52,17 @@ class DB:
     def __init__(self, db_name: str):
         self._coll: Collection = get_db(db_name).peninsulas
 
-    def get_longest_peninsula(self) -> int:
-        result = PENINSULA_MAXIMAL_LENGTH
-        x: PeninsulaDataType = self._coll.find_one(
-            sort=[(PENINSULA_LENGTH_FIELD, pymongo.DESCENDING)]
-        )
-        if x is not None:
-            result = max(result, int(x[PENINSULA_LENGTH_FIELD]))
-        return result
-
     def get_best_n(self, n: int = 10) -> List[PeninsulaDataType]:
-        return list(
-            self._coll.find({}).sort(PENINSULA_LENGTH_FIELD, pymongo.ASCENDING).limit(n)
-        )
+        return list(self._coll.find({}).sort("_id", pymongo.ASCENDING).limit(n))
 
     def add(self, user: User) -> UpdateResult:
         return self._coll.update_one(
             {
-                "_id": user.id,
+                "_id": int(user.id),
             },
             {
                 "$set": {
                     "meta": user.to_dict(),
-                    PENINSULA_LENGTH_FIELD: len(str(user.id)),
                 }
             },
             upsert=True,
@@ -114,16 +98,10 @@ def _longest(update: Update, context: CallbackContext):
     message = "🍆 🔝🔟 best known lengths 🍆: \n\n"
 
     n = 1
-    longest_peninsula = _db.get_longest_peninsula()
 
     for col in _db.get_best_n(10):
         username = mention_markdown(col["_id"], _get_username(col))
-        peninsula_formatted = (
-            "\\["
-            + ("🍆" * (longest_peninsula - int(col[PENINSULA_LENGTH_FIELD])))
-            + "\\]"
-        )
-        message += f"{n} → {username} {peninsula_formatted}\n"
+        message += f"{n} → {username}\n"
 
         n += 1
 
