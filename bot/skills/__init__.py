@@ -131,6 +131,8 @@ commands_list: List[Tuple[str, str]] = [
     ("prism", "top N PRISM words with optional predicate"),
     ("version", "show this message"),
     ("gdpr_me", "wipe all my hussar history"),
+    ("length", "length of your instrument"),
+    ("longest", "size doesn't matter, or is it?"),
 ]
 
 
