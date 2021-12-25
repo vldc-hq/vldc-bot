@@ -29,6 +29,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.uwu import add_uwu
 from skills.kozula import add_kozula
+from skills.length import add_length
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,7 @@ skills: List[Dict] = [
     _make_skill(add_ban, "🔨 ban!", " ban! ban! ban!"),
     _make_skill(add_nya, "😺 meow", " Simon says wat?"),
     _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
+    _make_skill(add_length, "🍆 length", " length of your instrument"),
     # modes
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
@@ -129,6 +131,8 @@ commands_list: List[Tuple[str, str]] = [
     ("prism", "top N PRISM words with optional predicate"),
     ("version", "show this message"),
     ("gdpr_me", "wipe all my hussar history"),
+    ("length", "length of your instrument"),
+    ("longest", "size doesn't matter, or is it?"),
 ]
 
 
