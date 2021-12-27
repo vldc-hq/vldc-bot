@@ -1,3 +1,5 @@
+SHELL = /bin/bash
+
 .DEFAULT_GOAL := help
 .PHONY: dev test lint start dev_build dev_start dev_test
 
