@@ -4,7 +4,6 @@ from typing import Optional, List, TypedDict
 from telegram import Update, User, Message, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from telegram.ext.filters import Filters
-from telegram.utils.helpers import mention_markdown
 
 from mode import cleanup_queue_update
 from config import get_group_chat_id
@@ -100,7 +99,7 @@ def _longest(update: Update, context: CallbackContext):
     n = 1
 
     for col in _db.get_best_n(10):
-        username = mention_markdown(col["_id"], _get_username(col))
+        username = _get_username(col)
         message += f"{n} → {username}\n"
 
         n += 1
