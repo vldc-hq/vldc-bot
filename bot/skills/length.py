@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, List, TypedDict
 
-from telegram import Update, User, Message, ParseMode
+from telegram import Update, User, Message
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from telegram.ext.filters import Filters
 
