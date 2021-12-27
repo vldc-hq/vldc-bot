@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, List, TypedDict
 
-from telegram import Update, User, Message, ParseMode
+from telegram import Update, User, Message
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from telegram.ext.filters import Filters
 
@@ -107,7 +107,6 @@ def _longest(update: Update, context: CallbackContext):
     result: Optional[Message] = context.bot.send_message(
         update.effective_chat.id,
         message,
-        parse_mode=ParseMode.MARKDOWN_V2,
         disable_notification=True,
     )
 
