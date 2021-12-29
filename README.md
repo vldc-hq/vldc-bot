@@ -33,6 +33,11 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 🦠 covid mode –  fun and gamez
 * 🤫 nastya mode –  stop. just stop
 
+## Usage via VS Code (Easy Way)
+Clone repository locally and open it up via VS Code and click Open in Container. Create `.env` file as described below.
+Mongo will be available at `MONGO_HOST=localhost`. And you're done, you can run bot by clicking `F5` or `Run -> Launch Bot`.
+
+Other option is to use [Codespaces](https://github.com/vldc-hq/vldc-bot/codespaces) from GitHub itself.
 
 ## Usage
 Setup your env vars in `example.env` and rename it to `.env`. Don't push `.env` to public repos!
