@@ -6,27 +6,6 @@ FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
 
 RUN apt-get -y update && apt-get install -y ffmpeg
 
-# [Optional] If your pip requirements rarely change, uncomment this section to add them to the image.
-# RUN mkdir -p /tmp/pip-tmp
 COPY Pipfile* /tmp/pip-tmp/
 RUN cd /tmp/pip-tmp && pip install pipenv==2021.5.29 \
  && pipenv install --dev --deploy --system --ignore-pipfile
-# RUN pip install -U pip \
-#  && pip install pipenv==2021.5.29 \
-#  && pipenv lock -r > /tmp/pip-tmp/requirements.txt \
-#  && pipenv lock -r --dev > /tmp/pip-tmp/requirements-dev.txt
-
-# RUN pip --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-#  && pip --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements-dev.txt
-
-# RUN /usr/local/bin/pip install pipenv==2021.5.29
-# RUN mkdir -p /tmp/pip-tmp/
-# RUN /usr/local/bin/python -m pipenv lock -r > /tmp/pip-tmp/requirements.txt
-# RUN /usr/local/bin/pip --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-#     && rm -rf /tmp/pip-tmp
-# RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-#    && rm -rf /tmp/pip-tmp
-
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
