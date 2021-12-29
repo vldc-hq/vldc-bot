@@ -30,18 +30,21 @@
 		"python.defaultInterpreterPath": "/usr/local/bin/python",
 		"python.linting.enabled": true,
 		"python.linting.pylintEnabled": true,
-		"python.formatting.blackPath": "/home/vscode/.local/bin/black",
-		"python.linting.flake8Path": "/home/vscode/.local/bin/flake8",
-		"python.linting.mypyPath": "/home/vscode/.local/bin/mypy",
-		"python.linting.pycodestylePath": "/home/vscode/.local/bin/pycodestyle",
-		"python.linting.pylintPath": "/home/vscode/.local/bin/pylint"
+		"python.formatting.blackPath": "/usr/local/bin/black",
+		"python.linting.flake8Path": "/usr/local/bin/flake8",
+		"python.linting.mypyPath": "/usr/local/bin/mypy",
+		"python.linting.pycodestylePath": "/usr/local/bin/pycodestyle",
+		"python.linting.pylintPath": "/usr/local/bin/pylint"
 	},
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ms-python.python",
 		"ms-python.vscode-pylance",
-		"mutantdino.resourcemonitor"
+		"mutantdino.resourcemonitor",
+		"VisualStudioExptTeam.vscodeintellicode",
+		"KevinRose.vsc-python-indent",
+		"njpwerner.autodocstring"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -49,7 +52,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-	"postCreateCommand": "/usr/local/bin/pip install pipenv==2021.5.29 && /usr/local/bin/python -m pipenv install --dev --system",
+	"postCreateCommand": "",
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
