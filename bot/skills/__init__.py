@@ -89,7 +89,6 @@ skills: List[Dict] = [
     # commands
     _make_skill(add_core, "😼 core", " core"),
     _make_skill(_add_version, "😼 version", " show this message"),
-    _make_skill(add_aoc_mode, "🎄 AOC notifier", "kekV"),
     _make_skill(add_still, "😻 still", "do u remember it?"),
     _make_skill(add_uwu, "😾 uwu", " don't uwu!"),
     _make_skill(add_mute, "🤭 mute", " mute user for N minutes"),
@@ -105,6 +104,7 @@ skills: List[Dict] = [
     _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     _make_skill(add_length, "🍆 length", " length of your instrument"),
     # modes
+    _make_skill(add_aoc_mode, "🎄 AOC notifier", "kekV"),
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
