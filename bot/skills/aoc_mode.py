@@ -8,7 +8,7 @@ import requests
 from config import get_group_chat_id, get_aoc_session
 
 from db.mongo import get_db
-from mode import Mode, ON
+from mode import Mode, OFF
 
 from pymongo.collection import Collection
 
@@ -49,7 +49,7 @@ class DB:
 _db = DB(db_name="aoc")
 mode = Mode(
     mode_name="aoc_mode",
-    default=ON,
+    default=OFF,
     on_callback=lambda dp: start_aoc_handlers(dp.job_queue, dp.bot),
     off_callback=lambda dp: stop_aoc_handlers(dp.job_queue, dp.bot),
 )
