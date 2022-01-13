@@ -36,7 +36,7 @@ google-cloud-translate = "2.0.0"
 google-cloud-automl = "0.10.0"
 google-cloud-speech = "2.0.0"
 sentry-sdk = ">0.19"
-Pillow = "8.3.2"
+Pillow = "9.0.0"
 toml = ">0.10"
 
 [requires]
