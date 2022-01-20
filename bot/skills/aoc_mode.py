@@ -15,7 +15,6 @@ from pymongo.collection import Collection
 from telegram import Update, Bot
 from telegram.ext import (
     Updater,
-    CommandHandler,
     CallbackContext,
     JobQueue,
 )
@@ -66,8 +65,8 @@ def start_aoc_handlers(queue: JobQueue, bot: Bot):
 
 
 def stop_aoc_handlers(queue: JobQueue, bot: Bot):
-    (job,) = queue.get_jobs_by_name(JOB_AOC_UPDATE)
-    if job is not None:
+    jobs = queue.get_jobs_by_name(JOB_AOC_UPDATE)
+    for job in jobs:
         job.schedule_removal()
 
 
@@ -77,20 +76,7 @@ def test(update: Update, context: CallbackContext):
 
 @mode.add
 def add_aoc_mode(upd: Updater, handlers_group: int):
-    dp = upd.dispatcher
-    dp.add_handler(
-        CommandHandler(
-            "aoc_test",
-            test,
-            run_async=True,
-        ),
-        handlers_group,
-    )
-    upd.job_queue.run_repeating(
-        lambda _: update_aoc_data(upd.bot, upd.job_queue),
-        AOC_UPDATE_INTERVAL,
-        name=JOB_AOC_UPDATE,
-    )
+    pass
 
 
 def aoc_day_from_datetime(dt):
