@@ -9,7 +9,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, Filters
 from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter
-from mode import Mode, ON, cleanup_queue_update
+from mode import Mode, ON
 
 logger = logging.getLogger(__name__)
 
@@ -85,13 +85,7 @@ def trust_callback(update: Update, context: CallbackContext):
             _db.trust(user.id, admin.id)
             msg = f"{user.name} is trusted now! 😼🤝😐"
 
-        answer = context.bot.send_message(chat_id, msg)
-        cleanup_queue_update(
-            context.job_queue,
-            update.message,
-            answer,
-            600,
-        )
+        context.bot.send_message(chat_id, msg)
 
 
 def untrust_callback(update: Update, context: CallbackContext):
@@ -99,10 +93,4 @@ def untrust_callback(update: Update, context: CallbackContext):
 
     if user and chat_id:
         _db.untrust(user.id)
-        answer = context.bot.send_message(chat_id, f"{user.name} lost confidence... 😼🖕")
-        cleanup_queue_update(
-            context.job_queue,
-            update.message,
-            answer,
-            600,
-        )
+        context.bot.send_message(chat_id, f"{user.name} lost confidence... 😼🖕")
