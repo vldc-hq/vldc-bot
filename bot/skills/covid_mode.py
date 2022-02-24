@@ -472,7 +472,7 @@ def random_fate(bot: Bot):
                 message += f"{full_name} has recovered from coronavirus!\n"
                 continue
 
-            if _rng <= LETHALITY_RATE * (delta_days_float ** delta_days_float):
+            if _rng <= LETHALITY_RATE * (delta_days_float**delta_days_float):
                 try:
                     _db.add_lethality(user["_id"], datetime.now())
                     # TODO: Extract it more properly

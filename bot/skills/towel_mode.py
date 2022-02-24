@@ -218,6 +218,7 @@ def i_am_a_bot_btn(update: Update, context: CallbackContext):
 
 
 def ban_user(context: CallbackContext):
+    # fixme: smth wrong here
     chat_id = context.bot.get_chat(chat_id=context.job.context["chat_id"]).id
     logger.debug("get chat.id: %s", chat_id)
 

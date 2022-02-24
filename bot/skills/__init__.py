@@ -5,17 +5,19 @@ import toml
 from telegram import Update
 from telegram.ext import CommandHandler, Updater, CallbackContext, Filters
 
+from config import get_group_chat_id
 from filters import admin_filter
 from mode import cleanup_queue_update
-from config import get_group_chat_id
-from skills.at_least_70k import add_70k
 from skills.aoc_mode import add_aoc_mode
+from skills.at_least_70k import add_70k
 from skills.ban import add_ban
 from skills.banme import add_banme
 from skills.coc import add_coc
 from skills.core import add_core
 from skills.covid_mode import add_covid_mode
 from skills.fools import add_fools_mode
+from skills.kozula import add_kozula
+from skills.length import add_length
 from skills.mute import add_mute
 from skills.nastya_mode import add_nastya_mode
 from skills.nya import add_nya
@@ -27,9 +29,8 @@ from skills.smile_mode import add_smile_mode
 from skills.still import add_still
 from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
+from skills.trusted_mode import add_trusted_mode
 from skills.uwu import add_uwu
-from skills.kozula import add_kozula
-from skills.length import add_length
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +77,6 @@ def _version(update: Update, context: CallbackContext):
         update.message,
         result,
         120,
-        remove_cmd=True,
-        remove_reply=False,
     )
 
 
@@ -104,7 +103,8 @@ skills: List[Dict] = [
     _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     _make_skill(add_length, "🍆 length", " length of your instrument"),
     # modes
-    _make_skill(add_aoc_mode, "🎄 AOC notifier", "kekV"),
+    _make_skill(add_trusted_mode, "👁‍🗨 in god we trust", " are you worthy hah?"),
+    _make_skill(add_aoc_mode, "🎄 AOC notifier", " kekV"),
     _make_skill(add_smile_mode, "😼 smile mode", " allow only stickers in the chat"),
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
@@ -119,6 +119,8 @@ commands_list: List[Tuple[str, str]] = [
     ("unmute", "😼 unmute user"),
     ("hussars", "😼 show hussars leaderboard"),
     ("wipe_hussars", "😼 wipe all hussars history"),
+    ("trust", "😼 in god we trust"),
+    ("untrust", "😼 how dare you?!"),
     ("pr", "got sk1lzz?"),
     ("70k", "try to hire!"),
     ("coc", "VLDC/GDG VL Code of Conduct"),

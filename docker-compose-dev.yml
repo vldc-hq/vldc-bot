@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: ./compose/dev/Dockerfile
     ports:
-      - 5678:5678
+      - "5678:5678"
     volumes:
       - .:/app
       - .:/opt/gcloud
@@ -25,7 +25,7 @@ services:
   serving:
     image: gcr.io/cloud-devrel-public-resources/gcloud-container-1.14.0:latest
     ports:
-      - 8501:8501
+      - "8501:8501"
     volumes:
       - ./tf-model:/tmp/mounted_model/0001
     logging:
@@ -36,7 +36,7 @@ services:
   mongo:
     image: mongo:4.2.15
     ports:
-      - 27017:27017
+      - "27017:27017"
     env_file:
       - ./.env
     logging:

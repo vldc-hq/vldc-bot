@@ -1,9 +1,35 @@
 import re
+from typing import Optional, Union
 
+from pymongo.collection import Collection
 from telegram import Message
 from telegram.ext import MessageFilter
+from telegram.ext.filters import DataDict
 
 from config import get_debug
+from db.mongo import get_db
+
+
+class TrustedDB:
+    def __init__(self, db_name: str):
+        self._coll: Collection = get_db(db_name).users
+
+    def is_trusted(self, user_id: str) -> bool:
+        return self._coll.find_one({"_id": user_id}) is not None
+
+
+_trusted_db = TrustedDB("trusted")
+
+
+class TrustedFilter(MessageFilter):
+    """Messages only from trusted users"""
+
+    name = "Filter.trusted"
+
+    def filter(self, message: Message) -> Optional[Union[bool, DataDict]]:
+        if get_debug():
+            return True
+        return _trusted_db.is_trusted(message.from_user.id)
 
 
 class AdminFilter(MessageFilter):
@@ -50,3 +76,4 @@ class OnlyAdminOnOthersFilter(MessageFilter):
 admin_filter = AdminFilter()
 uwu_filter = UwuFilter()
 only_admin_on_others = OnlyAdminOnOthersFilter()
+trusted_filter = TrustedFilter()
