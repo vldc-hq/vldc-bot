@@ -44,7 +44,7 @@ def kozula(update: Update, context: CallbackContext):
         else "курс ТНР недоступен",
         f"${KOZULA_RATE_USD}",
         "---",
-        "*ТНР – так называемых рублей"
+        "*ТНР – так называемых рублей",
     ]
 
     rates = "\n".join(filter(bool, kozula_rates))
