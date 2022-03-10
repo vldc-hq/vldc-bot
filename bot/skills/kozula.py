@@ -50,7 +50,7 @@ def kozula(update: Update, context: CallbackContext):
     rates = "\n".join(filter(bool, kozula_rates))
     result = context.bot.send_message(
         update.effective_chat.id,
-        f"Текущий курс Козули: {rates}",
+        f"Текущий курс Козули: \n{rates}",
     )
 
     cleanup_queue_update(
