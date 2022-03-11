@@ -39,12 +39,10 @@ def _get_usd_rate() -> Optional[float]:
 def kozula(update: Update, context: CallbackContext):
     usd_rate = _get_usd_rate()
     kozula_rates = [
-        f"{round(KOZULA_RATE_USD * usd_rate, 2)} ТНР*"
+        f"{round(KOZULA_RATE_USD * usd_rate, 2)}₽"
         if usd_rate is not None
-        else "курс ТНР недоступен",
+        else "курс ₽ недоступен",
         f"${KOZULA_RATE_USD}",
-        "---",
-        "*ТНР – так называемых рублей",
     ]
 
     rates = "\n".join(filter(bool, kozula_rates))
