@@ -5,7 +5,7 @@ name = "pypi"
 
 [[description]]
 name = "vldc-bot"
-version = "0.6.11"
+version = "0.7.1"
 description = "VLDC nyan bot ^_^"
 authors = [
     #tg

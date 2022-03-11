@@ -79,7 +79,7 @@ def _get_words(t: str) -> List[str]:
 
 
 def _normalize_words(words: List[str]) -> List[str]:
-    return [w.lower() for w in words if w[0] != "/"]
+    return [w.lower() for w in words if len(w) > 0 and w[0] != "/"]
 
 
 def _normalize_pred(pred: str) -> str:

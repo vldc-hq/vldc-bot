@@ -11,7 +11,8 @@ from utils.cache import timed_lru_cache
 
 logger = logging.getLogger(__name__)
 
-KOZULA_RATE = 12_000
+
+KOZULA_RATE_USD = 12_000
 CBR_URL = "https://cbr.ru/scripts/XML_daily.asp"
 
 
@@ -40,12 +41,13 @@ def kozula(update: Update, context: CallbackContext):
     usd_rate = _get_usd_rate()
     kozula_rates = [
         f"{KOZULA_RATE}$",
-        f"${round(KOZULA_RATE * usd_rate, 2)}₽" if usd_rate is not None else "",
+        f"${round(KOZULA_RATE_USD * usd_rate, 2)}₽" if usd_rate is not None else "",
     ]
 
+    rates = "\n".join(filter(bool, kozula_rates))
     result = context.bot.send_message(
         update.effective_chat.id,
-        f"Текущий курс Козули: {' | '.join(filter(bool, kozula_rates))}",
+        f"Текущий курс Козули: \n{rates}",
     )
 
     cleanup_queue_update(
