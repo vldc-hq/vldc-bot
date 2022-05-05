@@ -12,6 +12,7 @@ from skills.aoc_mode import add_aoc_mode
 from skills.at_least_70k import add_70k
 from skills.ban import add_ban
 from skills.banme import add_banme
+from skills.canary import add_canary
 from skills.coc import add_coc
 from skills.core import add_core
 from skills.covid_mode import add_covid_mode
@@ -102,6 +103,7 @@ skills: List[Dict] = [
     _make_skill(add_nya, "😺 meow", " Simon says wat?"),
     _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     _make_skill(add_length, "🍆 length", " length of your instrument"),
+    _make_skill(add_canary, "🦆 canary", " r u alive?"),
     # modes
     _make_skill(add_trusted_mode, "👁‍🗨 in god we trust", " are you worthy hah?"),
     _make_skill(add_aoc_mode, "🎄 AOC notifier", " kekV"),
@@ -130,6 +132,7 @@ commands_list: List[Tuple[str, str]] = [
     ("kozula", "💰 kozula", " Don't argue with kozula rate!"),
     ("still", "do u remember it?"),
     ("banme", "commit sudoku"),
+    ("chirp", "kitty kitty kitty"),
     ("prism", "top N PRISM words with optional predicate"),
     ("version", "show this message"),
     ("gdpr_me", "wipe all my hussar history"),
