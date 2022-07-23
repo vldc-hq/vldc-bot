@@ -15,7 +15,7 @@ services:
       - serving
     env_file:
       - ./.env
-    environment :
+    environment:
       - PYTHONPATH=./bot
     logging:
       options:
