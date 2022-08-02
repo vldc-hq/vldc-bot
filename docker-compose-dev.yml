@@ -12,22 +12,10 @@ services:
       - .:/opt/gcloud
     depends_on:
       - mongo
-      - serving
     env_file:
       - ./.env
     environment:
       - PYTHONPATH=./bot
-    logging:
-      options:
-        max-size: "1M"
-        max-file: "10"
-
-  serving:
-    image: gcr.io/cloud-devrel-public-resources/gcloud-container-1.14.0:latest
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./tf-model:/tmp/mounted_model/0001
     logging:
       options:
         max-size: "1M"
