@@ -5,22 +5,10 @@ services:
     image: docker.pkg.github.com/vldc-hq/vldc-bot/bot:latest
     depends_on:
       - mongo
-      - serving
     env_file:
       - ./.env
     volumes:
       - ./:/opt/gcloud
-    logging:
-      options:
-        max-size: "1M"
-        max-file: "10"
-
-  serving:
-    image: gcr.io/cloud-devrel-public-resources/gcloud-container-1.14.0:latest
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./tf-model:/tmp/mounted_model/0001
     logging:
       options:
         max-size: "1M"

@@ -14,7 +14,6 @@ from skills.ban import add_ban
 from skills.banme import add_banme
 from skills.coc import add_coc
 from skills.core import add_core
-from skills.covid_mode import add_covid_mode
 from skills.fools import add_fools_mode
 from skills.kozula import add_kozula
 from skills.length import add_length
@@ -109,7 +108,6 @@ skills: List[Dict] = [
     _make_skill(add_since_mode, "🛠 since mode", " under construction"),
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
-    _make_skill(add_covid_mode, "🦠 covid mode", " fun and gamez"),
     _make_skill(add_nastya_mode, "🤫 nastya mode", " stop. just stop"),
 ]
 

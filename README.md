@@ -30,7 +30,6 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 🛠 since mode –  under construction
 * 🧼 towel mode –  anti bot
 * 🙃 fools mode –  what? not again!
-* 🦠 covid mode –  fun and gamez
 * 🤫 nastya mode –  stop. just stop
 
 ## Usage via VS Code (Easy Way)
