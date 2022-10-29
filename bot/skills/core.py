@@ -1,7 +1,9 @@
 import logging
 
 from telegram import Update
-from telegram.ext import CommandHandler, Updater, CallbackContext
+from telegram.ext import Updater, CallbackContext
+
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -9,8 +11,8 @@ logger = logging.getLogger(__name__)
 def add_core(upd: Updater, core_handlers_group: int):
     logger.info("register smile-mode handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("start", start, run_async=True), core_handlers_group)
-    dp.add_handler(CommandHandler("help", help_, run_async=True), core_handlers_group)
+    dp.add_handler(ChatCommandHandler("start", start), core_handlers_group)
+    dp.add_handler(ChatCommandHandler("help", help_), core_handlers_group)
 
 
 def start(update: Update, _: CallbackContext):

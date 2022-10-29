@@ -1,7 +1,9 @@
 import logging
 
 from telegram import Update, User
-from telegram.ext import Updater, Dispatcher, CommandHandler, CallbackContext
+from telegram.ext import Updater, Dispatcher, CallbackContext
+
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ MSG = (
 def add_70k(upd: Updater, handlers_group: int):
     logger.info("registering 70k handler")
     dp: Dispatcher = upd.dispatcher
-    dp.add_handler(CommandHandler("70k", _70k, run_async=True), handlers_group)
+    dp.add_handler(ChatCommandHandler("70k", _70k), handlers_group)
 
 
 def _70k(update: Update, context: CallbackContext):

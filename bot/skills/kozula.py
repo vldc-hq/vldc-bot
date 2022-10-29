@@ -4,9 +4,10 @@ from typing import Optional
 
 import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CallbackContext
 
 from mode import cleanup_queue_update
+from skills import ChatCommandHandler
 from utils.cache import timed_lru_cache
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ CBR_URL = "https://cbr.ru/scripts/XML_daily.asp"
 def add_kozula(upd: Updater, handlers_group: int):
     logger.info("registering tree handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("kozula", kozula, run_async=True), handlers_group)
+    dp.add_handler(ChatCommandHandler("kozula", kozula), handlers_group)
 
 
 @timed_lru_cache(ttl=3600)

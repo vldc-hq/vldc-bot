@@ -1,7 +1,9 @@
 import logging
 
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CallbackContext
+
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +13,7 @@ AOC_LEADERBOARD_LINK = "https://adventofcode.com/2021/leaderboard/private/view/4
 def add_tree(upd: Updater, handlers_group: int):
     logger.info("registering tree handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("tree", tree, run_async=True), handlers_group)
+    dp.add_handler(ChatCommandHandler("tree", tree), handlers_group)
 
 
 def tree(update: Update, context: CallbackContext):
