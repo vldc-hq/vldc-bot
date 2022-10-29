@@ -396,6 +396,13 @@ def roll(update: Update, context: CallbackContext):
         # todo: https://github.com/vldc-hq/vldc-bot/issues/93
         #  if bot can't restrict user, user should be passed into towel-mode like state
 
+        # TODO: if user is admin, first revoke admin role: telegram.bot.Bot.promote_chat_member
+        #  * get user info (admin title, we should to store it to put it back when restriction is over)
+        #  * revoke admin role
+        #  * mute user as usual
+
+        # TODO: we need a way how to give admin role back to user when restriction time is over
+
         mute_min = get_mute_minutes(shots_remained)
         result = context.bot.send_message(
             update.effective_chat.id,
