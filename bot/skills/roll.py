@@ -1,13 +1,12 @@
 import logging
 import os
+import re
 from datetime import datetime, timedelta
 from random import randint, choice
 from tempfile import gettempdir
 from threading import Lock
 from typing import List, Optional, Tuple, Dict
 from uuid import uuid4
-
-import re
 
 import pymongo
 from PIL import Image, ImageDraw, ImageFont
@@ -16,11 +15,12 @@ from telegram import Update, User, Message, ChatMember
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
 from telegram.ext.filters import Filters
 
+from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter
 from mode import cleanup_queue_update
+from skills import ChatCommandHandler
 from skills.mute import mute_user_for_time
-from config import get_group_chat_id
 
 logger = logging.getLogger(__name__)
 
@@ -115,11 +115,9 @@ def add_roll(upd: Updater, handlers_group: int):
         MessageHandler(Filters.regex(MEME_REGEX), roll, run_async=True), handlers_group
     )
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "gdpr_me",
             satisfy_GDPR,
-            filters=Filters.chat(username=get_group_chat_id().strip("@")),
-            run_async=True,
         ),
         handlers_group,
     )
@@ -134,22 +132,18 @@ def add_roll(upd: Updater, handlers_group: int):
         handlers_group,
     )
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "htop",
             show_active_hussars,
-            filters=admin_filter
-            & Filters.chat(username=get_group_chat_id().strip("@")),
-            run_async=True,
+            filters=admin_filter,
         ),
         handlers_group,
     )
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "wipe_hussars",
             wipe_hussars,
-            filters=admin_filter
-            & Filters.chat(username=get_group_chat_id().strip("@")),
-            run_async=True,
+            filters=admin_filter,
         ),
         handlers_group,
     )

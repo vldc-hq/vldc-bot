@@ -2,9 +2,10 @@ import logging
 from typing import Union
 
 from telegram import Update, User
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CallbackContext
 
 from mode import cleanup_queue_update
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 def add_ban(upd: Updater, handlers_group: int):
     logger.info("registering ban handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("ban", ban, run_async=True), handlers_group)
+    dp.add_handler(ChatCommandHandler("ban", ban), handlers_group)
 
 
 def ban(update: Union[str, Update], context: CallbackContext):

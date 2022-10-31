@@ -9,12 +9,11 @@ from telegram.ext import (
     CallbackContext,
     Dispatcher,
     JobQueue,
-    Filters,
 )
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from filters import admin_filter
-from config import get_group_chat_id
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -66,27 +65,23 @@ class Mode:
 
     def _add_on_off_handlers(self):
         self._dp.add_handler(
-            CommandHandler(
+            ChatCommandHandler(
                 f"{self.name}_on",
                 self._mode_on,
-                filters=Filters.chat(username=get_group_chat_id().strip("@"))
-                & admin_filter,
-                run_async=True,
+                filters=admin_filter,
             ),
             self.handlers_gr,
         )
         self._dp.add_handler(
-            CommandHandler(
+            ChatCommandHandler(
                 f"{self.name}_off",
                 self._mode_off,
-                filters=Filters.chat(username=get_group_chat_id().strip("@"))
-                & admin_filter,
-                run_async=True,
+                filters=admin_filter,
             ),
             self.handlers_gr,
         )
         self._dp.add_handler(
-            CommandHandler(f"{self.name}", self._mode_status, run_async=True),
+            ChatCommandHandler(f"{self.name}", self._mode_status),
             self.handlers_gr,
         )
 

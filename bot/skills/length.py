@@ -1,19 +1,16 @@
 import logging
 from typing import Optional, List, TypedDict
 
-from telegram import Update, User, Message
-from telegram.ext import Updater, CommandHandler, CallbackContext
-from telegram.ext.filters import Filters
-
-from mode import cleanup_queue_update
-from config import get_group_chat_id
-
-from skills.roll import _get_username
-
-from db.mongo import get_db
 import pymongo
 from pymongo.collection import Collection
 from pymongo.results import UpdateResult
+from telegram import Update, User, Message
+from telegram.ext import Updater, CallbackContext
+
+from db.mongo import get_db
+from mode import cleanup_queue_update
+from skills import ChatCommandHandler
+from skills.roll import _get_username
 
 logger = logging.getLogger(__name__)
 
@@ -27,21 +24,17 @@ def add_length(upd: Updater, handlers_group: int):
     logger.info("registering length handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "length",
             _length,
-            filters=Filters.chat(username=get_group_chat_id().strip("@")),
-            run_async=True,
         ),
         handlers_group,
     )
 
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "longest",
             _longest,
-            filters=Filters.chat(username=get_group_chat_id().strip("@")),
-            run_async=True,
         ),
         handlers_group,
     )

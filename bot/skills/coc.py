@@ -1,9 +1,10 @@
 import logging
 
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CallbackContext
 
 from mode import cleanup_queue_update
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ COC_LINK = "https://devfest.gdgvl.ru/ru/code-of-conduct/"
 def add_coc(upd: Updater, handlers_group: int):
     logger.info("registering CoC handler")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("coc", coc, run_async=True), handlers_group)
+    dp.add_handler(ChatCommandHandler("coc", coc), handlers_group)
 
 
 def coc(update: Update, context: CallbackContext):

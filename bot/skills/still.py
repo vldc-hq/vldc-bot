@@ -3,7 +3,9 @@ from datetime import datetime
 
 from telegram import Update
 from telegram.error import BadRequest
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CallbackContext
+
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +13,7 @@ logger = logging.getLogger(__name__)
 def add_still(upd: Updater, handlers_group: int):
     logger.info("registering still handlers")
     dp = upd.dispatcher
-    dp.add_handler(CommandHandler("still", still, run_async=True), handlers_group)
+    dp.add_handler(ChatCommandHandler("still", still), handlers_group)
 
 
 def to_2k_year(year: int):

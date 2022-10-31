@@ -4,12 +4,12 @@ from typing import Optional
 
 from pymongo.collection import Collection
 from telegram import Update, User
-from telegram.ext import Updater, CommandHandler, CallbackContext, Filters
+from telegram.ext import Updater, CallbackContext
 
-from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter
 from mode import Mode, ON
+from skills import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
@@ -47,22 +47,18 @@ def add_trusted_mode(upd: Updater, handlers_group: int):
     logger.info("register trusted-mode handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "trust",
             trust_callback,
-            filters=Filters.chat(username=get_group_chat_id().strip("@"))
-            & admin_filter,
-            run_async=True,
+            filters=admin_filter,
         ),
         handlers_group,
     )
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "untrust",
             untrust_callback,
-            filters=Filters.chat(username=get_group_chat_id().strip("@"))
-            & admin_filter,
-            run_async=True,
+            filters=admin_filter,
         ),
         handlers_group,
     )

@@ -6,8 +6,8 @@ from google.cloud import translate
 from telegram import Update, User
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
-from config import get_group_chat_id
 
+from config import get_group_chat_id
 from mode import Mode, OFF
 
 logger = logging.getLogger(__name__)

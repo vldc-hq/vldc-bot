@@ -4,11 +4,11 @@ from random import choice
 from typing import List
 
 from telegram import Update, User, ChatPermissions, TelegramError
-from telegram.ext import Updater, CommandHandler, CallbackContext, Filters
+from telegram.ext import Updater, CallbackContext
 
 from filters import admin_filter
-from config import get_group_chat_id
 from mode import cleanup_queue_update
+from skills import ChatCommandHandler
 from utils.time import get_duration
 
 logger = logging.getLogger(__name__)
@@ -21,23 +21,19 @@ def add_mute(upd: Updater, handlers_group: int):
     logger.info("registering mute handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "mute",
             mute,
-            filters=Filters.chat(username=get_group_chat_id().strip("@"))
-            & admin_filter,
-            run_async=True,
+            filters=admin_filter,
         ),
         handlers_group,
     )
-    dp.add_handler(CommandHandler("mute", mute_self, run_async=True), handlers_group)
+    dp.add_handler(ChatCommandHandler("mute", mute_self), handlers_group)
     dp.add_handler(
-        CommandHandler(
+        ChatCommandHandler(
             "unmute",
             unmute,
-            filters=Filters.chat(username=get_group_chat_id().strip("@"))
-            & admin_filter,
-            run_async=True,
+            filters=admin_filter,
         ),
         handlers_group,
     )
