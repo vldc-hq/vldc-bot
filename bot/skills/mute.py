@@ -8,7 +8,7 @@ from telegram.ext import Updater, CallbackContext
 
 from filters import admin_filter
 from mode import cleanup_queue_update
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 from utils.time import get_duration
 
 logger = logging.getLogger(__name__)

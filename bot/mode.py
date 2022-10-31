@@ -13,7 +13,7 @@ from telegram.ext import (
 from telegram.ext.dispatcher import DEFAULT_GROUP
 
 from filters import admin_filter
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 

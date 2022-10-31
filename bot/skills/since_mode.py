@@ -9,7 +9,7 @@ from telegram.ext import Updater
 
 from config import get_config
 from mode import Mode
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 
 conf = get_config()
 

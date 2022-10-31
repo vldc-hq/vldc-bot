@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import Updater, CallbackContext
 
 from mode import cleanup_queue_update
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 

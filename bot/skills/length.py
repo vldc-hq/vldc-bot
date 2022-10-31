@@ -9,7 +9,7 @@ from telegram.ext import Updater, CallbackContext
 
 from db.mongo import get_db
 from mode import cleanup_queue_update
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 from skills.roll import _get_username
 
 logger = logging.getLogger(__name__)

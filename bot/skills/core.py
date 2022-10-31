@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import Updater, CallbackContext
 
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 

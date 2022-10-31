@@ -19,7 +19,7 @@ from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter
 from mode import cleanup_queue_update
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 from skills.mute import mute_user_for_time
 
 logger = logging.getLogger(__name__)

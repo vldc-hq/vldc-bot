@@ -5,7 +5,7 @@ from random import randint
 from telegram import Update, User, TelegramError
 from telegram.ext import Updater, CallbackContext
 
-from skills import ChatCommandHandler
+from handlers import ChatCommandHandler
 from skills.mute import mute_user_for_time
 
 MUTE_MINUTES = 24 * 60  # 24h
