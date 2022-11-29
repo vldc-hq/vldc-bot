@@ -7,7 +7,7 @@ from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
-AOC_LEADERBOARD_LINK = "https://adventofcode.com/2021/leaderboard/private/view/458538"
+AOC_LEADERBOARD_LINK = "https://adventofcode.com/2022/leaderboard/private/view/458538"
 
 
 def add_tree(upd: Updater, handlers_group: int):
