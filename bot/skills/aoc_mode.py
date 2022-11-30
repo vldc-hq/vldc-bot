@@ -18,8 +18,8 @@ from mode import Mode, OFF
 
 logger = logging.getLogger(__name__)
 
-AOC_ENDPOINT = "https://adventofcode.com/2021/leaderboard/private/view/458538.json"
-AOC_START_TIME = datetime.fromtimestamp(1638334800)
+AOC_ENDPOINT = "https://adventofcode.com/2022/leaderboard/private/view/458538.json"
+AOC_START_TIME = datetime.fromtimestamp(1669870800)
 AOC_UPDATE_INTERVAL = timedelta(minutes=15)
 JOB_AOC_UPDATE = "aoc_update_job"
 

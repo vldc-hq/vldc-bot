@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 
 def get_aoc_session() -> Optional[str]:
-    """Get AOC session valuie ENV"""
+    """Get AOC session value ENV"""
     return os.getenv("AOC_SESSION", None)
 
 
