@@ -12,14 +12,15 @@ import pymongo
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
 from telegram import Update, User, Message, ChatMember
+from telegram.error import BadRequest
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
 from telegram.ext.filters import Filters
 
 from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter
-from mode import cleanup_queue_update
 from handlers import ChatCommandHandler
+from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
 
 logger = logging.getLogger(__name__)
@@ -342,12 +343,16 @@ def show_active_hussars(update: Update, context: CallbackContext):
     restricted_hussars = []
 
     for hussar in hussars:
-        chat_member = context.bot.get_chat_member(
-            update.effective_chat.id, hussar.get("_id")
-        )
+        try:
+            chat_member = context.bot.get_chat_member(
+                update.effective_chat.id, hussar.get("_id")
+            )
 
-        if chat_member.status == ChatMember.RESTRICTED:
-            restricted_hussars.append(hussar)
+            if chat_member.status == ChatMember.RESTRICTED:
+                restricted_hussars.append(hussar)
+
+        except BadRequest:
+            logger.warning("can't get user %s, skip", hussar)
 
     if len(restricted_hussars) > 0:
         message = "Right meow in da club ☠️:\n"
@@ -365,8 +370,6 @@ def show_active_hussars(update: Update, context: CallbackContext):
         update.message,
         result,
         120,
-        remove_cmd=True,
-        remove_reply=False,
     )
 
 
