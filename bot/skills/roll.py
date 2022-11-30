@@ -29,8 +29,6 @@ NUM_BULLETS = 6
 HUSSARS_LIMIT_FOR_IMAGE = 25
 FONT = "firacode.ttf"
 
-HONORED_HUSSARS_EMOJIS = ["🦷", "🤡", "🤖", "👾", "🤠", "🤐", "🥶", "🥷", "🦄", "🐗", "🐈"]
-
 
 class DB:
     """
