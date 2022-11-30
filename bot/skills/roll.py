@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from random import randint, choice
+from random import randint
 from tempfile import gettempdir
 from threading import Lock
 from typing import List, Optional, Tuple, Dict
@@ -28,8 +28,6 @@ MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
 HUSSARS_LIMIT_FOR_IMAGE = 25
 FONT = "firacode.ttf"
-
-HONORED_HUSSARS_EMOJIS = ["🦷", "🤡", "🤖", "👾", "🤠", "🤐", "🥶", "🥷", "🦄", "🐗", "🐈"]
 
 
 class DB:
@@ -355,7 +353,10 @@ def show_active_hussars(update: Update, context: CallbackContext):
         message = "Right meow in da club ☠️:\n"
 
         for hussar in restricted_hussars:
-            message += f"{choice(HONORED_HUSSARS_EMOJIS)} {_get_username(hussar)} \n"
+            name = _get_username(hussar)
+            magia_nombro = sum([ord(c) for c in name])
+            emoji = chr(ord("😀") + magia_nombro % 75)
+            message += f"{emoji} {name} \n"
 
     result = context.bot.send_message(update.effective_chat.id, message)
 
