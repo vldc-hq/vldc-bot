@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from random import randint, choice
+from random import randint
 from tempfile import gettempdir
 from threading import Lock
 from typing import List, Optional, Tuple, Dict
