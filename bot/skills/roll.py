@@ -355,7 +355,10 @@ def show_active_hussars(update: Update, context: CallbackContext):
         message = "Right meow in da club ☠️:\n"
 
         for hussar in restricted_hussars:
-            message += f"{choice(HONORED_HUSSARS_EMOJIS)} {_get_username(hussar)} \n"
+            name = _get_username(hussar)
+            magia_nombro = sum([ord(c) for c in name])
+            emoji = chr(ord("😀") + magia_nombro % 75)
+            message += f"{emoji} {name} \n"
 
     result = context.bot.send_message(update.effective_chat.id, message)
 
