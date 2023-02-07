@@ -1,4 +1,4 @@
-# VLDC nyan bot ^_^
+# VLDC nyan bot =^_^=
 
 The official [VLDC](https://vldc.org) telegram group bot. 
 
