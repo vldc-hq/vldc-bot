@@ -103,5 +103,5 @@ Also, put `DEBUGGER=True` into your `.env` file. After that you can do debugging
 
 # Contributing
 
-Bug reports, bug fixes and new features are always welcome.
+Bug reports, bug fixes and new features are always welcome!
 Please open issues and submit pull requests for any new code.
