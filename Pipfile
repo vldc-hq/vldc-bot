@@ -26,7 +26,7 @@ pylint = "==3.0.0-a4"
 pytest = ">6"
 mypy = "0.790"
 ptvsd = "4.3.2"
-black = ">21"
+black = "==22.8.0"
 
 [packages]
 python-telegram-bot = "==13.7"
