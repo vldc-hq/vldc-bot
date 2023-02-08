@@ -102,5 +102,6 @@ Create `launch.json` under your `.vscode` directory in project, add the followin
 Also, put `DEBUGGER=True` into your `.env` file. After that you can do debugging with VS Code, by running containerized application and hitting `Run -> Start Debugging` or `F5` button.
 
 # Contributing
+
 Bug reports, bug fixes and new features are always welcome.
 Please open issues and submit pull requests for any new code.
