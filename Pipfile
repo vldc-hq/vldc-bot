@@ -27,6 +27,7 @@ pytest = ">6"
 mypy = "0.790"
 ptvsd = "4.3.2"
 black = "==22.8.0"
+autopep8 = "*"
 
 [packages]
 python-telegram-bot = "==13.7"
@@ -37,6 +38,9 @@ google-cloud-speech = "2.0.0"
 sentry-sdk = ">0.19"
 Pillow = "9.3.0"
 toml = ">0.10"
+install = "*"
+aiohttp = "==3.8.1"
+openai = "*"
 
 [requires]
 python_version = "3.9"

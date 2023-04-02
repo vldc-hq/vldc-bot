@@ -30,6 +30,7 @@ from skills.towel_mode import add_towel_mode
 from skills.tree import add_tree
 from skills.trusted_mode import add_trusted_mode
 from skills.uwu import add_uwu
+from skills.buktopuha import add_buktopuha
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ skills: List[Dict] = [
     _make_skill(add_nya, "😺 meow", " Simon says wat?"),
     _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     _make_skill(add_length, "🍆 length", " length of your instrument"),
+    _make_skill(add_buktopuha, "🤫 start BukToPuHa", " let's play a game"),
     # modes
     _make_skill(add_trusted_mode, "👁‍🗨 in god we trust", " are you worthy hah?"),
     _make_skill(add_aoc_mode, "🎄 AOC notifier", " kekV"),
@@ -131,6 +133,7 @@ commands_list: List[Tuple[str, str]] = [
     ("gdpr_me", "wipe all my hussar history"),
     ("length", "length of your instrument"),
     ("longest", "size doesn't matter, or is it?"),
+    ("buktopuha", "let's play a game 🤡")
 ]
 
 
