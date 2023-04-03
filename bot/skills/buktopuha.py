@@ -192,7 +192,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
         )
         rs = response["choices"][0]["text"]
         question = re.sub(word, "***", rs, flags=re.IGNORECASE).strip()
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except # noqa: E722
         logger.error("Error calling OpenAI API", exc_info=1)
         result = context.bot.send_message(
             update.effective_chat.id,
