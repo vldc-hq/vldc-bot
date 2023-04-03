@@ -1,6 +1,6 @@
 # VLDC nyan bot ^_^
 
-The official [VLDC](https://vldc.org) telegram group bot. 
+The official [VLDC](https://vldc.org) telegram group bot.
 
 ![nyan](img/VLDC_nyan-tiger-in-anaglyph-glasses.png)
 
@@ -24,6 +24,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 💻 got sk1lzz? –  put them to use!
 * 👁 smell like PRISM? nononono!
 * 💰 kozula Don't argue with kozula rate!
+* 🤫 buktopuha Let's play a game 🤡
 
 ### Modes
 * 😼 smile mode –  allow only stickers in the chat
@@ -69,7 +70,7 @@ down                 Down all
 test                 Run tests
 lint                 Run linters (black, flake8, mypy, pylint)
 format               Format code (black)
-                     
+
 help                 Show help message
 ```
 
