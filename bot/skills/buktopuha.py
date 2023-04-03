@@ -1,9 +1,3 @@
-from skills.mute import mute_user_for_time
-from mode import cleanup_queue_update
-from handlers import ChatCommandHandler
-from filters import admin_filter
-from db.mongo import get_db
-from config import get_group_chat_id
 import logging
 import os
 import random
@@ -12,18 +6,24 @@ from datetime import datetime, timedelta
 from random import randint
 from tempfile import gettempdir
 from threading import Lock
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 from uuid import uuid4
 
+import openai
 import pymongo
+from config import get_group_chat_id
+from db.mongo import get_db
+from filters import admin_filter
+from handlers import ChatCommandHandler
+from mode import cleanup_queue_update
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
-from telegram import Update, User, Message, ChatMember
+from skills.mute import mute_user_for_time
+from telegram import ChatMember, Message, Update, User
 from telegram.error import BadRequest
-from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
+from telegram.ext import CallbackContext, CommandHandler, MessageHandler, Updater
 from telegram.ext.filters import Filters
 
-import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
@@ -113,6 +113,14 @@ def add_buktopuha(upd: Updater, handlers_group: int):
 WORDLIST = ["concrete", "pillar", "motorcycle", "cappucino", "platypus", "armadillo", "headphones"]
 game = Buktopuha()
 
+def stop_jobs(update: Update, context: CallbackContext, names: list(str)):
+    for job in context.job_queue._queue.queue:
+        if job[1].name in names:
+            try:
+                context.job_queue._queue.queue.remove(job)
+            except Exception as ex:
+                logger.error("failed to remove job %s", job[1].name, exc_info=1)
+
 
 def check_for_answer(update: Update, context: CallbackContext):
     if update.message is None:
@@ -125,12 +133,10 @@ def check_for_answer(update: Update, context: CallbackContext):
         word = self.get_word()
         context.bot.send_message(
             update.effective_chat.id,
-            f"Congrats {user.name}, the answer was {word}!",
+            f"Congrats {user.name}! 🎉\nThe answer was {word}!",
         )
         game.stop()
-        for job in ["hint1", "hint2", "end"]:
-            try:
-                context.job_queue.get_jobs_by_name(name)
+        stop_jobs(update, context, [f"{j}-{word}" for j in ["hint1", "hint2", "end"]])
 
 
 
@@ -170,7 +176,18 @@ def start_buktopuha(update: Update, context: CallbackContext):
         rs = response["choices"][0]["text"]
         question = re.sub(word, "***", rs, flags=re.IGNORECASE).strip()
     except Exception as ex:
-        logger.error("Error calling OpenAI API, error: %s", ex)
+        logger.error("Error calling OpenAI API", exc_info=1)
+        result = context.bot.send_message(
+            update.effective_chat.id,
+            f"Sorry, my GPT brain is dizzy 😵‍💫 Try in a minute!",
+        )
+        cleanup_queue_update(
+            context.job_queue,
+            update.message,
+            result,
+            10,
+        )
+        game.start("") # set last_game time, to dissallow immediate reattempts
         return
 
     result = context.bot.send_message(
