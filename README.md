@@ -23,6 +23,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 💻 got sk1lzz? –  put them to use!
 * 👁 smell like PRISM? nononono!
 * 💰 kozula Don't argue with kozula rate!
+* 🤫 buktopuha Let's play a game 🤡
 
 ### Modes
 * 😼 smile mode –  allow only stickers in the chat
