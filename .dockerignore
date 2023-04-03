@@ -3,3 +3,4 @@
 !Pipfile.lock
 !fonts/*
 !bot/*
+!words.txt
