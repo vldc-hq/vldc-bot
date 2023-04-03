@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timedelta
 from random import randint
 from threading import Lock
-from typing import List, Optional
+from typing import Optional
 
 import openai
 
@@ -59,9 +59,14 @@ class Buktopuha:
             self.word = ""
             self.started_at = None
 
-    def hint1(self, chat_id: str):
+    def hint1(self, chat_id: str, orig_word: str):
         def _f(context: CallbackContext):
             word = self.get_word()
+            # Need to double check the word is the same
+            # because game can be already stopped
+            # when hint job is executed.
+            if word != orig_word:
+                return
             char = word[randint(0, len(word) - 1)]
             masked = re.sub(f"[^{char}]", "*", word)
             context.bot.send_message(
@@ -71,9 +76,12 @@ class Buktopuha:
 
         return _f
 
-    def hint2(self, chat_id: str):
+    def hint2(self, chat_id: str, orig_word: str):
         def _f(context: CallbackContext):
-            word = list(self.get_word())
+            word = self.get_word()
+            if word != orig_word:
+                return
+            word = list(word)
             random.shuffle(word)
             anagram = "".join(word)
             context.bot.send_message(
@@ -83,9 +91,11 @@ class Buktopuha:
 
         return _f
 
-    def end(self, chat_id: str):
+    def end(self, chat_id: str, orig_word: str):
         def _f(context: CallbackContext):
             word = self.get_word()
+            if word != orig_word:
+                return
             self.stop()
             context.bot.send_message(
                 chat_id,
@@ -132,7 +142,7 @@ WORDLIST = [
 game = Buktopuha()
 
 
-def stop_jobs(update: Update, context: CallbackContext, names: List(str)):
+def stop_jobs(update: Update, context: CallbackContext, names: list[str]):
     for name in names:
         for job in context.get_jobs_by_name(name):
             job.schedule_removal()
@@ -183,6 +193,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
             10,
         )
         mute_user_for_time(update, context, update.effective_user, timedelta(minutes=1))
+        return
 
     word = random.choice(WORDLIST)
     prompt = f"""You are a facilitator of an online quiz game.
@@ -222,11 +233,11 @@ def start_buktopuha(update: Update, context: CallbackContext):
 
     game.start(word)
     context.job_queue.run_once(
-        game.hint1(update.effective_chat.id), 10, context=context, name=f"hint1-{word}"
+        game.hint1(update.effective_chat.id, word), 10, context=context, name=f"hint1-{word}"
     )
     context.job_queue.run_once(
-        game.hint2(update.effective_chat.id), 20, context=context, name=f"hint2-{word}"
+        game.hint2(update.effective_chat.id, word), 20, context=context, name=f"hint2-{word}"
     )
     context.job_queue.run_once(
-        game.end(update.effective_chat.id), 30, context=context, name=f"end-{word}"
+        game.end(update.effective_chat.id, word), 30, context=context, name=f"end-{word}"
     )
