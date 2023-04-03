@@ -120,11 +120,20 @@ def add_buktopuha(upd: Updater, handlers_group: int):
     logger.info("registering buktopuha handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        MessageHandler(Filters.regex(MEME_REGEX), start_buktopuha, run_async=True),
+        # limit to groups to avoid API abuse
+        MessageHandler(
+            Filters.chat_type.groups & Filters.regex(MEME_REGEX),
+            start_buktopuha,
+            run_async=True,
+        ),
         handlers_group,
     )
     dp.add_handler(
-        MessageHandler(None, callback=check_for_answer, run_async=True),
+        MessageHandler(
+            Filters.chat_type.groups & Filters.text & ~Filters.status_update,
+            check_for_answer,
+            run_async=True,
+        ),
         handlers_group,
     )
 
@@ -149,10 +158,10 @@ def stop_jobs(update: Update, context: CallbackContext, names: list[str]):
 
 
 def check_for_answer(update: Update, context: CallbackContext):
-    if update.message is None:
+    if update.effective_message is None:
         return
 
-    if game.check_for_answer(update.message.text):
+    if game.check_for_answer(update.effective_message.text):
         word = game.get_word()
         context.bot.send_message(
             update.effective_chat.id,
@@ -233,11 +242,20 @@ def start_buktopuha(update: Update, context: CallbackContext):
 
     game.start(word)
     context.job_queue.run_once(
-        game.hint1(update.effective_chat.id, word), 10, context=context, name=f"hint1-{word}"
+        game.hint1(update.effective_chat.id, word),
+        10,
+        context=context,
+        name=f"hint1-{word}",
     )
     context.job_queue.run_once(
-        game.hint2(update.effective_chat.id, word), 20, context=context, name=f"hint2-{word}"
+        game.hint2(update.effective_chat.id, word),
+        20,
+        context=context,
+        name=f"hint2-{word}",
     )
     context.job_queue.run_once(
-        game.end(update.effective_chat.id, word), 30, context=context, name=f"end-{word}"
+        game.end(update.effective_chat.id, word),
+        30,
+        context=context,
+        name=f"end-{word}",
     )
