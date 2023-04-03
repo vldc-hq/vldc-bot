@@ -104,8 +104,8 @@ def add_buktopuha(upd: Updater, handlers_group: int):
     try:
         with open("/app/words.txt", "rt") as fi:
             WORDLIST = fi.read().splitlines()
-    except:
-        None
+    except:  # noqa: E722
+        logger.error("failed to read wordlist!")
 
     logger.info("registering buktopuha handlers")
     dp = upd.dispatcher
