@@ -133,7 +133,7 @@ commands_list: List[Tuple[str, str]] = [
     ("gdpr_me", "wipe all my hussar history"),
     ("length", "length of your instrument"),
     ("longest", "size doesn't matter, or is it?"),
-    ("buktopuha", "let's play a game 🤡")
+    ("buktopuha", "let's play a game 🤡"),
 ]
 
 

@@ -48,8 +48,10 @@ class Buktopuha:
     def can_start(self) -> bool:
         # TODO: leaky bucket
         with self.the_lock:
-            return self.last_game is None or \
-                self.last_game < datetime.now() - timedelta(minutes=1)
+            return (
+                self.last_game is None
+                or self.last_game < datetime.now() - timedelta(minutes=1)
+            )
 
     def start(self, word: str):
         with self.the_lock:
@@ -65,12 +67,13 @@ class Buktopuha:
     def hint1(self, id):
         def _f(context: CallbackContext):
             word = self.get_word()
-            char = word[randint(0, len(word)-1)]
+            char = word[randint(0, len(word) - 1)]
             masked = re.sub(f"[^{char}]", "*", word)
             context.bot.send_message(
                 id,
                 f"First hint: {masked}",
             )
+
         return _f
 
     def hint2(self, id):
@@ -82,6 +85,7 @@ class Buktopuha:
                 id,
                 f"Second hint (anagram): {anagram}",
             )
+
         return _f
 
     def end(self, id):
@@ -92,26 +96,38 @@ class Buktopuha:
                 id,
                 f"Nobody guessed the word {word} :(",
             )
+
         return _f
 
-    def check_for_answer(self, text:str):
+    def check_for_answer(self, text: str):
         word = self.get_word()
-        return word != "" and text.lower().find(word)>=0
+        return word != "" and text.lower().find(word) >= 0
 
 
 def add_buktopuha(upd: Updater, handlers_group: int):
     logger.info("registering buktopuha handlers")
     dp = upd.dispatcher
     dp.add_handler(
-        MessageHandler(Filters.regex(MEME_REGEX), start_buktopuha, run_async=True), handlers_group
+        MessageHandler(Filters.regex(MEME_REGEX), start_buktopuha, run_async=True),
+        handlers_group,
     )
     dp.add_handler(
-        MessageHandler(Filters.regex(MEME_REGEX), start_buktopuha, run_async=True), handlers_group
+        MessageHandler(Filters.regex(MEME_REGEX), start_buktopuha, run_async=True),
+        handlers_group,
     )
 
 
-WORDLIST = ["concrete", "pillar", "motorcycle", "cappucino", "platypus", "armadillo", "headphones"]
+WORDLIST = [
+    "concrete",
+    "pillar",
+    "motorcycle",
+    "cappucino",
+    "platypus",
+    "armadillo",
+    "headphones",
+]
 game = Buktopuha()
+
 
 def stop_jobs(update: Update, context: CallbackContext, names: list(str)):
     for job in context.job_queue._queue.queue:
@@ -139,7 +155,6 @@ def check_for_answer(update: Update, context: CallbackContext):
         stop_jobs(update, context, [f"{j}-{word}" for j in ["hint1", "hint2", "end"]])
 
 
-
 def start_buktopuha(update: Update, context: CallbackContext):
     if update.message is None:
         return
@@ -160,9 +175,9 @@ def start_buktopuha(update: Update, context: CallbackContext):
         )
 
     word = random.choice(WORDLIST)
-    prompt = f'''You are a facilitator of an online quiz game.
+    prompt = f"""You are a facilitator of an online quiz game.
     Your task is to make engaging and tricky quiz questions.
-    Please explain the word '{word}' with a single sentence.'''
+    Please explain the word '{word}' with a single sentence."""
     try:
         response = openai.Completion.create(
             model="text-davinci-003",
@@ -187,7 +202,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
             result,
             10,
         )
-        game.start("") # set last_game time, to dissallow immediate reattempts
+        game.start("")  # set last_game time, to dissallow immediate reattempts
         return
 
     result = context.bot.send_message(
@@ -197,20 +212,11 @@ def start_buktopuha(update: Update, context: CallbackContext):
 
     game.start(word)
     context.job_queue.run_once(
-        game.hint1(update.effective_chat.id),
-        10,
-        context=context,
-        name=f"hint1-{word}"
+        game.hint1(update.effective_chat.id), 10, context=context, name=f"hint1-{word}"
     )
     context.job_queue.run_once(
-        game.hint2(update.effective_chat.id),
-        20,
-        context=context,
-        name=f"hint2-{word}"
+        game.hint2(update.effective_chat.id), 20, context=context, name=f"hint2-{word}"
     )
     context.job_queue.run_once(
-        game.end(update.effective_chat.id),
-        30,
-        context=context,
-        name=f"end-{word}"
+        game.end(update.effective_chat.id), 30, context=context, name=f"end-{word}"
     )
