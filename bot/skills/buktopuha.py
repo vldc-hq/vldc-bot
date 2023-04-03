@@ -100,6 +100,13 @@ class Buktopuha:
 
 
 def add_buktopuha(upd: Updater, handlers_group: int):
+    global WORDLIST
+    try:
+        with open("/app/words.txt", "rt") as fi:
+            WORDLIST = fi.read().splitlines()
+    except:
+        None
+
     logger.info("registering buktopuha handlers")
     dp = upd.dispatcher
     dp.add_handler(
@@ -113,14 +120,15 @@ def add_buktopuha(upd: Updater, handlers_group: int):
 
 
 WORDLIST = [
-    "concrete",
-    "pillar",
-    "motorcycle",
-    "cappucino",
+    "babirusa",
+    "gerenuk",
+    "pangolin",
+    "capybara",
     "platypus",
     "armadillo",
-    "headphones",
+    "axolotl",
 ]
+
 game = Buktopuha()
 
 
@@ -149,7 +157,7 @@ def check_for_answer(update: Update, context: CallbackContext):
             minutes = random.randint(1, 10)
             context.bot.send_message(
                 update.effective_chat.id,
-                f"Oh, you're lucky! You get a prize: ban for {minutes}!",
+                f"Oh, you're lucky! You get a prize: ban for {minutes} min!",
                 reply_to_message_id=update.message.message_id,
             )
             mute_user_for_time(
