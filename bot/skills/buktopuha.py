@@ -4,24 +4,19 @@ import random
 import re
 from datetime import datetime, timedelta
 from random import randint
-from tempfile import gettempdir
 from threading import Lock
-from typing import Dict, List, Optional, Tuple
-from uuid import uuid4
+from typing import List, Optional
 
 import openai
-import pymongo
-from config import get_group_chat_id
-from db.mongo import get_db
-from filters import admin_filter
-from handlers import ChatCommandHandler
+
+# import pymongo
+# from db.mongo import get_db
 from mode import cleanup_queue_update
-from PIL import Image, ImageDraw, ImageFont
-from pymongo.collection import Collection
+
+# from pymongo.collection import Collection
 from skills.mute import mute_user_for_time
-from telegram import ChatMember, Message, Update, User
-from telegram.error import BadRequest
-from telegram.ext import CallbackContext, CommandHandler, MessageHandler, Updater
+from telegram import Message, Update
+from telegram.ext import CallbackContext, MessageHandler, Updater
 from telegram.ext.filters import Filters
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -49,52 +44,52 @@ class Buktopuha:
         # TODO: leaky bucket
         with self.the_lock:
             return (
-                self.last_game is None
-                or self.last_game < datetime.now() - timedelta(minutes=1)
+                self.last_game_at is None
+                or self.last_game_at < datetime.now() - timedelta(minutes=1)
             )
 
     def start(self, word: str):
         with self.the_lock:
             self.word = word
             self.started_at = datetime.now()
-            self.last_game = self.started_at
+            self.last_game_at = self.started_at
 
     def stop(self):
         with self.the_lock:
             self.word = ""
             self.started_at = None
 
-    def hint1(self, id):
+    def hint1(self, chat_id: str):
         def _f(context: CallbackContext):
             word = self.get_word()
             char = word[randint(0, len(word) - 1)]
             masked = re.sub(f"[^{char}]", "*", word)
             context.bot.send_message(
-                id,
+                chat_id,
                 f"First hint: {masked}",
             )
 
         return _f
 
-    def hint2(self, id):
+    def hint2(self, chat_id: str):
         def _f(context: CallbackContext):
             word = list(self.get_word())
             random.shuffle(word)
             anagram = "".join(word)
             context.bot.send_message(
-                id,
+                chat_id,
                 f"Second hint (anagram): {anagram}",
             )
 
         return _f
 
-    def end(self, id):
+    def end(self, chat_id: str):
         def _f(context: CallbackContext):
             word = self.get_word()
             self.stop()
             context.bot.send_message(
-                id,
-                f"Nobody guessed the word {word} :(",
+                chat_id,
+                f"Nobody guessed the word {word} 😢",
             )
 
         return _f
@@ -112,7 +107,7 @@ def add_buktopuha(upd: Updater, handlers_group: int):
         handlers_group,
     )
     dp.add_handler(
-        MessageHandler(Filters.regex(MEME_REGEX), start_buktopuha, run_async=True),
+        MessageHandler(None, callback=check_for_answer, run_async=True),
         handlers_group,
     )
 
@@ -129,43 +124,49 @@ WORDLIST = [
 game = Buktopuha()
 
 
-def stop_jobs(update: Update, context: CallbackContext, names: list(str)):
-    for job in context.job_queue._queue.queue:
-        if job[1].name in names:
-            try:
-                context.job_queue._queue.queue.remove(job)
-            except Exception as ex:
-                logger.error("failed to remove job %s", job[1].name, exc_info=1)
+def stop_jobs(update: Update, context: CallbackContext, names: List(str)):
+    for name in names:
+        for job in context.get_jobs_by_name(name):
+            job.schedule_removal()
 
 
 def check_for_answer(update: Update, context: CallbackContext):
     if update.message is None:
         return
 
-    user: User = update.effective_user
-    result: Optional[Message] = None
-
-    if game.check_for_answer(self, update.message.text):
-        word = self.get_word()
+    if game.check_for_answer(update.message.text):
+        word = game.get_word()
         context.bot.send_message(
             update.effective_chat.id,
-            f"Congrats {user.name}! 🎉\nThe answer was {word}!",
+            f"Congrats! 🎉🎉🎉\n{word.title()} is the correct answer!",
+            reply_to_message_id=update.message.message_id,
         )
         game.stop()
         stop_jobs(update, context, [f"{j}-{word}" for j in ["hint1", "hint2", "end"]])
+
+        # Felix Felicis
+        if random.random() < 0.1:
+            minutes = random.randint(1, 10)
+            context.bot.send_message(
+                update.effective_chat.id,
+                f"Oh, you're lucky! You get a prize: ban for {minutes}!",
+                reply_to_message_id=update.message.message_id,
+            )
+            mute_user_for_time(
+                update, context, update.effective_user, timedelta(minutes=minutes)
+            )
 
 
 def start_buktopuha(update: Update, context: CallbackContext):
     if update.message is None:
         return
 
-    user: User = update.effective_user
     result: Optional[Message] = None
 
     if not game.can_start():
         result = context.bot.send_message(
             update.effective_chat.id,
-            f"Hey, not so fast!",
+            "Hey, not so fast!",
         )
         cleanup_queue_update(
             context.job_queue,
@@ -173,6 +174,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
             result,
             10,
         )
+        mute_user_for_time(update, context, update.effective_user, timedelta(minutes=1))
 
     word = random.choice(WORDLIST)
     prompt = f"""You are a facilitator of an online quiz game.
@@ -190,11 +192,11 @@ def start_buktopuha(update: Update, context: CallbackContext):
         )
         rs = response["choices"][0]["text"]
         question = re.sub(word, "***", rs, flags=re.IGNORECASE).strip()
-    except Exception as ex:
+    except:  # pylint: disable=bare-except
         logger.error("Error calling OpenAI API", exc_info=1)
         result = context.bot.send_message(
             update.effective_chat.id,
-            f"Sorry, my GPT brain is dizzy 😵‍💫 Try in a minute!",
+            "Sorry, my GPT brain is dizzy 😵‍💫 Try in a minute!",
         )
         cleanup_queue_update(
             context.job_queue,
