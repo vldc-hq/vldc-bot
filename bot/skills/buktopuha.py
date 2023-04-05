@@ -153,7 +153,7 @@ game = Buktopuha()
 
 def stop_jobs(update: Update, context: CallbackContext, names: list[str]):
     for name in names:
-        for job in context.get_jobs_by_name(name):
+        for job in context.job_queue.get_jobs_by_name(name):
             job.schedule_removal()
 
 
