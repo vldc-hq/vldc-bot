@@ -69,9 +69,15 @@ class Buktopuha:
                 return
             char = word[randint(0, len(word) - 1)]
             masked = re.sub(f"[^{char}]", "*", word)
-            context.bot.send_message(
+            cmd = context.bot.send_message(
                 chat_id,
                 f"First hint: {masked}",
+            )
+            cleanup_queue_update(
+                context.job_queue,
+                cmd=cmd,
+                result=None,
+                seconds=30,
             )
 
         return _f
@@ -84,9 +90,15 @@ class Buktopuha:
             word = list(word)
             random.shuffle(word)
             anagram = "".join(word)
-            context.bot.send_message(
+            cmd = context.bot.send_message(
                 chat_id,
                 f"Second hint (anagram): {anagram}",
+            )
+            cleanup_queue_update(
+                context.job_queue,
+                cmd=cmd,
+                result=None,
+                seconds=30,
             )
 
         return _f
@@ -97,9 +109,15 @@ class Buktopuha:
             if word != orig_word:
                 return
             self.stop()
-            context.bot.send_message(
+            cmd = context.bot.send_message(
                 chat_id,
                 f"Nobody guessed the word {word} 😢",
+            )
+            cleanup_queue_update(
+                context.job_queue,
+                cmd=cmd,
+                result=None,
+                seconds=30,
             )
 
         return _f
@@ -163,10 +181,17 @@ def check_for_answer(update: Update, context: CallbackContext):
 
     if game.check_for_answer(update.effective_message.text):
         word = game.get_word()
-        context.bot.send_message(
+        result = context.bot.send_message(
             update.effective_chat.id,
             f"Congrats! 🎉🎉🎉\n{word.title()} is the correct answer!",
             reply_to_message_id=update.message.message_id,
+        )
+        cleanup_queue_update(
+            context.job_queue,
+            update.message,
+            result,
+            30,
+            remove_reply=True,
         )
         game.stop()
         stop_jobs(update, context, [f"{j}-{word}" for j in ["hint1", "hint2", "end"]])
@@ -174,13 +199,20 @@ def check_for_answer(update: Update, context: CallbackContext):
         # Felix Felicis
         if random.random() < 0.1:
             minutes = random.randint(1, 10)
-            context.bot.send_message(
+            result = context.bot.send_message(
                 update.effective_chat.id,
                 f"Oh, you're lucky! You get a prize: ban for {minutes} min!",
                 reply_to_message_id=update.message.message_id,
             )
             mute_user_for_time(
                 update, context, update.effective_user, timedelta(minutes=minutes)
+            )
+            cleanup_queue_update(
+                context.job_queue,
+                update.message,
+                result,
+                30,
+                remove_reply=True,
             )
 
 
@@ -200,6 +232,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
             update.message,
             result,
             10,
+            remove_reply=True,
         )
         mute_user_for_time(update, context, update.effective_user, timedelta(minutes=1))
         return
@@ -231,6 +264,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
             update.message,
             result,
             10,
+            remove_reply=True,
         )
         game.start("")  # set last_game time, to dissallow immediate reattempts
         return
@@ -239,7 +273,13 @@ def start_buktopuha(update: Update, context: CallbackContext):
         update.effective_chat.id,
         f"Starting the BukToPuHa!\nTry to guess the word in 30seconds.\n{question}",
     )
-
+    cleanup_queue_update(
+        context.job_queue,
+        update.message,
+        result,
+        40,
+        remove_reply=True,
+    )
     game.start(word)
     context.job_queue.run_once(
         game.hint1(update.effective_chat.id, word),
