@@ -40,13 +40,15 @@ class Buktopuha:
         with self.the_lock:
             return self.word
 
+    def since_last_game(self) -> timedelta:
+        if self.last_game_at is None:
+            return timedelta(days=1)
+        return datetime.now() - self.last_game_at
+
     def can_start(self) -> bool:
         # TODO: leaky bucket
         with self.the_lock:
-            return (
-                self.last_game_at is None
-                or self.last_game_at < datetime.now() - timedelta(minutes=1)
-            )
+            return self.since_last_game() > timedelta(minutes=1)
 
     def start(self, word: str):
         with self.the_lock:
@@ -69,14 +71,14 @@ class Buktopuha:
                 return
             char = word[randint(0, len(word) - 1)]
             masked = re.sub(f"[^{char}]", "*", word)
-            cmd = context.bot.send_message(
+            result = context.bot.send_message(
                 chat_id,
                 f"First hint: {masked}",
             )
             cleanup_queue_update(
                 context.job_queue,
-                cmd=cmd,
-                result=None,
+                None,
+                result,
                 seconds=30,
             )
 
@@ -90,14 +92,14 @@ class Buktopuha:
             word = list(word)
             random.shuffle(word)
             anagram = "".join(word)
-            cmd = context.bot.send_message(
+            result = context.bot.send_message(
                 chat_id,
                 f"Second hint (anagram): {anagram}",
             )
             cleanup_queue_update(
                 context.job_queue,
-                cmd=cmd,
-                result=None,
+                None,
+                result,
                 seconds=30,
             )
 
@@ -109,14 +111,14 @@ class Buktopuha:
             if word != orig_word:
                 return
             self.stop()
-            cmd = context.bot.send_message(
+            result = context.bot.send_message(
                 chat_id,
                 f"Nobody guessed the word {word} 😢",
             )
             cleanup_queue_update(
                 context.job_queue,
-                cmd=cmd,
-                result=None,
+                None,
+                result,
                 seconds=30,
             )
 
@@ -181,17 +183,27 @@ def check_for_answer(update: Update, context: CallbackContext):
 
     if game.check_for_answer(update.effective_message.text):
         word = game.get_word()
+        yes = random.choice(
+            [
+                "yes",
+                "correct",
+                "indeed",
+                "yup",
+                "yep",
+                "yeah",
+                "aha",
+                "definetly",
+                "affirmative",
+                "right",
+                "✅",
+                "👍",
+                "👏",
+            ]
+        )
         result = context.bot.send_message(
             update.effective_chat.id,
-            f"Congrats! 🎉🎉🎉\n{word.title()} is the correct answer!",
+            yes,
             reply_to_message_id=update.message.message_id,
-        )
-        cleanup_queue_update(
-            context.job_queue,
-            update.message,
-            result,
-            30,
-            remove_reply=True,
         )
         game.stop()
         stop_jobs(update, context, [f"{j}-{word}" for j in ["hint1", "hint2", "end"]])
@@ -212,7 +224,6 @@ def check_for_answer(update: Update, context: CallbackContext):
                 update.message,
                 result,
                 30,
-                remove_reply=True,
             )
 
 
@@ -232,7 +243,6 @@ def start_buktopuha(update: Update, context: CallbackContext):
             update.message,
             result,
             10,
-            remove_reply=True,
         )
         mute_user_for_time(update, context, update.effective_user, timedelta(minutes=1))
         return
@@ -269,16 +279,13 @@ def start_buktopuha(update: Update, context: CallbackContext):
         game.start("")  # set last_game time, to dissallow immediate reattempts
         return
 
+    msg = question
+    if game.since_last_game() > timedelta(minutes=10):
+        msg = f"🎠 Starting the BukToPuHa! 🎪\nTry to guess the word in 30seconds:\n\n{question}"
+
     result = context.bot.send_message(
         update.effective_chat.id,
-        f"Starting the BukToPuHa!\nTry to guess the word in 30seconds.\n{question}",
-    )
-    cleanup_queue_update(
-        context.job_queue,
-        update.message,
-        result,
-        40,
-        remove_reply=True,
+        msg,
     )
     game.start(word)
     context.job_queue.run_once(
