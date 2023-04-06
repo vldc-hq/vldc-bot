@@ -274,7 +274,6 @@ def start_buktopuha(update: Update, context: CallbackContext):
             update.message,
             result,
             10,
-            remove_reply=True,
         )
         game.start("")  # set last_game time, to dissallow immediate reattempts
         return
