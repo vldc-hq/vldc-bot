@@ -6,7 +6,7 @@ from telegram.ext import Updater, Dispatcher, MessageHandler, Filters, CallbackC
 
 from mode import Mode
 from skills.mute import mute_user_for_time
-from utils.voice_recognition import get_recognized_text
+from utils.recognition import get_recognized_text
 
 logger = logging.getLogger(__name__)
 
