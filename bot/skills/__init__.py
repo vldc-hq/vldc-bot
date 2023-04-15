@@ -134,7 +134,7 @@ commands_list: List[Tuple[str, str]] = [
     ("length", "length of your instrument"),
     ("longest", "size doesn't matter, or is it?"),
     ("buktopuha", "let's play a game 🤡"),
-    ("nerds", "top BuKToPuHa players"),
+    ("znatoki", "top BuKToPuHa players"),
 ]
 
 

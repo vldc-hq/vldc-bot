@@ -221,7 +221,7 @@ def add_buktopuha(upd: Updater, handlers_group: int):
     dp = upd.dispatcher
     dp.add_handler(
         CommandHandler(
-            "nerds",
+            "znatoki",
             show_nerds,
             filters=~Filters.chat(username=get_group_chat_id().strip("@"))
             | admin_filter,
@@ -418,7 +418,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
 def show_nerds(update: Update, context: CallbackContext):
     """Show leader board, I believe it should looks like smth like:
 
-                    BuKTopuHians leader board
+                    3HaToKu BuKToPuHbI
     ==================================================
         score   |  games  |   wins  |     znatok
     ------------+---------+---------+-----------------
@@ -433,7 +433,7 @@ def show_nerds(update: Update, context: CallbackContext):
     # todo:
     #  need to find out how to show board for mobile telegram as well
     board = (
-        f"{'BuKTopuHians leader board'.center(52)}\n"
+        f"{'3HaToKu BuKToPuHbI'.center(52)}\n"
         f"{'='*55}\n"
         f"{'score'.center(12)} "
         f"| {'games'.center(9)} "
