@@ -1,11 +1,10 @@
 # VLDC nyan bot ^_^
 
-The official [VLDC](https://vldc.org) telegram group bot. 
+The official [VLDC](https://vldc.org) telegram group bot.
 
 ![nyan](img/VLDC_nyan-tiger-in-anaglyph-glasses.png)
 
 [![Build Status](https://github.com/vldc-hq/vldc-bot/workflows/Nyan%20Bot/badge.svg)](https://github.com/vldc-hq/vldc-bot/actions?query=workflow%3A%22Nyan+Bot%22)
-![docker_hub](https://img.shields.io/docker/cloud/build/egregors/vldc_bot)
 [![Maintainability](https://api.codeclimate.com/v1/badges/5941349dbc55ce7096fb/maintainability)](https://codeclimate.com/github/vldc-hq/vldc-bot/maintainability)
 
 
@@ -24,6 +23,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 💻 got sk1lzz? –  put them to use!
 * 👁 smell like PRISM? nononono!
 * 💰 kozula Don't argue with kozula rate!
+* 🤫 buktopuha Let's play a game 🤡
 
 ### Modes
 * 😼 smile mode –  allow only stickers in the chat
@@ -69,7 +69,7 @@ down                 Down all
 test                 Run tests
 lint                 Run linters (black, flake8, mypy, pylint)
 format               Format code (black)
-                     
+
 help                 Show help message
 ```
 

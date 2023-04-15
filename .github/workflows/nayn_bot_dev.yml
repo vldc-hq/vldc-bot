@@ -28,7 +28,7 @@ jobs:
     - name: Test with pytest
       run: export PYTHONPATH=./bot && pytest
     - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@master
+      uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: vldc-hq/vldc-bot/bot_dev
         username: ${{ secrets.DOCKER_USERNAME }}

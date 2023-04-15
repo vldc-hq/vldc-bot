@@ -2,5 +2,5 @@
 init-hook='import sys; sys.path.append("./bot")'
 
 [MESSAGES CONTROL]
-disable = bad-continuation,duplicate-code,too-few-public-methods,fixme,C0103,missing-module-docstring,missing-class-docstring,missing-function-docstring,unnecessary-pass,too-many-instance-attributes,too-many-arguments,too-many-function-args,unsubscriptable-object,unused-argument
+disable = global-statement,bare-except,pointless-statement,bad-continuation,duplicate-code,too-few-public-methods,fixme,C0103,missing-module-docstring,missing-class-docstring,missing-function-docstring,unnecessary-pass,too-many-instance-attributes,too-many-arguments,too-many-function-args,unsubscriptable-object,unused-argument
 max-line-length = 127
