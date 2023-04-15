@@ -232,8 +232,8 @@ def add_buktopuha(upd: Updater, handlers_group: int):
     dp.add_handler(
         # limit to groups to avoid API abuse
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@")) &
-            Filters.regex(MEME_REGEX),
+            Filters.chat(username=get_group_chat_id().strip("@"))
+            & Filters.regex(MEME_REGEX),
             start_buktopuha,
             run_async=True,
         ),
@@ -241,8 +241,9 @@ def add_buktopuha(upd: Updater, handlers_group: int):
     )
     dp.add_handler(
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@")) &
-            Filters.text & ~Filters.status_update,
+            Filters.chat(username=get_group_chat_id().strip("@"))
+            & Filters.text
+            & ~Filters.status_update,
             check_for_answer,
             run_async=True,
         ),
