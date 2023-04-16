@@ -47,7 +47,7 @@ class DB:
         win_counter: 8,                             # int       -- number of games won
         total_score: 100,                           # int       -- total score gained
         created_at: datetime(...),                  # DateTime  -- user record creation time
-        updated_ad": datetime(...)                  # DateTime  -- last record update time
+        updated_at: datetime(...)                  # DateTime  -- last record update time
     }
     """
 
