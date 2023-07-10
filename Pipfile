@@ -31,8 +31,8 @@ autopep8 = "*"
 
 [packages]
 python-telegram-bot = "==13.7"
-pymongo = "==3.11.4"
-grpcio = "==1.53.0"
+pymongo = "==3.13.0"
+grpcio = "==1.56.0"
 google-cloud-translate = "2.0.0"
 google-cloud-speech = "2.0.0"
 sentry-sdk = ">0.19"
