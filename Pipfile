@@ -30,7 +30,7 @@ black = "==22.8.0"
 autopep8 = "*"
 
 [packages]
-python-telegram-bot = "==20.4"
+python-telegram-bot = "==13.14"
 pymongo = "==4.4.0"
 grpcio = "==1.47.0"
 google-cloud-translate = "2.0.0"
