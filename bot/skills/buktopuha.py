@@ -4,22 +4,18 @@ import random
 import re
 from datetime import datetime, timedelta
 from random import randint
-from threading import Lock
-from typing import Optional, Dict
-
 from tempfile import gettempdir
-
+from threading import Lock
+from typing import Dict, Optional
 from uuid import uuid4
 
 import openai
-
 import pymongo
 from config import get_group_chat_id
 from db.mongo import get_db
 from filters import admin_filter
 from handlers import CommandHandler
 from mode import cleanup_queue_update
-
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
 from skills.mute import mute_user_for_time
