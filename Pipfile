@@ -39,7 +39,7 @@ sentry-sdk = ">0.19"
 Pillow = "9.3.0"
 toml = ">0.10"
 install = "*"
-aiohttp = "==3.8.4"
+aiohttp = "==3.8.5"
 openai = "*"
 typing-extensions = "*"
 
