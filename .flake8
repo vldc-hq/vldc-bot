@@ -1,3 +1,4 @@
 [flake8]
-max-line-length = 127
+ignore=E501,W503
+max-line-length = 99999
 max-complexity = 10
