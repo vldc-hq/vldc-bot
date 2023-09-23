@@ -353,7 +353,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
     Keep in mind that for part of the audience English is not a native language.
     You can use historical references or examples to explain the word.
     For expample good quiz question for word "horse" can be:
-    "During the Trojan War Greeks used a wooden statue of this animal to trick Troy defenders into letting Greek soliders into the city."
+    During the Trojan War Greeks used a wooden statue of this animal to trick Troy defenders into letting Greek soliders into the city.
 
     Please write a quiz question for the word '{word}' using single sentence without mentioning the word itself."""
     try:
