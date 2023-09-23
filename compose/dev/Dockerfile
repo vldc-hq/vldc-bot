@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.10.7-slim
 
 RUN apt-get -y update && apt-get install -y ffmpeg build-essential
 
@@ -7,7 +7,7 @@ ENV PYTHONPATH /app
 COPY . /app
 WORKDIR /app
 
-RUN pip install pipenv==2021.5.29
+RUN pip install pipenv==2022.9.24
 RUN pipenv install --dev --system
 
 # source from mounted volume (see docker-compose-dev.yml)
