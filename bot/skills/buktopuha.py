@@ -349,11 +349,11 @@ def start_buktopuha(update: Update, context: CallbackContext):
     word = random.choice(WORDLIST)
     prompt = f"""You are a facilitator of an online quiz game.
     Your task is to make engaging and tricky quiz questions.
-    You should try to make your question fun and interesting, but keep your wording simple.
+    You should try to make your question fun and interesting, but keep your wording simple and short (less than 15 words).
     Keep in mind that for part of the audience English is not a native language.
     You can use historical references or examples to explain the word.
     For expample good quiz question for word "horse" can be:
-    During the Trojan War Greeks used a wooden statue of this animal to trick Troy defenders into letting Greek soliders into the city.
+    Wooden statue of this animal helped to end the siege of Troy.
 
     Please write a quiz question for the word '{word}' using single sentence without mentioning the word itself."""
     try:
@@ -367,7 +367,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
             presence_penalty=0.6,
         )
         rs = response["choices"][0]["text"]
-        question = re.sub(word, "***", rs, flags=re.IGNORECASE).strip()
+        question = re.sub(word, "***", rs, flags=re.IGNORECASE).strip().strip('"')
     except:  # pylint: disable=bare-except # noqa: E722
         logger.error("Error calling OpenAI API", exc_info=1)
         result = context.bot.send_message(
