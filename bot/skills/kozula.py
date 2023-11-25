@@ -12,7 +12,7 @@ from utils.cache import timed_lru_cache
 
 logger = logging.getLogger(__name__)
 
-KOZULA_RATE_USD = 12_000
+KOZULA_RATE_USD = 15_000
 CBR_URL = "https://cbr.ru/scripts/XML_daily.asp"
 
 
