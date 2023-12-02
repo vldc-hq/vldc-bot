@@ -20,18 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 AOC_ENDPOINT = f"https://adventofcode.com/{datetime.utcnow().year}/leaderboard/private/view/458538.json"
-AOC_START_TIME = (
-    datetime.utcnow()
-    .replace(
-        year=datetime.utcnow().year,
-        month=12,
-        day=1,
-        hour=5,
-        minute=0,
-        second=0,
-        microsecond=0,
-    )
-    .timestamp()
+AOC_START_TIME = datetime.utcnow().replace(
+    year=datetime.utcnow().year,
+    month=12,
+    day=1,
+    hour=5,
+    minute=0,
+    second=0,
+    microsecond=0,
 )
 AOC_UPDATE_INTERVAL = timedelta(minutes=15)
 JOB_AOC_UPDATE = "aoc_update_job"
