@@ -345,7 +345,7 @@ def generate_question(prompt, word) -> str:
         return f"{model}: " + re.sub(
             word, "***", rs, flags=re.IGNORECASE
         ).strip().strip('"')
-    elif model.startswith("gemini"):
+    if model.startswith("gemini"):
         resp = genai.GenerativeModel(model).generate_content(prompt)
         return f"{model}: " + re.sub(
             word, "***", resp.text, flags=re.IGNORECASE
