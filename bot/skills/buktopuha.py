@@ -10,6 +10,7 @@ from typing import Dict, Optional
 from uuid import uuid4
 
 import openai
+import google.generativeai as genai
 import pymongo
 from config import get_group_chat_id
 from db.mongo import get_db
@@ -22,8 +23,6 @@ from skills.mute import mute_user_for_time
 from telegram import Message, Update, User
 from telegram.ext import CallbackContext, MessageHandler, Updater
 from telegram.ext.filters import Filters
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 logger = logging.getLogger(__name__)
@@ -111,6 +110,8 @@ class Buktopuha:
         self.word = ""
         self.started_at = None
         self.last_game_at = None
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        openai.api_key = os.getenv("OPENAI_API_KEY")
 
     def get_word(self) -> str:
         with self.the_lock:
@@ -326,6 +327,33 @@ def check_for_answer(update: Update, context: CallbackContext):
             _db.win(user_id=update.effective_user.id, score=score)
 
 
+def generate_question(prompt, word) -> str:
+    model = random.choice(
+        ["gpt-3.5-turbo-instruct", "gpt-4-1106-preview", "gemini-pro"]
+    )
+    if model.startswith("gpt"):
+        response = openai.Completion.create(
+            model=model,
+            prompt=prompt,
+            temperature=0.9,
+            max_tokens=150,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0.6,
+        )
+        rs = response["choices"][0]["text"]
+        return f"{model}: " + re.sub(
+            word, "***", rs, flags=re.IGNORECASE
+        ).strip().strip('"')
+    if model.startswith("gemini"):
+        resp = genai.GenerativeModel(model).generate_content(prompt)
+        return f"{model}: " + re.sub(
+            word, "***", resp.text, flags=re.IGNORECASE
+        ).strip().strip('"')
+
+    raise Exception(f"unknown model '{model}'")
+
+
 def start_buktopuha(update: Update, context: CallbackContext):
     if update.message is None:
         return
@@ -357,22 +385,12 @@ def start_buktopuha(update: Update, context: CallbackContext):
 
     Please write a quiz question for the word '{word}' using single sentence without mentioning the word itself."""
     try:
-        response = openai.Completion.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt=prompt,
-            temperature=0.9,
-            max_tokens=150,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0.6,
-        )
-        rs = response["choices"][0]["text"]
-        question = re.sub(word, "***", rs, flags=re.IGNORECASE).strip().strip('"')
+        question = generate_question(prompt, word)
     except:  # pylint: disable=bare-except # noqa: E722
-        logger.error("Error calling OpenAI API", exc_info=1)
+        logger.error("Error calling GenAI model", exc_info=1)
         result = context.bot.send_message(
             update.effective_chat.id,
-            "Sorry, my GPT brain is dizzy 😵‍💫 Try in a minute!",
+            "Sorry, my GenAI brain is dizzy 😵‍💫 Try in a minute!",
         )
         cleanup_queue_update(
             context.job_queue,
