@@ -330,16 +330,16 @@ def check_for_answer(update: Update, context: CallbackContext):
 def generate_question(prompt, word) -> str:
     model = random.choice(["gpt-3.5-turbo", "gpt-4-1106-preview", "gemini-pro"])
     if model.startswith("gpt"):
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model=model,
-            prompt=prompt,
+            messages=[{"role": "system", "content": prompt}],
             temperature=0.9,
             max_tokens=150,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0.6,
         )
-        rs = response["choices"][0]["text"]
+        rs = response.choices[0].message.content
         return f"{model}: " + re.sub(
             word, "***", rs, flags=re.IGNORECASE
         ).strip().strip('"')
