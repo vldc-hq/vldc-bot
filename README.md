@@ -31,6 +31,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 🧼 towel mode –  anti bot
 * 🙃 fools mode –  what? not again!
 * 🤫 nastya mode –  stop. just stop
+* 🙃 chat mode - chatty Nyan
 
 ## Usage via VS Code (Easy Way)
 Clone repository locally and open it up via VS Code and click Open in Container. Create `.env` file as described below.
