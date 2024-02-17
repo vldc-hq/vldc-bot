@@ -1,4 +1,15 @@
+import os
+import random
+import re
 from collections import deque
+from datetime import datetime, timedelta
+
+import openai
+from config import get_group_chat_id, get_config
+from telegram import Message, Update, User
+from telegram.ext import CallbackContext, MessageHandler, Updater
+from telegram.ext.filters import Filters
+
 
 MAX_AGE = timedelta(hours=6)
 NUM_EXAMPLES = 10
@@ -42,7 +53,7 @@ class Nyan:
         {examples}
         """
 
-        prompt_user = f"""Please write one 4 line long пирожок about the following topic: {word}."""
+        prompt_user = f"""Please write one 4 line long пирожок about the following topic: {theme}."""
 
         response = openai.chat.completions.create(
             model="gpt-4-0125-preview",
@@ -66,7 +77,6 @@ class Nyan:
 nyan = Nyan()
 
 
-@mode.add
 def add_chat(upd: Updater, handlers_group: int):
     global PIROZHKI
     try:
