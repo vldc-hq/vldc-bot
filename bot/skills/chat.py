@@ -3,6 +3,7 @@ import logging
 import re
 from collections import deque
 from datetime import datetime, timedelta
+from threading import Lock
 
 import openai
 from config import get_group_chat_id, get_config
@@ -12,8 +13,16 @@ from telegram.ext import CallbackContext, MessageHandler, Updater
 from telegram.ext.filters import Filters
 
 
+# Max number of messages to keep in memory.
+MAX_MESSAGES = 100
+# Max age of message to be considered for poem generation.
 MAX_AGE = timedelta(hours=6)
+# Number of examples to show in the prompt.
 NUM_EXAMPLES = 10
+# How often muse visits Nyan.
+SLEEP_INTERVAL = 60 * 60
+# Number of poems per day.
+POEMS_PER_DAY = 2
 
 
 logger = logging.getLogger(__name__)
@@ -23,24 +32,33 @@ mode = Mode(mode_name="chat_mode", default=ON)
 
 class Nyan:
     def __init__(self):
-        # storing up to 100 last messages
-        self.memory = deque(maxlen=100)
+        self.memory = deque(maxlen=MAX_MESSAGES)
+        self.lock = Lock()
 
     def registerMessage(self, update: Update, context: CallbackContext):
         if update.message is None:
             return
         if update.message[0] == "/":
             return
-        self.memory.append(
-            (datetime.now(), f"{update.effective_user.full_name}: {update.message}"),
-        )
+        with self.lock:
+            self.memory.append(
+                (
+                    datetime.now(),
+                    f"{update.effective_user.full_name}: {update.message}",
+                ),
+            )
+
+    def forget(self):
+        with self.lock:
+            self.memory.clear()
 
     def write_a_poem(self) -> str:
         log = []
-        for dt, message in self.memory:
-            if datetime.now() - dt > MAX_AGE:
-                continue
-            log.append(message)
+        with self.lock:
+            for dt, message in self.memory:
+                if datetime.now() - dt > MAX_AGE:
+                    continue
+                log.append(message)
         if len(log) < 10:
             return ""
 
@@ -108,8 +126,8 @@ def add_chat_mode(upd: Updater, handlers_group: int):
     # Muse visits Nyan at most twice a day.
     upd.job_queue.run_repeating(
         muse_visit,
-        interval=60 * 60 * 12,
-        first=60 * 60 * 12,
+        interval=SLEEP_INTERVAL,
+        first=SLEEP_INTERVAL,
         context={"chat_id": get_config()["GROUP_CHAT_ID"]},
     )
 
@@ -121,12 +139,20 @@ def nyan_listen(update: Update, context: CallbackContext):
 
 
 def muse_visit(context: CallbackContext):
+    # We want nyan to be visited by muse at random times, but
+    # about POEMS_PER_DAY times per day.
+    secondsInDay = 24 * 60 * 60
+    inspirationRate = float(POEMS_PER_DAY) / float(secondsInDay / SLEEP_INTERVAL)
+    if random.random() > inspirationRate:
+        return
+
     try:
         message = nyan.write_a_poem()
         if message != "":
             context.bot.send_message(
                 chat_id=context.job.context["chat_id"], text=message
             )
+        nyan.forget()
     except Exception as e:  # pylint: disable=broad-except
         logger.error("inspiration did not come: %s", e)
 
