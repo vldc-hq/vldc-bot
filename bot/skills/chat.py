@@ -120,7 +120,7 @@ def muse_visit(context: CallbackContext):
             context.bot.send_message(
                 chat_id=context.job.context["chat_id"], text=message
             )
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         logger.error("inspiration did not come: %s", e)
 
 
