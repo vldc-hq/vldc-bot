@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 import openai
 from config import get_group_chat_id, get_config
+from mode import Mode, ON
 from telegram import Update
 from telegram.ext import CallbackContext, MessageHandler, Updater
 from telegram.ext.filters import Filters
@@ -14,8 +15,6 @@ from telegram.ext.filters import Filters
 MAX_AGE = timedelta(hours=6)
 NUM_EXAMPLES = 10
 
-
-from mode import Mode, OFF
 
 logger = logging.getLogger(__name__)
 
