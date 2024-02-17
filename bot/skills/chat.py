@@ -110,6 +110,8 @@ def add_chat(upd: Updater, handlers_group: int):
 
 
 def nyan_listen(update: Update, context: CallbackContext):
+    if update.effective_user.id == context.bot.get_me().id:
+        return
     nyan.registerMessage(update, context)
 
 
