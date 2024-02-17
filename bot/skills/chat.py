@@ -1,17 +1,20 @@
 import random
+import logging
 import re
 from collections import deque
 from datetime import datetime, timedelta
 
 import openai
 from config import get_group_chat_id, get_config
-from telegram import Message, Update, User
+from telegram import Update
 from telegram.ext import CallbackContext, MessageHandler, Updater
 from telegram.ext.filters import Filters
 
 
 MAX_AGE = timedelta(hours=6)
 NUM_EXAMPLES = 10
+
+logger = logging.getLogger(__name__)
 
 
 class Nyan:
@@ -91,9 +94,10 @@ def add_chat(upd: Updater, handlers_group: int):
             Filters.chat(username=get_group_chat_id().strip("@"))
             & Filters.text
             & ~Filters.status_update,
+            nyan_listen,
             run_async=True,
         ),
-        nyan_listen,
+        handlers_group,
     )
 
     # Muse visits Nyan at most twice a day.
