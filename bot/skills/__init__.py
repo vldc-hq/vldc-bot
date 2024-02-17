@@ -31,7 +31,7 @@ from skills.tree import add_tree
 from skills.trusted_mode import add_trusted_mode
 from skills.uwu import add_uwu
 from skills.buktopuha import add_buktopuha
-from skills.chat import add_chat
+from skills.chat import add_chat_mode
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ skills: List[Dict] = [
     _make_skill(add_towel_mode, "🧼 towel mode", " anti bot"),
     _make_skill(add_fools_mode, "🙃 fools mode", " what? not again!"),
     _make_skill(add_nastya_mode, "🤫 nastya mode", " stop. just stop"),
-    _make_skill(add_chat, "😼 chat", " chat"),
+    _make_skill(add_chat_mode, "😼 chat", " chat"),
 ]
 
 commands_list: List[Tuple[str, str]] = [

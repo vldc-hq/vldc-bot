@@ -14,7 +14,12 @@ from telegram.ext.filters import Filters
 MAX_AGE = timedelta(hours=6)
 NUM_EXAMPLES = 10
 
+
+from mode import Mode, OFF
+
 logger = logging.getLogger(__name__)
+
+mode = Mode(mode_name="chat_mode", default=ON)
 
 
 class Nyan:
@@ -79,7 +84,8 @@ class Nyan:
 nyan = Nyan()
 
 
-def add_chat(upd: Updater, handlers_group: int):
+@mode.add
+def add_chat_mode(upd: Updater, handlers_group: int):
     global PIROZHKI
     try:
         with open("/app/pirozhki.txt", "rt", encoding="utf8") as fi:
