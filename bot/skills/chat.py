@@ -16,8 +16,8 @@ from telegram.ext.filters import Filters
 # Max number of messages to keep in memory.
 MAX_MESSAGES = 100
 # Max age of message to be considered for poem generation.
-MAX_AGE = timedelta(hours=6)
-# Number of examples to show in the prompt.
+MAX_AGE = timedelta(hours=12)
+# Number of examples to show to LLM in the prompt.
 NUM_EXAMPLES = 10
 # How often muse visits Nyan.
 SLEEP_INTERVAL = 60 * 60
@@ -60,6 +60,7 @@ class Nyan:
                     continue
                 log.append(message)
         if len(log) < 10:
+            logger.info("not writing poem since only have %d messages", len(log))
             return ""
 
         theme = summarize("\n".join(log))
@@ -144,6 +145,7 @@ def muse_visit(context: CallbackContext):
     secondsInDay = 24 * 60 * 60
     inspirationRate = float(POEMS_PER_DAY) / float(secondsInDay / SLEEP_INTERVAL)
     if random.random() > inspirationRate:
+        logger.info("checked for inspiration but it did not come")
         return
 
     try:
@@ -152,9 +154,10 @@ def muse_visit(context: CallbackContext):
             context.bot.send_message(
                 chat_id=context.job.context["chat_id"], text=message
             )
-        nyan.forget()
+            # Forget messages we already wrote about.
+            nyan.forget()
     except Exception as e:  # pylint: disable=broad-except
-        logger.error("inspiration did not come: %s", e)
+        logger.error("inspiration failed: %s", e)
 
 
 def summarize(log):
