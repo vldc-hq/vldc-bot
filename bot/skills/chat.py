@@ -38,13 +38,13 @@ class Nyan:
     def registerMessage(self, update: Update, context: CallbackContext):
         if update.message is None:
             return
-        if update.message[0] == "/":
+        if update.message.text.starts_with("/"):
             return
         with self.lock:
             self.memory.append(
                 (
                     datetime.now(),
-                    f"{update.effective_user.full_name}: {update.message}",
+                    f"{update.effective_user.full_name}: {update.message.text}",
                 ),
             )
 
