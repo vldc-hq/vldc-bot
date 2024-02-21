@@ -38,7 +38,7 @@ class Nyan:
     def registerMessage(self, update: Update, context: CallbackContext):
         if update.message is None:
             return
-        if update.message.text.starts_with("/"):
+        if update.message.text.startswith("/"):
             return
         with self.lock:
             self.memory.append(
