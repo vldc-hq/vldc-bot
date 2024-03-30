@@ -81,7 +81,7 @@ class Nyan:
         prompt_user = f"""Please write one 4 line long пирожок about the following topic: {theme}."""
 
         response = openai.chat.completions.create(
-            model="gpt-4-0125-preview",
+            model="ft:gpt-3.5-turbo-1106:personal:pirozhok:9881pYjD",
             messages=[
                 {"role": "system", "content": prompt},
                 {
