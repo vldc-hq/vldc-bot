@@ -19,6 +19,6 @@ jobs:
         pip install pipenv==2022.9.24
         pipenv install --dev
     - name: Lint
-      run: make lint
+      run: pipenv run make lint
     - name: Test with pytest
-      run: export PYTHONPATH=./bot && pytest
+      run: pipenv run export PYTHONPATH=./bot && pytest
