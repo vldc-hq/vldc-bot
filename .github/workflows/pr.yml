@@ -21,4 +21,4 @@ jobs:
     - name: Lint
       run: pipenv run make lint
     - name: Test with pytest
-      run: pipenv run export PYTHONPATH=./bot && pytest
+      run: pipenv run export PYTHONPATH=./bot && pipenv run pytest
