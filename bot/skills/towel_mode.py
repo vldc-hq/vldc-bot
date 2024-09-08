@@ -73,7 +73,15 @@ class DB:
         return self._coll.delete_one({"_id": user_id})
 
     def delete_all_users(self):
-        return self._coll.delete_many({})
+        return self._coll.delete_many({})    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pipenv==2022.9.24
+        pipenv install --system --dev
+    - name: Lint
+      run: make lint
+    - name: Test with pytest
+      run: export PYTHONPATH=./bot && pytest
 
 
 db = DB("towel_mode")
@@ -198,6 +206,11 @@ def catch_reply(update: Update, context: CallbackContext):
 
 def is_worthy(text: str) -> bool:
     """check if reply is a valid bio as requested"""
+
+    ## backdoor for testing
+    if text.lower().find("i love vldc") != -1:
+        return True
+
     if len(text) < 15:
         return False
 
@@ -219,6 +232,8 @@ Answer with a single word: worthy or unworthy."""
         frequency_penalty=0,
         presence_penalty=0.6,
     )
+
+    logger.info("text: %q is %s", text, response.choices[0].message.content)
 
     return response.choices[0].message.content == "worthy"
 
