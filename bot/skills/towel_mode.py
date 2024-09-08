@@ -1,8 +1,10 @@
+import os
 import logging
 from datetime import datetime, timedelta
 from random import choice
 from typing import Dict
 
+import openai
 from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
@@ -35,6 +37,7 @@ I_AM_BOT = [
 ]
 
 logger = logging.getLogger(__name__)
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 # todo: extract maybe?
@@ -181,8 +184,8 @@ def catch_reply(update: Update, context: CallbackContext):
         update.effective_message.reply_to_message is not None
         and update.effective_message.reply_to_message.from_user.id
         == context.bot.get_me().id
+        and is_worthy(update.effective_message.text)
     ):
-
         _delete_user_rel_messages(update.effective_chat.id, user_id, context)
         db.delete_user(user_id=user["_id"])
 
@@ -191,6 +194,33 @@ def catch_reply(update: Update, context: CallbackContext):
         context.bot.delete_message(
             update.effective_chat.id, update.effective_message.message_id, 10
         )
+
+
+def is_worthy(text: str) -> bool:
+    """check if reply is a valid bio as requested"""
+    if len(text) < 15:
+        return False
+
+    prompt = """You are a spam-fighting bot, guarding chat room from bad actors and advertisement.
+All new chat members are asked to say a few words about themselves (e.g. who are you, where are you from and what do you do for a living?).
+Can the text sent by the user be considered a worthy short bio?
+Any other text that is not meant to make an introduction is considered unworthy.
+Answer with a single word: worthy or unworthy."""
+
+    response = openai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": text},
+        ],
+        temperature=0.9,
+        max_tokens=150,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0.6,
+    )
+
+    return response.choices[0].message.content == "worthy"
 
 
 def quarantine_filter(update: Update, context: CallbackContext):
