@@ -207,10 +207,9 @@ def is_worthy(text: str) -> bool:
         return False
 
     prompt = """You are a spam-fighting bot, guarding chat room from bad actors and advertisement.
-All new chat members are asked to say a few words about themselves (e.g. who are you, where are you from and what do you do for a living?).
-Can the text sent by the user be considered a worthy short bio?
-Any other text that is not meant to make an introduction is considered unworthy.
-Answer with a single word: worthy or unworthy."""
+Next message is the first message of the user in the chat. If it is an advertisement, user should be banned.
+Can the text sent by the user be considered an advertisement or spam?
+Answer with a single word: spam or legit."""
 
     response = openai.chat.completions.create(
         model="gpt-4o-mini",
@@ -227,7 +226,7 @@ Answer with a single word: worthy or unworthy."""
 
     logger.info("text: %s is %s", text, response.choices[0].message.content)
 
-    return response.choices[0].message.content == "worthy"
+    return response.choices[0].message.content != "spam"
 
 
 def quarantine_filter(update: Update, context: CallbackContext):
