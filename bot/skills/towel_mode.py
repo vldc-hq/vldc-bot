@@ -198,6 +198,11 @@ def catch_reply(update: Update, context: CallbackContext):
 
 def is_worthy(text: str) -> bool:
     """check if reply is a valid bio as requested"""
+
+    # backdoor for testing
+    if text.lower().find("i love vldc") != -1:
+        return True
+
     if len(text) < 15:
         return False
 
@@ -219,6 +224,8 @@ Answer with a single word: worthy or unworthy."""
         frequency_penalty=0,
         presence_penalty=0.6,
     )
+
+    logger.info("text: %s is %s", text, response.choices[0].message.content)
 
     return response.choices[0].message.content == "worthy"
 
