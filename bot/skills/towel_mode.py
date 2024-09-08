@@ -225,7 +225,7 @@ Answer with a single word: worthy or unworthy."""
         presence_penalty=0.6,
     )
 
-    logger.info("text: %q is %s", text, response.choices[0].message.content)
+    logger.info("text: %s is %s", text, response.choices[0].message.content)
 
     return response.choices[0].message.content == "worthy"
 
