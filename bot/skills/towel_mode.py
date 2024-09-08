@@ -199,7 +199,7 @@ def catch_reply(update: Update, context: CallbackContext):
 def is_worthy(text: str) -> bool:
     """check if reply is a valid bio as requested"""
 
-    ## backdoor for testing
+    # backdoor for testing
     if text.lower().find("i love vldc") != -1:
         return True
 
