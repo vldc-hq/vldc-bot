@@ -73,15 +73,7 @@ class DB:
         return self._coll.delete_one({"_id": user_id})
 
     def delete_all_users(self):
-        return self._coll.delete_many({})    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pipenv==2022.9.24
-        pipenv install --system --dev
-    - name: Lint
-      run: make lint
-    - name: Test with pytest
-      run: export PYTHONPATH=./bot && pytest
+        return self._coll.delete_many({})
 
 
 db = DB("towel_mode")
