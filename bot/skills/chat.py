@@ -1,6 +1,5 @@
 import random
 import logging
-import re
 from collections import deque
 from datetime import datetime, timedelta
 from threading import Lock
