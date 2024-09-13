@@ -68,7 +68,7 @@ class Nyan:
         {theme}."""
 
         response = openai.chat.completions.create(
-            model="ft:gpt-4o-2024-08-06:personal::A56CEYzj",
+            model="ft:gpt-4o-2024-08-06:personal::A6gulYbI",
             messages=[
                 {"role": "system", "content": prompt},
                 {
