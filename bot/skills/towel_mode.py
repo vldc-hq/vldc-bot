@@ -265,6 +265,7 @@ def ban_user(context: CallbackContext):
                 _delete_user_rel_messages(chat_id, user["_id"], context)
             except BadRequest as err:
                 logger.error("can't ban user %s, because of: %s", user, err)
+                continue
 
             db.delete_user(user["_id"])
 
