@@ -328,7 +328,9 @@ def check_for_answer(update: Update, context: CallbackContext):
 
 
 def generate_question(prompt, word) -> str:
-    model = random.choice(["gpt-4o", "gpt-4o-mini", "gemini-1.5-pro", "gemini-1.5-flash"])
+    model = random.choice(
+        ["gpt-4o", "gpt-4o-mini", "gemini-1.5-pro", "gemini-1.5-flash"]
+    )
     if model.startswith("gpt"):
         response = openai.chat.completions.create(
             model=model,
