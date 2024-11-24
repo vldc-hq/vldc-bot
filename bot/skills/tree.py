@@ -1,5 +1,7 @@
 import logging
 
+from datetime import datetime
+
 from telegram import Update
 from telegram.ext import Updater, CallbackContext
 
@@ -7,7 +9,14 @@ from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
-AOC_LEADERBOARD_LINK = "https://adventofcode.com/2023/leaderboard/private/view/458538"
+now = datetime.now()
+year = now.year
+if now.month < 12:
+    year -= 1
+
+AOC_LEADERBOARD_LINK = (
+    f"https://adventofcode.com/{year}/leaderboard/private/view/458538"
+)
 
 
 def add_tree(upd: Updater, handlers_group: int):
