@@ -135,7 +135,7 @@ def check_pirozhok(pirozhok) -> str:
 
 
 def get_examples(n=10):
-    with open("pirozhki.txt", "r") as f:
+    with open("pirozhki.txt", "r", encoding="utf-8") as f:
         examples = f.read().splitlines()
 
         poems = []

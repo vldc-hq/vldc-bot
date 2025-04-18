@@ -1,7 +1,6 @@
 import logging
 from typing import List, Dict, Callable, Tuple
 
-import toml
 from telegram import Update
 from telegram.ext import Updater, CallbackContext
 
