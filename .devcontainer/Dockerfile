@@ -7,5 +7,5 @@ FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
 RUN apt-get -y update && apt-get install -y ffmpeg
 
 COPY Pipfile* /tmp/pip-tmp/
-RUN cd /tmp/pip-tmp && pip install pipenv==2022.9.24 \
+RUN cd /tmp/pip-tmp && pip install pipenv==2024.4.1 \
  && pipenv install --dev --deploy --system --ignore-pipfile

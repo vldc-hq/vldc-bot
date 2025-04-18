@@ -34,6 +34,7 @@ from skills.buktopuha import add_buktopuha
 from skills.chat import add_chat_mode
 
 logger = logging.getLogger(__name__)
+VERSION="0.9.0"
 
 
 def _add_version(upd: Updater, version_handlers_group: int):
@@ -49,26 +50,17 @@ def _add_version(upd: Updater, version_handlers_group: int):
     )
 
 
-def _get_version_from_pipfile() -> str:
-    """Parse toml file for version"""
-    with open("Pipfile", "r") as pipfile:
-        toml_dict = toml.loads(pipfile.read())
-    version = toml_dict["description"][0]["version"]
-    return version
-
 
 def _version(update: Update, context: CallbackContext):
     """Show a current version of bot"""
 
-    version = _get_version_from_pipfile()
-
-    logger.info("current ver.: %s", version)
+    logger.info("current ver.: %s", VERSION)
 
     chat_id = update.effective_chat.id
 
     result = context.bot.send_message(
         chat_id,
-        f"~=~~=~=~=_ver.:{version}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
+        f"~=~~=~=~=_ver.:{VERSION}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
     )
 
     cleanup_queue_update(
