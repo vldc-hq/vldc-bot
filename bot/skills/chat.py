@@ -74,7 +74,7 @@ class Nyan:
 {get_examples(5)}"""
 
         theme = summarize("\n".join(log))
-        messages=[
+        messages = [
             {"role": "system", "content": prompt},
             {
                 "role": "user",
@@ -100,7 +100,9 @@ class Nyan:
                 if err == "":
                     return text
 
-                messages.append({"role": "user", "content": f"{err}\n Попробуй ещё раз."})
+                messages.append(
+                    {"role": "user", "content": f"{err}\n Попробуй ещё раз."}
+                )
             except Exception as e:  # pylint: disable=broad-except
                 logger.exception(e)
                 continue
@@ -123,12 +125,13 @@ def check_pirozhok(pirozhok) -> str:
     if len(lines) != 4:
         return "Пирожок должен состоять из 4 строк."
 
-    for (i, l,s) in zip(range(4), lines, syllables):
+    for i, l, s in zip(range(4), lines, syllables):
         cnt = len(re.findall(r"[аеёиоуыэюя]", l, re.I))
         if cnt != s:
             return f"В строке {i+1} ({l}) должно быть {s} слогов, а не {cnt}. Количество слогов в строках должно соответствовать формуле пирожка (9-8-9-8)."
 
     return ""
+
 
 def get_examples(n=10):
     with open("pirozhki.txt", "r") as f:
@@ -146,6 +149,7 @@ def get_examples(n=10):
 
         return "\n\n".join(poems)
 
+
 def format_pirozhok(pirozhok):
     syllables = [9, 8, 9, 8]
     words = pirozhok.split()
@@ -161,13 +165,16 @@ def format_pirozhok(pirozhok):
             cnt += len(re.findall(r"[аеёиоуыэюя]", word, re.I))
             line.append(word)
         if cnt != s:
-            raise ValueError("Количество слогов в строках должно соответствовать формуле пирожка (9-8-9-8).")
+            raise ValueError(
+                "Количество слогов в строках должно соответствовать формуле пирожка (9-8-9-8)."
+            )
         lines.append(" ".join(line))
 
     if len(lines) != 4:
         raise ValueError("Пирожок должен состоять из 4 строк.")
 
     return "\n".join(lines)
+
 
 @mode.add
 def add_chat_mode(upd: Updater, handlers_group: int):
