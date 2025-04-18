@@ -87,13 +87,7 @@ class Nyan:
             try:
                 response = openai.chat.completions.create(
                     model="gpt-4.1",
-                    messages=[
-                        {"role": "system", "content": prompt},
-                        {
-                            "role": "user",
-                            "content": prompt_user,
-                        },
-                    ],
+                    messages=messages,
                     temperature=0.3,
                     max_tokens=150,
                     top_p=1,
