@@ -106,7 +106,7 @@ class Nyan:
                 if err == "":
                     return text
 
-                messages.append({"role": "user", "content": "{err}\n Попробуй ещё раз."})
+                messages.append({"role": "user", "content": f"{err}\n Попробуй ещё раз."})
             except Exception as e:  # pylint: disable=broad-except
                 logger.exception(e)
                 continue
