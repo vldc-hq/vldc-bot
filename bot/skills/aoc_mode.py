@@ -197,7 +197,7 @@ def update_aoc_data(bot: Bot, queue: JobQueue):
         return
 
     response = requests.get(
-        AOC_ENDPOINT, cookies={"session": aoc_session}, allow_redirects=False
+        AOC_ENDPOINT, cookies={"session": aoc_session}, allow_redirects=False, timeout=3
     )
 
     if response.status_code != HTTPStatus.OK:

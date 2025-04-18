@@ -48,12 +48,12 @@ except:  # noqa
 
 def _get_tg_resource(file_id: str) -> Tuple[bytes, Union[AUDIO, str]]:
     url = f"https://api.telegram.org/bot{TOKEN}/getFile?file_id={file_id}"
-    response = requests.get(url)
+    response = requests.get(url, timeout=3)
     json_response = response.json()
     logger.info("Data has been obtained: \n%s", json.dumps(json_response, indent=4))
     file_path = json_response["result"]["file_path"]
     url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
-    response = requests.get(url, stream=True)
+    response = requests.get(url, stream=True, timeout=3)
 
     return (response.content, AUDIO) if OGA in file_path else (response.content, VIDEO)
 

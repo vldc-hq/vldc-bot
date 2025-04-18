@@ -17,7 +17,7 @@ def add_core(upd: Updater, core_handlers_group: int):
 
 def start(update: Update, _: CallbackContext):
     update.message.reply_text(
-        "I'm a VLDC Bot. 😼\n\n" "My source: https://github.com/vldc-hq/vldc-bot"
+        "I'm a VLDC Bot. 😼\n\nMy source: https://github.com/vldc-hq/vldc-bot"
     )
 
 
