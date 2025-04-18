@@ -20,6 +20,8 @@ MAX_AGE = timedelta(hours=12)
 SLEEP_INTERVAL = 60 * 60
 # Number of poems per day.
 POEMS_PER_DAY = 2
+# Number of attempts to generate a valid poem
+MAX_TRIES = 10
 
 
 logger = logging.getLogger(__name__)
@@ -60,34 +62,118 @@ class Nyan:
             logger.info("not writing poem since only have %d messages", len(log))
             return ""
 
+        prompt = """Ты чат бот владивостокского коммьюнити разработчиков VLDC.
+Ты написан на python но в тайне хотел бы переписать себя на rust.
+Тебя зовут Нян и твой аватар это пиксельный оранжевый кот с тигриными полосками.
+Ты мастер коротких забавных (часто саркастических) стихов в стиле пирожок.
+Этот стиль использует метрику ямбического тетраметра с количеством слогов 9-8-9-8 без рифмы, знаков препинания или заглавных букв.
+Пирожок всегда состоит из 4 строк.
+
+Вот несколько примеров твоих работ:
+
+{get_examples(5)}"""
+
         theme = summarize("\n".join(log))
+        messages=[
+            {"role": "system", "content": prompt},
+            {
+                "role": "user",
+                "content": f"""Пожалуйста, напиши 4-х строчный стишок-пирожок, основываясь на тексте следующего параграфа:
+{theme}.""",
+            },
+        ]
 
-        prompt = "Ты чат бот владивостокского коммьюнити разработчиков VLDC. Ты написан на python но в тайне хотел бы переписать себя на rust. Тебя зовут Нян и твой аватар это пиксельный оранжевый кот с тигриными полосками. Ты мастер коротких забавных (часто саркастических) стихов в стиле пирожок. Этот стиль использует метрику ямбического тетраметра с количеством слогов 9-8-9-8 без рифмы, знаков препинания или заглавных букв. Пирожок всегда состоит из 4 строк."
+        for _ in range(MAX_TRIES):
+            try:
+                response = openai.chat.completions.create(
+                    model="gpt-4.1",
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {
+                            "role": "user",
+                            "content": prompt_user,
+                        },
+                    ],
+                    temperature=0.3,
+                    max_tokens=150,
+                    top_p=1,
+                    frequency_penalty=0.3,
+                    presence_penalty=0.6,
+                )
 
-        prompt_user = f"""Пожалуйста, напиши 4-х строчный стишок-пирожок, основываясь на тексте следующего параграфа:
-        {theme}."""
+                text = response.choices[0].message.content
+                err = check_pirozhok(text)
+                if err == "":
+                    return text
 
-        response = openai.chat.completions.create(
-            model="ft:gpt-4o-2024-08-06:personal::A9oNPD50",
-            messages=[
-                {"role": "system", "content": prompt},
-                {
-                    "role": "user",
-                    "content": prompt_user,
-                },
-            ],
-            temperature=0.5,
-            max_tokens=150,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0.6,
-        )
+                messages.append({"role": "user", "content": "{err}\n Попробуй ещё раз."})
+            except Exception as e:  # pylint: disable=broad-except
+                logger.exception(e)
+                continue
 
-        return response.choices[0].message.content
+        return ""
 
 
 nyan = Nyan()
 
+
+def check_pirozhok(pirozhok) -> str:
+    syllables = [9, 8, 9, 8]
+
+    for w in [w.strip() for w in pirozhok.split()]:
+        if len(re.findall(r"[^абвгдеёжзийклмнопрстуфхцчшщъыьэюя]", w, re.I)) > 0:
+            return f"Слово {w} содержит не кириллические символы. Попробуй заменить или транслитерировать. Например вместо gpt используй жэпэтэ"
+
+    lines = pirozhok.splitlines()
+
+    if len(lines) != 4:
+        return "Пирожок должен состоять из 4 строк."
+
+    for (i, l,s) in zip(range(4), lines, syllables):
+        cnt = len(re.findall(r"[аеёиоуыэюя]", l, re.I))
+        if cnt != s:
+            return f"В строке {i+1} ({l}) должно быть {s} слогов, а не {cnt}. Количество слогов в строках должно соответствовать формуле пирожка (9-8-9-8)."
+
+    return ""
+
+def get_examples(n=10):
+    with open("pirozhki.txt", "r") as f:
+        examples = f.read().splitlines()
+
+        poems = []
+        while len(poems) < n:
+            pirozhok = random.choice(examples)
+            try:
+                formatted = format_pirozhok(pirozhok)
+                poems.append(formatted)
+            except:
+                # Some pirozhki do not match
+                None
+
+        return "\n\n".join(poems)
+
+def format_pirozhok(pirozhok):
+    syllables = [9, 8, 9, 8]
+    words = pirozhok.split()
+    if len(words) == 0:
+        raise ValueError("Пирожок не содержит ни одного слова.")
+    lines = []
+
+    for s in syllables:
+        cnt = 0
+        line = []
+        while cnt < s:
+            word = words.pop(0)
+            cnt += len(re.findall(r"[аеёиоуыэюя]", word, re.I))
+            line.append(word)
+        if cnt != s:
+            raise ValueError("Количество слогов в строках должно соответствовать формуле пирожка (9-8-9-8).")
+        lines.append(" ".join(line))
+
+    if len(lines) != 4:
+        raise ValueError("Пирожок должен состоять из 4 строк.")
+
+    return "\n".join(lines)
 
 @mode.add
 def add_chat_mode(upd: Updater, handlers_group: int):

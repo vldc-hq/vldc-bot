@@ -329,7 +329,7 @@ def check_for_answer(update: Update, context: CallbackContext):
 
 def generate_question(prompt, word) -> str:
     model = random.choice(
-        ["gpt-4o", "gpt-4o-mini", "gemini-1.5-pro", "gemini-1.5-flash"]
+        ["gpt-4-turbo" ,"gpt-4o", "gpt-4.1", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-2.5-pro-preview-03-25"]
     )
     if model.startswith("gpt"):
         response = openai.chat.completions.create(
