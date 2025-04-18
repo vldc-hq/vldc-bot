@@ -1,4 +1,4 @@
-FROM python:3.10.7-slim
+FROM python:3.11.12-slim
 
 RUN apt-get -y update && apt-get install -y ffmpeg build-essential
 
