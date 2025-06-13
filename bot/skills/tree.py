@@ -1,9 +1,10 @@
 import logging
+import asyncio
 
 from datetime import datetime
 
 from telegram import Update
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, CallbackContext
 
 from handlers import ChatCommandHandler
 
@@ -19,13 +20,12 @@ AOC_LEADERBOARD_LINK = (
 )
 
 
-def add_tree(upd: Updater, handlers_group: int):
+def add_tree(application: Application, handlers_group: int):
     logger.info("registering tree handlers")
-    dp = upd.dispatcher
-    dp.add_handler(ChatCommandHandler("tree", tree), handlers_group)
+    application.add_handler(ChatCommandHandler("tree", tree), handlers_group)
 
 
-def tree(update: Update, context: CallbackContext):
+async def tree(update: Update, context: CallbackContext):
     text = (
         f"🎄🎄🎄 Присоединяйся к ежегодному решению елки! 🎄🎄🎄 \n"
         f"👉👉👉 https://adventofcode.com/ 👈👈👈 \n"
@@ -33,4 +33,4 @@ def tree(update: Update, context: CallbackContext):
         f"Join Code: `458538-e2a0698b`"
     )
 
-    context.bot.send_message(update.effective_chat.id, text)
+    await context.bot.send_message(update.effective_chat.id, text)

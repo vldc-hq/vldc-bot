@@ -1,7 +1,8 @@
 import logging
+import asyncio
 
 from telegram import Update, User
-from telegram.ext import Updater, Dispatcher, CallbackContext
+from telegram.ext import Application, CallbackContext
 
 from handlers import ChatCommandHandler
 
@@ -14,17 +15,16 @@ MSG = (
 )
 
 
-def add_70k(upd: Updater, handlers_group: int):
+def add_70k(application: Application, handlers_group: int):
     logger.info("registering 70k handler")
-    dp: Dispatcher = upd.dispatcher
-    dp.add_handler(ChatCommandHandler("70k", _70k), handlers_group)
+    application.add_handler(ChatCommandHandler("70k", _70k), handlers_group)
 
 
-def _70k(update: Update, context: CallbackContext):
+async def _70k(update: Update, context: CallbackContext):
     user: User = (
         update.message.reply_to_message.from_user
         if update.message.reply_to_message
         else None
     )
     msg = f"@{user.username} " + MSG if user else MSG
-    context.bot.send_message(update.effective_chat.id, msg)
+    await context.bot.send_message(update.effective_chat.id, msg)

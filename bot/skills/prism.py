@@ -2,14 +2,15 @@ import logging
 from datetime import datetime
 from typing import List, Dict
 
+import asyncio
 import pymongo
 import telegram
 from pymongo.collection import Collection
 from telegram import Update
 from telegram.ext import (
-    Updater,
+    Application,
     MessageHandler,
-    Filters,
+    filters,
     CallbackContext,
 )
 
@@ -46,10 +47,9 @@ class DB:
 _db = DB(db_name="words")
 
 
-def add_prism(upd: Updater, handlers_group: int):
+def add_prism(application: Application, handlers_group: int):
     logger.info("register words handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    application.add_handler(
         ChatCommandHandler(
             "top",
             show_top,
@@ -57,17 +57,16 @@ def add_prism(upd: Updater, handlers_group: int):
         ),
         handlers_group,
     )
-    dp.add_handler(
+    application.add_handler(
         MessageHandler(
-            Filters.text & Filters.chat(username=get_group_chat_id().strip("@")),
+            filters.TEXT & filters.Chat(username=get_group_chat_id().strip("@")),
             extract_words,
-            run_async=True,
         ),
         handlers_group,
     )
 
 
-def extract_words(update: Update, _: CallbackContext):
+async def extract_words(update: Update, _: CallbackContext):
     text = update.message.text if update.message else update.edited_message.text
     _db.add_words(_normalize_words(_get_words(text)))
 
@@ -98,7 +97,7 @@ def _eval_filter(words: List[Dict], pred: str):
     return list(filter(inner_pred, words.copy()))
 
 
-def show_top(update: Update, context: CallbackContext):
+async def show_top(update: Update, context: CallbackContext):
     default_words = _db.find_all()
 
     try:
@@ -108,7 +107,7 @@ def show_top(update: Update, context: CallbackContext):
         words = default_words
 
     top = "\n".join([f"{w['word']}: {w['count']}" for w in words[:DEFAULT_TOP_LIMIT]])
-    result = context.bot.send_message(
+    result = await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"```\n{top}\n```",
         disable_notification=True,
