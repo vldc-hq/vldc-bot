@@ -2,9 +2,10 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+import asyncio
 from pymongo.collection import Collection
 from telegram import Update, User
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, CallbackContext
 
 from db.mongo import get_db
 from filters import admin_filter
@@ -43,10 +44,9 @@ class DB:
 _db = DB(db_name="trusted")
 
 
-def add_trusted_mode(upd: Updater, handlers_group: int):
+def add_trusted_mode(application: Application, handlers_group: int):
     logger.info("register trusted-mode handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    application.add_handler(
         ChatCommandHandler(
             "trust",
             trust_callback,
@@ -54,7 +54,7 @@ def add_trusted_mode(upd: Updater, handlers_group: int):
         ),
         handlers_group,
     )
-    dp.add_handler(
+    application.add_handler(
         ChatCommandHandler(
             "untrust",
             untrust_callback,
@@ -71,7 +71,7 @@ def _get_user_and_admin(update) -> (str, str, str):
     return user, chat_id, admin
 
 
-def trust_callback(update: Update, context: CallbackContext):
+async def trust_callback(update: Update, context: CallbackContext):
     user, chat_id, admin = _get_user_and_admin(update)
 
     if user and admin and chat_id:
@@ -81,12 +81,12 @@ def trust_callback(update: Update, context: CallbackContext):
             _db.trust(user.id, admin.id)
             msg = f"{user.name} is trusted now! 😼🤝😐"
 
-        context.bot.send_message(chat_id, msg)
+        await context.bot.send_message(chat_id, msg)
 
 
-def untrust_callback(update: Update, context: CallbackContext):
+async def untrust_callback(update: Update, context: CallbackContext):
     user, chat_id, _ = _get_user_and_admin(update)
 
     if user and chat_id:
         _db.untrust(user.id)
-        context.bot.send_message(chat_id, f"{user.name} lost confidence... 😼🖕")
+        await context.bot.send_message(chat_id, f"{user.name} lost confidence... 😼🖕")

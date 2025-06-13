@@ -5,9 +5,10 @@ from http import HTTPStatus
 
 import requests
 from pymongo.collection import Collection
+import asyncio
 from telegram import Update, Bot
 from telegram.ext import (
-    Updater,
+    Application,
     CallbackContext,
     JobQueue,
 )
@@ -55,16 +56,24 @@ _db = DB(db_name="aoc")
 mode = Mode(
     mode_name="aoc_mode",
     default=OFF,
-    on_callback=lambda dp: start_aoc_handlers(dp.job_queue, dp.bot),
-    off_callback=lambda dp: stop_aoc_handlers(dp.job_queue, dp.bot),
+    on_callback=lambda app: asyncio.create_task(start_aoc_handlers(app.job_queue, app.bot)),
+    off_callback=lambda app: stop_aoc_handlers(app.job_queue, app.bot), # Assuming stop_aoc_handlers remains sync for now
 )
 
 
-def start_aoc_handlers(queue: JobQueue, bot: Bot):
+async def start_aoc_handlers(queue: JobQueue, bot: Bot):
     logger.info("registering aoc handlers")
-    update_aoc_data(bot, queue)
+    await update_aoc_data(bot, queue)
+
+    async def _repeating_job(context: CallbackContext):
+        # bot and queue are captured from the outer scope of start_aoc_handlers
+        # For robustness with PTB's job context, it might be better to pass them via job.data
+        # or ensure context.bot and context.job_queue are correctly populated and used inside update_aoc_data
+        # For this change, we rely on closure.
+        await update_aoc_data(bot, queue)
+
     queue.run_repeating(
-        lambda _: update_aoc_data(bot, queue),
+        _repeating_job,
         AOC_UPDATE_INTERVAL,
         name=JOB_AOC_UPDATE,
     )
@@ -76,12 +85,12 @@ def stop_aoc_handlers(queue: JobQueue, bot: Bot):
         job.schedule_removal()
 
 
-def test(update: Update, context: CallbackContext):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="test")
+async def test(update: Update, context: CallbackContext):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="test")
 
 
 @mode.add
-def add_aoc_mode(upd: Updater, handlers_group: int):
+def add_aoc_mode(application: Application, handlers_group: int): # Changed upd to application
     pass
 
 
@@ -138,7 +147,7 @@ def calculate_solved_by(members, current_day):
     return dict(sorted(new_day_solved_by.items(), key=cmp_to_key(cmp)))
 
 
-def process_aoc_update(data, bot: Bot):
+async def process_aoc_update(data, bot: Bot):
     cached_data = _db.get()
 
     # It is okay for a first mode run, just store this one
@@ -186,10 +195,10 @@ def process_aoc_update(data, bot: Bot):
                 " Gut Gemacht! 🔥🔥🔥"
             )
 
-            bot.send_message(get_group_chat_id(), message)
+            await bot.send_message(get_group_chat_id(), message)
 
 
-def update_aoc_data(bot: Bot, queue: JobQueue):
+async def update_aoc_data(bot: Bot, queue: JobQueue):
     aoc_session = get_aoc_session()
 
     if aoc_session is None:
@@ -207,4 +216,4 @@ def update_aoc_data(bot: Bot, queue: JobQueue):
     data = response.json()
     logger.info(data)
 
-    process_aoc_update(data, bot)
+    await process_aoc_update(data, bot)

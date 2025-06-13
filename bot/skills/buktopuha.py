@@ -17,12 +17,12 @@ from db.mongo import get_db
 from filters import admin_filter
 from handlers import CommandHandler
 from mode import cleanup_queue_update
+import asyncio
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
 from skills.mute import mute_user_for_time
 from telegram import Message, Update, User
-from telegram.ext import CallbackContext, MessageHandler, Updater
-from telegram.ext.filters import Filters
+from telegram.ext import Application, CallbackContext, MessageHandler, filters
 
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ class Buktopuha:
             self.started_at = None
 
     def hint1(self, chat_id: str, orig_word: str):
-        def _f(context: CallbackContext):
+        async def _f(context: CallbackContext):
             word = self.get_word()
             # Need to double check the word is the same
             # because game can be already stopped
@@ -148,7 +148,7 @@ class Buktopuha:
                 return
             char = word[randint(0, len(word) - 1)]
             masked = re.sub(f"[^{char}]", "*", word)
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 chat_id,
                 f"First hint: {masked}",
             )
@@ -162,14 +162,14 @@ class Buktopuha:
         return _f
 
     def hint2(self, chat_id: str, orig_word: str):
-        def _f(context: CallbackContext):
+        async def _f(context: CallbackContext):
             word = self.get_word()
             if word != orig_word:
                 return
             word = list(word)
             random.shuffle(word)
             anagram = "".join(word)
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 chat_id,
                 f"Second hint (anagram): {anagram}",
             )
@@ -183,12 +183,12 @@ class Buktopuha:
         return _f
 
     def end(self, chat_id: str, orig_word: str):
-        def _f(context: CallbackContext):
+        async def _f(context: CallbackContext):
             word = self.get_word()
             if word != orig_word:
                 return
             self.stop()
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 chat_id,
                 f"Nobody guessed the word {word} 😢",
             )
@@ -206,7 +206,7 @@ class Buktopuha:
         return word != "" and text.lower().find(word) >= 0
 
 
-def add_buktopuha(upd: Updater, handlers_group: int):
+def add_buktopuha(application: Application, handlers_group: int):
     global WORDLIST
     try:
         with open("/app/words.txt", "rt", encoding="utf8") as fi:
@@ -215,34 +215,30 @@ def add_buktopuha(upd: Updater, handlers_group: int):
         logger.error("failed to read wordlist!")
 
     logger.info("registering buktopuha handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    application.add_handler(
         CommandHandler(
             "znatoki",
             show_nerds,
-            filters=~Filters.chat(username=get_group_chat_id().strip("@"))
+            filters=~filters.Chat(username=get_group_chat_id().strip("@"))
             | admin_filter,
-            run_async=True,
         ),
         handlers_group,
     )
-    dp.add_handler(
+    application.add_handler(
         # limit to groups to avoid API abuse
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@"))
-            & Filters.regex(MEME_REGEX),
+            filters.Chat(username=get_group_chat_id().strip("@"))
+            & filters.Regex(MEME_REGEX),
             start_buktopuha,
-            run_async=True,
         ),
         handlers_group,
     )
-    dp.add_handler(
+    application.add_handler(
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@"))
-            & Filters.text
-            & ~Filters.status_update,
+            filters.Chat(username=get_group_chat_id().strip("@"))
+            & filters.TEXT
+            & ~filters.StatusUpdate.ALL,
             check_for_answer,
-            run_async=True,
         ),
         handlers_group,
     )
@@ -268,7 +264,7 @@ def stop_jobs(update: Update, context: CallbackContext, names: list[str]):
             job.schedule_removal()
 
 
-def check_for_answer(update: Update, context: CallbackContext):
+async def check_for_answer(update: Update, context: CallbackContext):
     if update.effective_message is None:
         return
 
@@ -291,7 +287,7 @@ def check_for_answer(update: Update, context: CallbackContext):
                 "👏",
             ]
         )
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             yes,
             reply_to_message_id=update.message.message_id,
@@ -302,12 +298,12 @@ def check_for_answer(update: Update, context: CallbackContext):
         # Felix Felicis
         if random.random() < 0.1:
             minutes = random.randint(1, 10)
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 update.effective_chat.id,
                 f"Oh, you're lucky! You get a prize: ban for {minutes} min!",
                 reply_to_message_id=update.message.message_id,
             )
-            mute_user_for_time(
+            await mute_user_for_time(
                 update, context, update.effective_user, timedelta(minutes=minutes)
             )
             cleanup_queue_update(
@@ -361,14 +357,14 @@ def generate_question(prompt, word) -> str:
     raise Exception(f"unknown model '{model}'")
 
 
-def start_buktopuha(update: Update, context: CallbackContext):
+async def start_buktopuha(update: Update, context: CallbackContext):
     if update.message is None:
         return
 
     result: Optional[Message] = None
 
     if not game.can_start():
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             "Hey, not so fast!",
         )
@@ -395,7 +391,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
         question = generate_question(prompt, word)
     except:  # pylint: disable=bare-except # noqa: E722
         logger.error("Error calling GenAI model", exc_info=1)
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             "Sorry, my GenAI brain is dizzy 😵‍💫 Try in a minute!",
         )
@@ -412,7 +408,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
     if game.since_last_game() > timedelta(minutes=120):
         msg = f"🎠 Starting the BukToPuHa! 🎪\nTry to guess the word in 30seconds:\n\n{question}"
 
-    result = context.bot.send_message(
+    result = await context.bot.send_message(
         update.effective_chat.id,
         msg,
     )
@@ -443,7 +439,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
         _db.game(user_id=update.effective_user.id)
 
 
-def show_nerds(update: Update, context: CallbackContext):
+async def show_nerds(update: Update, context: CallbackContext):
     """Show leader board, I believe it should looks like smth like:
 
                     3HaToKu BuKToPuHbI
@@ -493,13 +489,13 @@ def show_nerds(update: Update, context: CallbackContext):
     result: Optional[Message] = None
 
     if znatoki_length <= ZNATOKI_LIMIT_FOR_IMAGE:
-        result = context.bot.send_photo(
+        result = await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=board_image,
             disable_notification=True,
         )
     else:
-        result = context.bot.send_document(
+        result = await context.bot.send_document(
             chat_id=update.effective_chat.id,
             document=board_image,
             disable_notification=True,

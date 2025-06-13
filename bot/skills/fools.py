@@ -2,10 +2,11 @@ import logging
 import os
 from typing import Callable
 
+import asyncio
 from google.cloud import translate
 from telegram import Update, User
 from telegram.error import BadRequest, TelegramError
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, MessageHandler, filters, CallbackContext
 
 from config import get_group_chat_id
 from mode import Mode, OFF
@@ -16,28 +17,26 @@ mode = Mode(mode_name="fools_mode", default=OFF)
 
 
 @mode.add
-def add_fools_mode(upd: Updater, handlers_group: int):
+def add_fools_mode(application: Application, handlers_group: int):
     logger.info("registering fools handlers")
-    dp = upd.dispatcher
 
-    dp.add_handler(
+    application.add_handler(
         MessageHandler(
-            ~Filters.status_update
-            & Filters.chat(username=get_group_chat_id().strip("@")),
+            ~filters.StatusUpdate.ALL
+            & filters.Chat(username=get_group_chat_id().strip("@")),
             mesaĝa_traduko,
-            run_async=True,
         ),
         handlers_group,
     )
 
 
-def mesaĝa_traduko(update: Update, context: CallbackContext):
+async def mesaĝa_traduko(update: Update, context: CallbackContext):
     text = update.message["text"]
     user: User = update.effective_user
     chat_id = update.effective_chat.id
 
     try:
-        context.bot.delete_message(chat_id, update.effective_message.message_id)
+        await context.bot.delete_message(chat_id, update.effective_message.message_id)
     except (BadRequest, TelegramError) as err:
         logger.info("can't delete msg: %s", err)
 
@@ -50,8 +49,8 @@ def mesaĝa_traduko(update: Update, context: CallbackContext):
         lingvo = "he"
         emoji = "🧘‍♂️"
     try:
-        context.bot.send_message(
-            chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}"
+        await context.bot.send_message(
+            chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}" # traduki remains sync
         )
     except TelegramError as err:
         logger.info("can't translate msg: %s, because of: %s", text, err)

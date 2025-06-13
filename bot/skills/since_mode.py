@@ -3,9 +3,11 @@ from datetime import datetime
 from functools import reduce
 from typing import Dict, List
 
+import asyncio
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from telegram.ext import Updater
+from telegram import Update # Ensure Update is imported for type hints
+from telegram.ext import Application, CallbackContext # Add CallbackContext
 
 from config import get_config
 from mode import Mode
@@ -22,17 +24,17 @@ mode = Mode(mode_name="since_mode", default=False, pin_info_msg=False)
 
 
 @mode.add
-def add_since_mode(upd: Updater, handlers_group: int):
+def add_since_mode(application: Application, handlers_group: int):
     logger.info("register since-mode handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    # In PTB v22+, Application is the dispatcher
+    application.add_handler(
         ChatCommandHandler(
             "since",
             since_callback,
         ),
         handlers_group,
     )
-    dp.add_handler(
+    application.add_handler(
         ChatCommandHandler(
             "since_list",
             since_list_callback,
@@ -67,7 +69,7 @@ def _update_topic(t: Dict):
         topics_coll.insert_one(t)
 
 
-def since_callback(update, context):
+async def since_callback(update: Update, context: CallbackContext):
     """https://github.com/vldc-hq/vldc-bot/issues/11
     todo: normal doc, not this trash
     since scheme:
@@ -81,34 +83,34 @@ def since_callback(update, context):
     topic_title = " ".join(context.args)
     if len(topic_title) == 0:
         logging.warning("topic is empty")
-        update.message.reply_text("topic is empty 😿")
+        await update.message.reply_text("topic is empty 😿")
         return
 
     if len(topic_title) > 64:
         logging.warning("topic too long")
-        update.message.reply_text("topic too long 😿")
+        await update.message.reply_text("topic too long 😿")
         return
 
-    current_topic = _get_topic(topic_title)
-    update.message.reply_text(
+    current_topic = _get_topic(topic_title) # Remains sync
+    await update.message.reply_text(
         f"{_get_delta_days(current_topic['since_datetime'])} days without «{current_topic['topic']}»! "
         f"Already was discussed {current_topic['count']} times\n",
     )
 
-    _update_topic(current_topic)
+    _update_topic(current_topic) # Remains sync
 
 
 def _get_all_topics(limit: int) -> List[Dict]:
-    return list(topics_coll.find({}).sort("-count").limit(limit))
+    return list(topics_coll.find({}).sort("-count").limit(limit)) # Remains sync
 
 
-def since_list_callback(update):
+async def since_list_callback(update: Update, context: CallbackContext): # Added context
     # todo: need make it msg more pretty
     ts = reduce(
         lambda acc, el: acc
         + f"{_get_delta_days(el['since_datetime'])} days without «{el['topic']}»! "
         f"Already was discussed {el['count']} times\n",
-        _get_all_topics(20),
+        _get_all_topics(20), # Remains sync
         "",
     )
-    update.message.reply_text(ts or "nothing yet 😿")
+    await update.message.reply_text(ts or "nothing yet 😿")

@@ -2,9 +2,10 @@ import logging
 import xml.etree.ElementTree as ET
 from typing import Optional
 
+import asyncio
 import requests
 from telegram import Update
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, CallbackContext
 
 from mode import cleanup_queue_update
 from handlers import ChatCommandHandler
@@ -16,10 +17,9 @@ KOZULA_RATE_USD = 15_000
 CBR_URL = "https://cbr.ru/scripts/XML_daily.asp"
 
 
-def add_kozula(upd: Updater, handlers_group: int):
+def add_kozula(application: Application, handlers_group: int):
     logger.info("registering tree handlers")
-    dp = upd.dispatcher
-    dp.add_handler(ChatCommandHandler("kozula", kozula), handlers_group)
+    application.add_handler(ChatCommandHandler("kozula", kozula), handlers_group)
 
 
 @timed_lru_cache(ttl=3600)
@@ -37,7 +37,7 @@ def _get_usd_rate() -> Optional[float]:
     return rate
 
 
-def kozula(update: Update, context: CallbackContext):
+async def kozula(update: Update, context: CallbackContext):
     usd_rate = _get_usd_rate()
     kozula_rates = [
         (
@@ -49,7 +49,7 @@ def kozula(update: Update, context: CallbackContext):
     ]
 
     rates = "\n".join(filter(bool, kozula_rates))
-    result = context.bot.send_message(
+    result = await context.bot.send_message(
         update.effective_chat.id,
         f"Текущий курс Козули: \n{rates}",
     )
