@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Callable, Tuple
 
 from telegram import Update
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, CallbackContext
 
 from filters import admin_filter
 from handlers import ChatCommandHandler
@@ -36,10 +36,9 @@ logger = logging.getLogger(__name__)
 VERSION = "0.9.0"
 
 
-def _add_version(upd: Updater, version_handlers_group: int):
+def _add_version(application: Application, version_handlers_group: int):
     logger.info("register version handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    application.add_handler(
         ChatCommandHandler(
             "version",
             _version,
@@ -49,14 +48,14 @@ def _add_version(upd: Updater, version_handlers_group: int):
     )
 
 
-def _version(update: Update, context: CallbackContext):
+async def _version(update: Update, context: CallbackContext):
     """Show a current version of bot"""
 
     logger.info("current ver.: %s", VERSION)
 
     chat_id = update.effective_chat.id
 
-    result = context.bot.send_message(
+    result = await context.bot.send_message(
         chat_id,
         f"~=~~=~=~=_ver.:{VERSION}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
     )
