@@ -260,7 +260,7 @@ async def i_am_a_bot_btn(update: Update, context: CallbackContext):
 
 async def ban_user(context: CallbackContext):
     # fixme: smth wrong here
-    chat = await context.bot.get_chat(chat_id=context.job.context["chat_id"]) # await get_chat
+    chat = await context.bot.get_chat(chat_id=context.job.data["chat_id"]) # context.job.context to context.job.data
     chat_id = chat.id
     logger.debug("get chat.id: %s", chat_id)
 

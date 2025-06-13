@@ -2,12 +2,13 @@ import logging
 from functools import wraps
 from typing import Callable, List, Optional
 
+import asyncio
 from telegram import Update, Message
 from telegram.ext import (
-    Updater,
+    Application, # Updater changed to Application
     CommandHandler,
     CallbackContext,
-    Dispatcher,
+    # Dispatcher, # Dispatcher is part of Application
     JobQueue,
 )
 from telegram.ext.dispatcher import DEFAULT_GROUP
@@ -23,7 +24,7 @@ ON, OFF = True, False
 class Mode:
     """Todo: add docstring (no)"""
 
-    _dp: Dispatcher
+    _dp: Application # Dispatcher changed to Application
     _mode_handlers: List[CommandHandler] = []
 
     def __init__(
@@ -31,8 +32,8 @@ class Mode:
         mode_name: str,
         default: bool = True,
         pin_info_msg: bool = False,
-        off_callback: Optional[Callable[[Dispatcher], None]] = None,
-        on_callback: Optional[Callable[[Dispatcher], None]] = None,
+        off_callback: Optional[Callable[[Application], None]] = None, # Dispatcher changed to Application
+        on_callback: Optional[Callable[[Application], None]] = None, # Dispatcher changed to Application
     ) -> None:
         self.name = mode_name
         self.default = default
@@ -93,7 +94,7 @@ class Mode:
         for h in self._mode_handlers:
             self._dp.add_handler(h, self.handlers_gr)
 
-    def _mode_on(self, update: Update, context: CallbackContext):
+    async def _mode_on(self, update: Update, context: CallbackContext):
         logger.info("%s switch to ON", self.name)
         mode = self._get_mode_state(context)
         if mode is OFF:
@@ -101,20 +102,21 @@ class Mode:
 
             if self.on_callback is not None:
                 try:
+                    # Assuming on_callback handles its own async execution if needed (e.g. asyncio.create_task)
                     self.on_callback(self._dp)
                 except Exception as err:
                     logger.error("can't eval mode_on callback: %s", err)
                     raise err
 
-            msg = context.bot.send_message(
+            msg = await context.bot.send_message(
                 update.effective_chat.id, f"{self.name} is ON"
             )
             if self.pin_info_msg is True:
-                context.bot.pin_chat_message(
+                await context.bot.pin_chat_message(
                     update.effective_chat.id, msg.message_id, disable_notification=True
                 )
 
-    def _mode_off(self, update: Update, context: CallbackContext):
+    async def _mode_off(self, update: Update, context: CallbackContext):
         logger.info("%s switch to OFF", self.name)
         mode = self._get_mode_state(context)
         if mode is ON:
@@ -122,33 +124,34 @@ class Mode:
 
             if self.off_callback is not None:
                 try:
+                    # Assuming off_callback handles its own async execution if needed
                     self.off_callback(self._dp)
                 except Exception as err:
                     logger.error("can't eval mode_off callback: %s", err)
                     raise err
 
-            context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
+            await context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
             if self.pin_info_msg is True:
-                context.bot.unpin_chat_message(update.effective_chat.id)
+                await context.bot.unpin_chat_message(update.effective_chat.id)
 
-    def _mode_status(self, update: Update, context: CallbackContext):
+    async def _mode_status(self, update: Update, context: CallbackContext):
         status = "ON" if self._get_mode_state(context) is ON else "OFF"
         msg = f"{self.name} status is {status}"
         logger.info(msg)
-        context.bot.send_message(update.effective_chat.id, msg)
+        await context.bot.send_message(update.effective_chat.id, msg)
 
     def add(self, func) -> Callable:
         @wraps(func)
-        def wrapper(upd: Updater, handlers_group: int):
-            self._dp = upd.dispatcher
+        def wrapper(app: Application, handlers_group: int): # upd: Updater to app: Application
+            self._dp = app # upd.dispatcher to app (Application is the dispatcher)
             self.handlers_gr = handlers_group
 
             logger.info("adding users handlers...")
-            func(upd, self.handlers_gr)
+            func(app, self.handlers_gr) # upd to app
 
             # if mode doesn't define any handlers
-            if self.handlers_gr in upd.dispatcher.handlers:
-                self._mode_handlers = upd.dispatcher.handlers[self.handlers_gr].copy()
+            if self.handlers_gr in app.handlers: # upd.dispatcher.handlers to app.handlers
+                self._mode_handlers = app.handlers[self.handlers_gr].copy() # upd.dispatcher.handlers to app.handlers
             logger.info(
                 "registered %d %s handlers", len(self._mode_handlers), self.name
             )
@@ -184,14 +187,27 @@ def cleanup_queue_update(
         _remove_message_after(reply, queue, seconds)
 
 
+async def _actual_delete_job(context: CallbackContext):
+    """Actual job function to delete the message."""
+    msg_to_delete: Message = context.job.data
+    try:
+        await msg_to_delete.delete()
+        logger.debug(f"Message {msg_to_delete.message_id} deleted by job.")
+    except Exception as e:
+        logger.error(f"Failed to delete message {msg_to_delete.message_id} by job: {e}")
+
 def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
     logger.debug(
-        "Scheduling cleanup of message %s \
-                   in %d seconds",
-        message,
+        "Scheduling cleanup of message %s in %d seconds",
+        message.message_id, # Log message_id for brevity
         seconds,
     )
-    job_queue.run_once(lambda _: message.delete(), seconds, context=message.chat_id)
+    job_queue.run_once(
+        _actual_delete_job,
+        seconds,
+        data=message,
+        name=f"delete_{message.chat_id}_{message.message_id}"
+    )
 
 
 __all__ = ["Mode", "cleanup_queue_update", "ON", "OFF"]

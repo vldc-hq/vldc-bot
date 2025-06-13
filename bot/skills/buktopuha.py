@@ -416,19 +416,16 @@ async def start_buktopuha(update: Update, context: CallbackContext):
     context.job_queue.run_once(
         game.hint1(update.effective_chat.id, word),
         10,
-        context=context,
         name=f"hint1-{word}",
     )
     context.job_queue.run_once(
         game.hint2(update.effective_chat.id, word),
         20,
-        context=context,
         name=f"hint2-{word}",
     )
     context.job_queue.run_once(
         game.end(update.effective_chat.id, word),
         30,
-        context=context,
         name=f"end-{word}",
     )
 

@@ -7,10 +7,11 @@ from threading import Lock
 
 import openai
 from config import get_group_chat_id, get_config
+import asyncio
 from mode import Mode, ON
 from telegram import Update
-from telegram.ext import CallbackContext, MessageHandler, Updater
-from telegram.ext.filters import Filters
+from telegram.ext import Application, CallbackContext, MessageHandler # Updater removed
+from telegram.ext import filters # Filters imported directly
 
 
 # Max number of messages to keep in memory.
@@ -178,36 +179,36 @@ def format_pirozhok(pirozhok):
 
 
 @mode.add
-def add_chat_mode(upd: Updater, handlers_group: int):
+def add_chat_mode(application: Application, handlers_group: int): # upd changed to application
     logger.info("registering chat handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    # application object is the dispatcher in PTB v22+
+    application.add_handler(
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@"))
-            & Filters.text
-            & ~Filters.status_update,
+            filters.Chat(username=get_group_chat_id().strip("@")) # Filters changed to filters
+            & filters.TEXT # Filters.text to filters.TEXT
+            & ~filters.StatusUpdate.ALL, # ~Filters.status_update to ~filters.StatusUpdate.ALL
             nyan_listen,
-            run_async=True,
+            # run_async=True, # Removed
         ),
         handlers_group,
     )
 
     # Muse visits Nyan at most twice a day.
-    upd.job_queue.run_repeating(
-        muse_visit,
+    application.job_queue.run_repeating( # upd.job_queue to application.job_queue
+        muse_visit, # muse_visit will be made async
         interval=SLEEP_INTERVAL,
         first=SLEEP_INTERVAL,
         context={"chat_id": get_config()["GROUP_CHAT_ID"]},
     )
 
 
-def nyan_listen(update: Update, context: CallbackContext):
-    if update.effective_user.id == context.bot.get_me().id:
+async def nyan_listen(update: Update, context: CallbackContext): # Made async
+    if update.effective_user.id == await context.bot.get_me().id: # await get_me()
         return
-    nyan.registerMessage(update, context)
+    nyan.registerMessage(update, context) # nyan methods remain sync
 
 
-def muse_visit(context: CallbackContext):
+async def muse_visit(context: CallbackContext): # Made async
     # We want nyan to be visited by muse at random times, but
     # about POEMS_PER_DAY times per day.
     secondsInDay = 24 * 60 * 60
@@ -217,9 +218,9 @@ def muse_visit(context: CallbackContext):
         return
 
     try:
-        message = nyan.write_a_poem()
+        message = nyan.write_a_poem() # nyan methods remain sync
         if message != "":
-            context.bot.send_message(
+            await context.bot.send_message( # await send_message
                 chat_id=context.job.context["chat_id"], text=message
             )
             # Forget messages we already wrote about.
