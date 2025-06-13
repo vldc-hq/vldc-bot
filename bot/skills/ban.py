@@ -1,6 +1,7 @@
 import logging
-import asyncio
-from typing import Union
+
+# asyncio removed
+# Union removed
 
 from telegram import Update, User
 from telegram.ext import Application, CallbackContext

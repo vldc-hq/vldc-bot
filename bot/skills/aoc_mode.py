@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from functools import cmp_to_key
 from http import HTTPStatus
 
+import asyncio  # Moved up
 import requests
 from pymongo.collection import Collection
-import asyncio
 from telegram import Update, Bot
 from telegram.ext import (
     Application,
@@ -56,8 +56,12 @@ _db = DB(db_name="aoc")
 mode = Mode(
     mode_name="aoc_mode",
     default=OFF,
-    on_callback=lambda app: asyncio.create_task(start_aoc_handlers(app.job_queue, app.bot)),
-    off_callback=lambda app: stop_aoc_handlers(app.job_queue, app.bot), # Assuming stop_aoc_handlers remains sync for now
+    on_callback=lambda app: asyncio.create_task(
+        start_aoc_handlers(app.job_queue, app.bot)
+    ),
+    off_callback=lambda app: stop_aoc_handlers(
+        app.job_queue, app.bot
+    ),  # Assuming stop_aoc_handlers remains sync for now
 )
 
 
@@ -67,14 +71,18 @@ async def start_aoc_handlers(queue: JobQueue, bot: Bot):
 
     async def _repeating_job(context: CallbackContext):
         # Now using bot and job_queue from the context's application object
-        if hasattr(context, 'application') and context.application is not None:
-            await update_aoc_data(context.application.bot, context.application.job_queue)
+        if hasattr(context, "application") and context.application is not None:
+            await update_aoc_data(
+                context.application.bot, context.application.job_queue
+            )
         else:
             # Fallback or error logging if application is not in context,
             # though for jobs scheduled by Application.job_queue, it should be.
             # This might indicate a need to pass bot/queue via job.data if context.application is not reliable here.
             # However, the standard is that context in a job run by Application.job_queue should have .application.
-            logger.error("CallbackContext does not have .application set in _repeating_job for AOC. Falling back to closure (if possible) or this will fail if bot/queue from closure are not available.")
+            logger.error(
+                "CallbackContext does not have .application set in _repeating_job for AOC. Falling back to closure (if possible) or this will fail if bot/queue from closure are not available."
+            )
             # As a safeguard, if bot and queue from closure are still accessible (Python's lexical scoping),
             # it might still work, but the goal is to move away from that.
             # For this change, we strictly try to use context.application.
@@ -84,8 +92,7 @@ async def start_aoc_handlers(queue: JobQueue, bot: Bot):
             # For now, proceeding with the assumption context.application is available.
             # If not, passing them via job.data in run_repeating would be the robust fix.
             # The current subtask description implies context.application should be used.
-            pass # Let it potentially fail if application isn't there to highlight the issue.
-
+            pass  # Let it potentially fail if application isn't there to highlight the issue.
 
     queue.run_repeating(
         _repeating_job,
@@ -105,7 +112,9 @@ async def test(update: Update, context: CallbackContext):
 
 
 @mode.add
-def add_aoc_mode(application: Application, handlers_group: int): # Changed upd to application
+def add_aoc_mode(
+    application: Application, handlers_group: int
+):  # Changed upd to application
     pass
 
 

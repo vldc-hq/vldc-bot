@@ -1,6 +1,5 @@
 import logging
-import asyncio
-from datetime import datetime
+from datetime import datetime  # asyncio removed
 
 from telegram import Update
 from telegram.error import BadRequest

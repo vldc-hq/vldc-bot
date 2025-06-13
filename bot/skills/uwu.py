@@ -1,7 +1,7 @@
 import logging
 import random
-import asyncio
 
+# asyncio removed
 from telegram import Update
 from telegram.ext import MessageHandler, Application, CallbackContext
 

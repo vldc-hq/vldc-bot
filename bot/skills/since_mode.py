@@ -3,11 +3,11 @@ from datetime import datetime
 from functools import reduce
 from typing import Dict, List
 
-import asyncio
+# asyncio removed
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from telegram import Update # Ensure Update is imported for type hints
-from telegram.ext import Application, CallbackContext # Add CallbackContext
+from telegram import Update  # Ensure Update is imported for type hints
+from telegram.ext import Application, CallbackContext  # Add CallbackContext
 
 from config import get_config
 from mode import Mode
@@ -91,26 +91,28 @@ async def since_callback(update: Update, context: CallbackContext):
         await update.message.reply_text("topic too long 😿")
         return
 
-    current_topic = _get_topic(topic_title) # Remains sync
+    current_topic = _get_topic(topic_title)  # Remains sync
     await update.message.reply_text(
         f"{_get_delta_days(current_topic['since_datetime'])} days without «{current_topic['topic']}»! "
         f"Already was discussed {current_topic['count']} times\n",
     )
 
-    _update_topic(current_topic) # Remains sync
+    _update_topic(current_topic)  # Remains sync
 
 
 def _get_all_topics(limit: int) -> List[Dict]:
-    return list(topics_coll.find({}).sort("-count").limit(limit)) # Remains sync
+    return list(topics_coll.find({}).sort("-count").limit(limit))  # Remains sync
 
 
-async def since_list_callback(update: Update, context: CallbackContext): # Added context
+async def since_list_callback(
+    update: Update, context: CallbackContext
+):  # Added context
     # todo: need make it msg more pretty
     ts = reduce(
         lambda acc, el: acc
         + f"{_get_delta_days(el['since_datetime'])} days without «{el['topic']}»! "
         f"Already was discussed {el['count']} times\n",
-        _get_all_topics(20), # Remains sync
+        _get_all_topics(20),  # Remains sync
         "",
     )
     await update.message.reply_text(ts or "nothing yet 😿")

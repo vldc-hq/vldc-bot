@@ -42,7 +42,7 @@ def _add_version(application: Application, version_handlers_group: int):
         ChatCommandHandler(
             "version",
             _version,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         version_handlers_group,
     )

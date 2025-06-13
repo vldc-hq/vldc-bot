@@ -6,7 +6,8 @@ from typing import Dict
 
 import openai
 from pymongo.collection import Collection
-import asyncio
+
+# asyncio removed
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import (
@@ -87,7 +88,9 @@ def _is_time_gone(user: Dict) -> bool:
     return user["datetime"] < datetime.now()
 
 
-async def _delete_user_rel_messages(chat_id: int, user_id: str, context: CallbackContext):
+async def _delete_user_rel_messages(
+    chat_id: int, user_id: str, context: CallbackContext
+):
     # Assuming db.find_user remains synchronous for now
     user_data = db.find_user(user_id=user_id)
     if user_data and "rel_messages" in user_data:
@@ -105,16 +108,15 @@ def add_towel_mode(application: Application, handlers_group: int):
 
     # catch all new users and drop the towel
     application.add_handler(
-        MessageHandler(
-            filters.StatusUpdate.NEW_CHAT_MEMBERS, catch_new_user
-        ),
+        MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, catch_new_user),
         handlers_group,
     )
 
     # check for reply or remove messages
     application.add_handler(
         MessageHandler(
-            filters.ChatType.GROUPS & ~filters.StatusUpdate.ALL, # Assuming GROUPS is the intended filter
+            filters.ChatType.GROUPS
+            & ~filters.StatusUpdate.ALL,  # Assuming GROUPS is the intended filter
             catch_reply,
         ),
         handlers_group,
@@ -124,8 +126,8 @@ def add_towel_mode(application: Application, handlers_group: int):
     application.add_handler(CallbackQueryHandler(i_am_a_bot_btn), handlers_group)
 
     # ban quarantine users, if time is gone
-    application.job_queue.run_repeating( # Changed upd.job_queue to application.job_queue
-        ban_user, # ban_user will be made async
+    application.job_queue.run_repeating(  # Changed upd.job_queue to application.job_queue
+        ban_user,  # ban_user will be made async
         interval=60,
         first=60,
         context={"chat_id": get_config()["GROUP_CHAT_ID"]},
@@ -134,13 +136,13 @@ def add_towel_mode(application: Application, handlers_group: int):
 
 async def quarantine_user(user: User, chat_id: str, context: CallbackContext):
     logger.info("put %s in quarantine", user)
-    db.add_user(user.id) # DB op remains sync
+    db.add_user(user.id)  # DB op remains sync
 
     markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]]
     )
 
-    message_id = (await context.bot.send_message(
+    message_id_obj = await context.bot.send_message(
         chat_id,
         f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
         "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
@@ -148,49 +150,58 @@ async def quarantine_user(user: User, chat_id: str, context: CallbackContext):
         f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
         "Ничего личного, просто боты одолели.\n",
         reply_markup=markup,
-    ).message_id
+    )
+    message_id = message_id_obj.message_id
 
     # messages from `rel_message` will be deleted after greeting or ban
-    db.add_user_rel_message( # DB op remains sync
+    # DB op remains sync
+    db.add_user_rel_message(
         user.id,
         message_id,
     )
 
-    if user.id == (await context.bot.get_me()).id: # await get_me()
-        message_id = (await context.bot.send_message( # await send_message
+    me_user = await context.bot.get_me()
+    if user.id == me_user.id:
+        vldc_greeting_message_obj = await context.bot.send_message(
             chat_id,
             "Я простой бот из Владивостока.\n"
             "В-основном занимаюсь тем, что бросаю полотенца в новичков.\n"
             "Увлекаюсь переписыванием себя на раст, но на это постоянно не хватает времени.\n",
-            reply_to_message_id=message_id,
-        ).message_id
+            reply_to_message_id=message_id,  # Replying to the original quarantine message
+        )
+        # message_id_vldc = vldc_greeting_message_obj.message_id # New message_id if needed later
 
-        db.delete_user(user_id=user.id) # DB op remains sync, changed user["_id"] to user.id for consistency with how user is passed
-        await context.bot.send_message( # await send_message
-            chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id
+        db.delete_user(user_id=user.id)  # This is the line black struggles with
+
+        await context.bot.send_message(
+            chat_id,
+            "Добро пожаловать в VLDC!",
+            reply_to_message_id=vldc_greeting_message_obj.message_id,  # Replying to the bot's own previous message
         )
 
 
 async def catch_new_user(update: Update, context: CallbackContext):
-    for user_obj in update.message.new_chat_members: # Renamed user to user_obj to avoid conflict
+    for (
+        user_obj
+    ) in update.message.new_chat_members:  # Renamed user to user_obj to avoid conflict
         await quarantine_user(user_obj, update.effective_chat.id, context)
 
 
 async def catch_reply(update: Update, context: CallbackContext):
     # todo: cache it
     user_id = update.effective_user.id
-    user = db.find_user(user_id) # DB op remains sync
+    user = db.find_user(user_id)  # DB op remains sync
     if user is None:
         return
 
     if (
         update.effective_message.reply_to_message is not None
         and update.effective_message.reply_to_message.from_user.id
-        == (await context.bot.get_me()).id # await get_me()
-        and is_worthy(update.effective_message.text) # is_worthy remains sync
+        == (await context.bot.get_me()).id  # await get_me()
+        and is_worthy(update.effective_message.text)  # is_worthy remains sync
     ):
         await _delete_user_rel_messages(update.effective_chat.id, user_id, context)
-        db.delete_user(user_id=user["_id"]) # DB op remains sync
+        db.delete_user(user_id=user["_id"])  # DB op remains sync
 
         await update.message.reply_text("Добро пожаловать в VLDC!")
     else:
@@ -199,7 +210,7 @@ async def catch_reply(update: Update, context: CallbackContext):
         )
 
 
-def is_worthy(text: str) -> bool: # is_worthy and its OpenAI call remain sync
+def is_worthy(text: str) -> bool:  # is_worthy and its OpenAI call remain sync
     """check if reply is a valid bio as requested"""
 
     # backdoor for testing
@@ -250,7 +261,7 @@ async def i_am_a_bot_btn(update: Update, context: CallbackContext):
     query = update.callback_query
 
     if query.data == MAGIC_NUMBER:
-        if db.find_user(user.id) is not None: # DB op remains sync
+        if db.find_user(user.id) is not None:  # DB op remains sync
             msg = f"{user.name}, попробуй прочитать сообщение от бота внимательней :3"
         else:
             msg = f"Любопытство сгубило кошку, {user.name} :3"
@@ -260,12 +271,16 @@ async def i_am_a_bot_btn(update: Update, context: CallbackContext):
 
 async def ban_user(context: CallbackContext):
     # fixme: smth wrong here
-    chat = await context.bot.get_chat(chat_id=context.job.data["chat_id"]) # context.job.context to context.job.data
+    chat = await context.bot.get_chat(
+        chat_id=context.job.data["chat_id"]
+    )  # context.job.context to context.job.data
     chat_id = chat.id
     logger.debug("get chat.id: %s", chat_id)
 
-    for user_data in db.find_all_users(): # DB op remains sync, renamed user to user_data
-        if _is_time_gone(user_data): # _is_time_gone remains sync
+    for (
+        user_data
+    ) in db.find_all_users():  # DB op remains sync, renamed user to user_data
+        if _is_time_gone(user_data):  # _is_time_gone remains sync
             try:
                 await context.bot.kick_chat_member(chat_id, user_data["_id"])
                 await _delete_user_rel_messages(chat_id, user_data["_id"], context)
@@ -273,6 +288,6 @@ async def ban_user(context: CallbackContext):
                 logger.error("can't ban user %s, because of: %s", user_data, err)
                 continue
 
-            db.delete_user(user_data["_id"]) # DB op remains sync
+            db.delete_user(user_data["_id"])  # DB op remains sync
 
             logger.info("user banned: %s", user_data)

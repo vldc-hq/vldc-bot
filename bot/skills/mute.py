@@ -1,10 +1,12 @@
 import logging
 from datetime import datetime, timedelta
 from random import choice
-import asyncio
+
+# asyncio removed
 from typing import List
 
-from telegram import Update, User, ChatPermissions, TelegramError
+from telegram import Update, User, ChatPermissions  # TelegramError removed
+from telegram.error import TelegramError  # Added import from telegram.error
 from telegram.ext import Application, CallbackContext
 
 from filters import admin_filter
@@ -24,7 +26,7 @@ def add_mute(application: Application, handlers_group: int):
         ChatCommandHandler(
             "mute",
             mute,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )
@@ -33,7 +35,7 @@ def add_mute(application: Application, handlers_group: int):
         ChatCommandHandler(
             "unmute",
             unmute,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )
@@ -60,7 +62,10 @@ async def mute_user_for_time(
             "user: %s[%d] will be muted for %s", user.full_name, user.id, mute_duration
         )
 
-        await update.message.reply_text(f"Таймаут для {user.full_name} на {mute_duration}")
+        await update.message.reply_text(
+            f"Таймаут для {user.full_name} на {mute_duration}"
+        )
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
         mute_perm = ChatPermissions(
             can_add_web_page_previews=False,
             can_send_media_messages=False,
@@ -106,7 +111,10 @@ async def mute_self(update: Update, context: CallbackContext):
 
 async def unmute_user(update: Update, context: CallbackContext, user: User) -> None:
     try:
-        await update.message.reply_text(f"{user.full_name}, не озоруй! Мало ли кто увидит 🧐")
+        await update.message.reply_text(
+            f"{user.full_name}, не озоруй! Мало ли кто увидит 🧐"
+        )
+        # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
         unmute_perm = ChatPermissions(
             can_add_web_page_previews=True,
             can_send_media_messages=True,
@@ -115,7 +123,9 @@ async def unmute_user(update: Update, context: CallbackContext, user: User) -> N
             can_send_polls=True,
             can_invite_users=True,
         )
-        await context.bot.restrict_chat_member(update.effective_chat.id, user.id, unmute_perm)
+        await context.bot.restrict_chat_member(
+            update.effective_chat.id, user.id, unmute_perm
+        )
     except TelegramError as err:
         await update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 

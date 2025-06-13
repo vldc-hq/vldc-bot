@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import List, Dict
 
-import asyncio
+# asyncio removed
 import pymongo
 import telegram
 from pymongo.collection import Collection
@@ -53,7 +53,7 @@ def add_prism(application: Application, handlers_group: int):
         ChatCommandHandler(
             "top",
             show_top,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )
@@ -111,7 +111,7 @@ async def show_top(update: Update, context: CallbackContext):
         chat_id=update.effective_chat.id,
         text=f"```\n{top}\n```",
         disable_notification=True,
-        parse_mode=telegram.ParseMode.MARKDOWN,
+        parse_mode=telegram.constants.ParseMode.MARKDOWN,
     )
 
     cleanup_queue_update(

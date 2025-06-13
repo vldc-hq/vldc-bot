@@ -1,8 +1,15 @@
 import logging
-import asyncio
 
+# asyncio removed
 from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, CallbackContext
+from telegram.ext import (
+    Application,
+    MessageHandler,
+    filters,
+    CallbackContext,
+)  # filters re-added
+
+# Sticker, Animation class imports removed
 
 from mode import Mode
 
@@ -16,7 +23,9 @@ def add_smile_mode(application: Application, handlers_group: int):
     """Set up all handler for SmileMode"""
     logger.info("registering smile-mode handlers")
     application.add_handler(
-        MessageHandler(~filters.Sticker() & ~filters.Animation(), smile),
+        MessageHandler(
+            ~filters.STICKER & ~filters.ANIMATION, smile  # pylint: disable=no-member
+        ),
         handlers_group,
     )
 

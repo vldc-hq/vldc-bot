@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, List, TypedDict
 
-import asyncio
+# asyncio removed
 import pymongo
 from pymongo.collection import Collection
 from pymongo.results import UpdateResult
@@ -31,7 +31,7 @@ def add_length(application: Application, handlers_group: int):
         handlers_group,
     )
 
-    dp.add_handler(
+    application.add_handler(
         ChatCommandHandler(
             "longest",
             _longest,

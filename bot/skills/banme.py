@@ -1,9 +1,9 @@
 import logging
 from datetime import timedelta
-import asyncio
-from random import randint
+from random import randint  # asyncio removed
 
-from telegram import Update, User, TelegramError
+from telegram import Update, User  # TelegramError Removed
+from telegram.error import TelegramError  # TelegramError imported from telegram.error
 from telegram.ext import Application, CallbackContext
 
 from handlers import ChatCommandHandler

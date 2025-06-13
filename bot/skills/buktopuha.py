@@ -17,7 +17,8 @@ from db.mongo import get_db
 from filters import admin_filter
 from handlers import CommandHandler
 from mode import cleanup_queue_update
-import asyncio
+
+# asyncio removed
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
 from skills.mute import mute_user_for_time

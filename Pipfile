@@ -5,12 +5,12 @@ name = "pypi"
 
 [dev-packages]
 flake8 = "*"
-pylint = "*"
 pytest = "*"
 mypy = "*"
 ptvsd = "*"
 black = "*"
 autopep8 = "*"
+pylint = "*"
 
 [packages]
 python-telegram-bot = "~=22.1"

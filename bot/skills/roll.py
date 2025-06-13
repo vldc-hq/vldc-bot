@@ -10,11 +10,18 @@ from uuid import uuid4
 
 import pymongo
 from PIL import Image, ImageDraw, ImageFont
-import asyncio
+
+# asyncio removed
 from pymongo.collection import Collection
 from telegram import Update, User, Message, ChatMember
 from telegram.error import BadRequest
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackContext, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackContext,
+    filters,
+)
 
 from config import get_group_chat_id
 from db.mongo import get_db
@@ -132,7 +139,7 @@ def add_roll(application: Application, handlers_group: int):
         ChatCommandHandler(
             "htop",
             show_active_hussars,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )
@@ -140,7 +147,7 @@ def add_roll(application: Application, handlers_group: int):
         ChatCommandHandler(
             "wipe_hussars",
             wipe_hussars,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )

@@ -2,7 +2,7 @@ import logging
 import xml.etree.ElementTree as ET
 from typing import Optional
 
-import asyncio
+# asyncio removed
 import requests
 from telegram import Update
 from telegram.ext import Application, CallbackContext

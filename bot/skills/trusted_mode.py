@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-import asyncio
+# asyncio removed
 from pymongo.collection import Collection
 from telegram import Update, User
 from telegram.ext import Application, CallbackContext
@@ -50,7 +50,7 @@ def add_trusted_mode(application: Application, handlers_group: int):
         ChatCommandHandler(
             "trust",
             trust_callback,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )
@@ -58,7 +58,7 @@ def add_trusted_mode(application: Application, handlers_group: int):
         ChatCommandHandler(
             "untrust",
             untrust_callback,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )

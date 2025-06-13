@@ -1,6 +1,6 @@
 import logging
-import asyncio
 
+# asyncio removed
 from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import Application, CallbackContext
@@ -17,7 +17,7 @@ def add_nya(application: Application, handlers_group: int):
         ChatCommandHandler(
             "nya",
             nya,
-            filters=admin_filter,
+            custom_filters=admin_filter,
         ),
         handlers_group,
     )

@@ -23,10 +23,10 @@ test:  ## Run tests
 	docker-compose -f docker-compose-dev.yml run --rm bot pytest
 
 lint:  ## Run linters (black, flake8, mypy, pylint)
-	black ./bot --check --diff
-	pylint ./bot --rcfile .pylintrc
-	flake8 ./bot --config .flake8 --count --show-source --statistics
-	mypy --config-file mypy.ini ./bot
+	pipenv run black ./bot --check --diff
+	PYTHONPATH="/home/swebot/.local/share/virtualenvs/app-4PlAip0Q/lib/python3.10/site-packages:$$PYTHONPATH" pipenv run python -m pylint ./bot --rcfile .pylintrc
+	pipenv run flake8 ./bot --config .flake8 --count --show-source --statistics
+	pipenv run mypy --config-file mypy.ini ./bot
 
 format:  ## Format code (black)
 	black ./bot

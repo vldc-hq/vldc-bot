@@ -2,16 +2,18 @@ import logging
 from functools import wraps
 from typing import Callable, List, Optional
 
-import asyncio
+# asyncio removed
 from telegram import Update, Message
+from telegram.error import TelegramError  # Import TelegramError
 from telegram.ext import (
-    Application, # Updater changed to Application
+    Application,  # Updater changed to Application
     CommandHandler,
     CallbackContext,
     # Dispatcher, # Dispatcher is part of Application
     JobQueue,
 )
-from telegram.ext.dispatcher import DEFAULT_GROUP
+
+# from telegram.ext.dispatcher import DEFAULT_GROUP # Removed
 
 from filters import admin_filter
 from handlers import ChatCommandHandler
@@ -24,7 +26,7 @@ ON, OFF = True, False
 class Mode:
     """Todo: add docstring (no)"""
 
-    _dp: Application # Dispatcher changed to Application
+    _dp: Application  # Dispatcher changed to Application
     _mode_handlers: List[CommandHandler] = []
 
     def __init__(
@@ -32,8 +34,12 @@ class Mode:
         mode_name: str,
         default: bool = True,
         pin_info_msg: bool = False,
-        off_callback: Optional[Callable[[Application], None]] = None, # Dispatcher changed to Application
-        on_callback: Optional[Callable[[Application], None]] = None, # Dispatcher changed to Application
+        off_callback: Optional[
+            Callable[[Application], None]
+        ] = None,  # Dispatcher changed to Application
+        on_callback: Optional[
+            Callable[[Application], None]
+        ] = None,  # Dispatcher changed to Application
     ) -> None:
         self.name = mode_name
         self.default = default
@@ -42,7 +48,7 @@ class Mode:
         self.off_callback = off_callback
         self.on_callback = on_callback
 
-        self.handlers_gr = DEFAULT_GROUP
+        self.handlers_gr = Application.DEFAULT_GROUP  # Changed
 
     @staticmethod
     def _gen_chat_data_key(mode_name: str) -> str:
@@ -69,7 +75,7 @@ class Mode:
             ChatCommandHandler(
                 f"{self.name}_on",
                 self._mode_on,
-                filters=admin_filter,
+                custom_filters=admin_filter,
             ),
             self.handlers_gr,
         )
@@ -77,7 +83,7 @@ class Mode:
             ChatCommandHandler(
                 f"{self.name}_off",
                 self._mode_off,
-                filters=admin_filter,
+                custom_filters=admin_filter,
             ),
             self.handlers_gr,
         )
@@ -130,28 +136,37 @@ class Mode:
                     logger.error("can't eval mode_off callback: %s", err)
                     raise err
 
-            await context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
+            await context.bot.send_message(
+                update.effective_chat.id, f"{self.name} is OFF"
+            )
             if self.pin_info_msg is True:
                 await context.bot.unpin_chat_message(update.effective_chat.id)
 
     async def _mode_status(self, update: Update, context: CallbackContext):
         status = "ON" if self._get_mode_state(context) is ON else "OFF"
-        msg = f"{self.name} status is {status}"
-        logger.info(msg)
-        await context.bot.send_message(update.effective_chat.id, msg)
+        logger.info("%s status is %s", self.name, status)
+        await context.bot.send_message(
+            update.effective_chat.id, f"{self.name} status is {status}"
+        )  # msg variable removed, send original f-string
 
     def add(self, func) -> Callable:
         @wraps(func)
-        def wrapper(app: Application, handlers_group: int): # upd: Updater to app: Application
-            self._dp = app # upd.dispatcher to app (Application is the dispatcher)
+        def wrapper(
+            app: Application, handlers_group: int
+        ):  # upd: Updater to app: Application
+            self._dp = app  # upd.dispatcher to app (Application is the dispatcher)
             self.handlers_gr = handlers_group
 
             logger.info("adding users handlers...")
-            func(app, self.handlers_gr) # upd to app
+            func(app, self.handlers_gr)  # upd to app
 
             # if mode doesn't define any handlers
-            if self.handlers_gr in app.handlers: # upd.dispatcher.handlers to app.handlers
-                self._mode_handlers = app.handlers[self.handlers_gr].copy() # upd.dispatcher.handlers to app.handlers
+            if (
+                self.handlers_gr in app.handlers
+            ):  # upd.dispatcher.handlers to app.handlers
+                self._mode_handlers = app.handlers[
+                    self.handlers_gr
+                ].copy()  # upd.dispatcher.handlers to app.handlers
             logger.info(
                 "registered %d %s handlers", len(self._mode_handlers), self.name
             )
@@ -192,21 +207,34 @@ async def _actual_delete_job(context: CallbackContext):
     msg_to_delete: Message = context.job.data
     try:
         await msg_to_delete.delete()
-        logger.debug(f"Message {msg_to_delete.message_id} deleted by job.")
-    except Exception as e:
-        logger.error(f"Failed to delete message {msg_to_delete.message_id} by job: {e}")
+        logger.debug("Message %s deleted by job.", msg_to_delete.message_id)
+    except TelegramError as e:  # Changed from Exception to TelegramError
+        logger.error(
+            "Failed to delete message %s by job (TelegramError): %s",
+            msg_to_delete.message_id,
+            e,
+        )
+    except (
+        Exception  # pylint: disable=broad-except
+    ) as e:  # Catch other potential errors
+        logger.error(
+            "Failed to delete message %s by job (OtherException): %s",
+            msg_to_delete.message_id,
+            e,
+        )
+
 
 def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
     logger.debug(
         "Scheduling cleanup of message %s in %d seconds",
-        message.message_id, # Log message_id for brevity
+        message.message_id,  # Log message_id for brevity
         seconds,
     )
     job_queue.run_once(
         _actual_delete_job,
         seconds,
         data=message,
-        name=f"delete_{message.chat_id}_{message.message_id}"
+        name=f"delete_{message.chat_id}_{message.message_id}",
     )
 
 

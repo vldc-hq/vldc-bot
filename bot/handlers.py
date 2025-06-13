@@ -1,11 +1,17 @@
-from typing import Callable, Union
+from typing import Callable  # Union can be removed if not used elsewhere
 
-from telegram import Update
-from telegram.ext import CommandHandler, BaseFilter, Filters
-from telegram.ext.commandhandler import RT
-from telegram.ext.utils.types import CCT
-from telegram.utils.helpers import DefaultValue, DEFAULT_FALSE
-from telegram.utils.types import SLT
+# asyncio removed
+# Update removed
+from telegram.ext import (
+    CommandHandler,
+    filters,
+)
+
+# RT, CCT, DefaultValue, DEFAULT_FALSE, SLT are removed as they are no longer needed
+# from telegram.ext.commandhandler import RT
+# from telegram.ext.utils.types import CCT
+# from telegram.utils.helpers import DefaultValue, DEFAULT_FALSE
+# from telegram.utils.types import SLT
 
 from config import get_group_chat_id
 
@@ -19,39 +25,37 @@ class ChatCommandHandler(CommandHandler):
 
     def __init__(
         self,
-        command: SLT[str],
-        callback: Callable[[Update, CCT], RT],
-        filters: BaseFilter = None,
-        allow_edited: bool = None,
-        pass_args: bool = False,
-        pass_update_queue: bool = False,
-        pass_job_queue: bool = False,
-        pass_user_data: bool = False,
-        pass_chat_data: bool = False,
-        run_async: Union[bool, DefaultValue] = DEFAULT_FALSE,
+        command: list[str] | str,  # SLT[str] to list[str] | str
+        callback: Callable,  # Callable[[Update, CCT], RT] to Callable
+        custom_filters: filters.BaseFilter = None,  # filters: BaseFilter to custom_filters: filters.BaseFilter
+        block: bool = True,  # Added block, removed others
+        # allow_edited, pass_args, etc. removed
     ):
 
         # chat_id filtering: accept messages only from particular chat
         chat_id_or_name = get_group_chat_id()
+        chat_filter: filters.BaseFilter  # Type hint for clarity
         try:
-            f = Filters.chat(chat_id=int(chat_id_or_name))
+            chat_filter = filters.Chat(
+                chat_id=int(chat_id_or_name)
+            )  # Filters.chat to filters.Chat
         except ValueError:
-            f = Filters.chat(username=chat_id_or_name.strip("@"))
-        filters = f if filters is None else filters & f
+            chat_filter = filters.Chat(
+                username=chat_id_or_name.strip("@")
+            )  # Filters.chat to filters.Chat
 
-        # run commands async by default
-        if run_async == DEFAULT_FALSE:
-            run_async = True
+        combined_filters = chat_filter
+        if custom_filters:
+            combined_filters &= (
+                custom_filters  # filters = f if filters is None else filters & f
+            )
+
+        # run_async block removed
 
         super().__init__(
             command,
             callback,
-            filters,
-            allow_edited,
-            pass_args,
-            pass_update_queue,
-            pass_job_queue,
-            pass_user_data,
-            pass_chat_data,
-            run_async,
+            filters=combined_filters,  # Pass combined_filters
+            block=block,  # Pass block
+            # Other parameters removed
         )

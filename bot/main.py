@@ -10,7 +10,8 @@ import asyncio
 
 import sentry_sdk
 from telegram.ext import Application
-from telegram.ext.dispatcher import DEFAULT_GROUP
+
+# from telegram.ext.dispatcher import DEFAULT_GROUP # Removed
 
 from config import get_config
 from skills import skills, commands_list
@@ -39,7 +40,9 @@ async def main():
 
     application = Application.builder().token(conf["TOKEN"]).build()
 
-    for handler_group, skill in enumerate(skills, DEFAULT_GROUP + 1):
+    for handler_group, skill in enumerate(
+        skills, Application.DEFAULT_GROUP + 1
+    ):  # Changed
         skill["add_handlers"](application, handler_group)
 
     # update commands list

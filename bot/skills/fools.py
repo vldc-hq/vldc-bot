@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Callable
 
-import asyncio
+# asyncio removed
 from google.cloud import translate
 from telegram import Update, User
 from telegram.error import BadRequest, TelegramError
@@ -50,7 +50,8 @@ async def mesaĝa_traduko(update: Update, context: CallbackContext):
         emoji = "🧘‍♂️"
     try:
         await context.bot.send_message(
-            chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}" # traduki remains sync
+            chat_id,
+            f"{emoji} {user.full_name}: {traduki(text, lingvo)}",  # traduki remains sync
         )
     except TelegramError as err:
         logger.info("can't translate msg: %s, because of: %s", text, err)
