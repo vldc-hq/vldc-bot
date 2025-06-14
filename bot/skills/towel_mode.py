@@ -207,8 +207,10 @@ def is_worthy(text: str) -> bool:
         return False
 
     prompt = """You are a spam-fighting bot, guarding chat room from bad actors and advertisement.
-Next message is the first message of the user in the chat. If it is an advertisement, user should be banned.
-Can the text sent by the user be considered an advertisement or spam?
+All users entering the chat are required to reply to the bot's message with a short bio.
+Sometimes bots can be tricky and answer with bio that is also a spam.
+For example: "я инвестор со стажем, могу дать информацию, ищу партнеров" is a spam.
+Next message is the first message of the user in the chat. Can it be considered as a short bio?
 Answer with a single word: spam or legit."""
 
     response = openai.chat.completions.create(
