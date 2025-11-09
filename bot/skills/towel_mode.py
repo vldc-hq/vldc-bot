@@ -180,17 +180,39 @@ def catch_reply(update: Update, context: CallbackContext):
     if user is None:
         return
 
+    # Check if the message is a reply to the bot
     if (
         update.effective_message.reply_to_message is not None
         and update.effective_message.reply_to_message.from_user.id
         == context.bot.get_me().id
-        and is_worthy(update.effective_message.text)
     ):
-        _delete_user_rel_messages(update.effective_chat.id, user_id, context)
-        db.delete_user(user_id=user["_id"])
-
-        update.message.reply_text("Добро пожаловать в VLDC!")
+        # Check reply length
+        text = update.effective_message.text or ""
+        if len(text) < 10:
+            # Delete the short reply
+            context.bot.delete_message(
+                update.effective_chat.id, update.effective_message.message_id
+            )
+            # Send feedback message
+            feedback_msg = context.bot.send_message(
+                update.effective_chat.id,
+                f"{update.effective_user.name}, твой ответ слишком короткий. "
+                "Я верю, что ты можешь написать больше о себе!",
+            )
+            # Add feedback message to related messages for cleanup
+            db.add_user_rel_message(user_id, feedback_msg.message_id)
+        elif is_worthy(text):
+            # Valid reply - welcome the user
+            _delete_user_rel_messages(update.effective_chat.id, user_id, context)
+            db.delete_user(user_id=user["_id"])
+            update.message.reply_text("Добро пожаловать в VLDC!")
+        else:
+            # Reply doesn't pass OpenAI check - delete it
+            context.bot.delete_message(
+                update.effective_chat.id, update.effective_message.message_id, 10
+            )
     else:
+        # Not a reply to bot - delete it
         context.bot.delete_message(
             update.effective_chat.id, update.effective_message.message_id, 10
         )
