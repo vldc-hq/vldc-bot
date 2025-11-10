@@ -188,7 +188,7 @@ def catch_reply(update: Update, context: CallbackContext):
     ):
         # Check reply length
         text = update.effective_message.text or ""
-        if len(text) < 10:
+        if len(text) < 15:
             # Delete the short reply
             context.bot.delete_message(
                 update.effective_chat.id, update.effective_message.message_id
