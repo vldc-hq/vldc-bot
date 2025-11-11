@@ -28,8 +28,14 @@ def generate_bot_key(gpg_home: str = "/app/.gnupg"):
     gpg_home_path = Path(gpg_home)
     gpg_home_path.mkdir(parents=True, exist_ok=True, mode=0o700)
 
+    # Create gpg.conf for batch mode
+    gpg_conf = gpg_home_path / "gpg.conf"
+    with open(gpg_conf, "w", encoding="utf-8") as f:
+        f.write("pinentry-mode loopback\n")
+
     # Initialize GPG
     gpg = gnupg.GPG(gnupghome=str(gpg_home_path))
+    gpg.encoding = "utf-8"
 
     # Check if key already exists
     keys = gpg.list_keys()
@@ -41,18 +47,22 @@ def generate_bot_key(gpg_home: str = "/app/.gnupg"):
             print(f"  Fingerprint: {key['fingerprint']}")
         return
 
-    # Generate key
+    # Generate key using batch mode (more reliable for automation)
     print("Generating GPG key for Nyan bot...")
-    input_data = gpg.gen_key_input(
-        name_real="VLDC Nyan Bot",
-        name_email="nyan@vldc.org",
-        key_type="RSA",
-        key_length=2048,
-        key_usage="sign",
-        passphrase="",  # No passphrase for automated signing
-    )
+    batch_input = """
+%echo Generating key for VLDC Nyan Bot
+Key-Type: RSA
+Key-Length: 2048
+Key-Usage: sign
+Name-Real: VLDC Nyan Bot
+Name-Email: nyan@vldc.org
+Expire-Date: 0
+%no-protection
+%commit
+%echo Done
+"""
 
-    key = gpg.gen_key(input_data)
+    key = gpg.gen_key(batch_input)
 
     if key:
         print("\n✅ GPG key generated successfully!")

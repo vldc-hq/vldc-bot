@@ -24,6 +24,7 @@ The official [VLDC](https://vldc.org) telegram group bot.
 * 👁 smell like PRISM? nononono!
 * 💰 kozula Don't argue with kozula rate!
 * 🤫 buktopuha Let's play a game 🤡
+* 🐦 chirp – warrant canary with PGP signature ([docs](WARRANT_CANARY.md))
 
 ### Modes
 * 😼 smile mode –  allow only stickers in the chat
