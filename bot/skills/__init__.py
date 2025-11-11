@@ -33,7 +33,7 @@ from skills.buktopuha import add_buktopuha
 from skills.chat import add_chat_mode
 
 logger = logging.getLogger(__name__)
-VERSION = "0.9.0"
+VERSION = "0.10.0"
 
 
 def _add_version(upd: Updater, version_handlers_group: int):
