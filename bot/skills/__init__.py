@@ -31,6 +31,7 @@ from skills.trusted_mode import add_trusted_mode
 from skills.uwu import add_uwu
 from skills.buktopuha import add_buktopuha
 from skills.chat import add_chat_mode
+from skills.chirp import add_chirp
 
 logger = logging.getLogger(__name__)
 VERSION = "0.10.0"
@@ -92,6 +93,7 @@ skills: List[Dict] = [
     _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     _make_skill(add_length, "🍆 length", " length of your instrument"),
     _make_skill(add_buktopuha, "🤫 start BukToPuHa", " let's play a game"),
+    _make_skill(add_chirp, "🐦 chirp", " warrant canary - meow!"),
     # modes
     _make_skill(add_trusted_mode, "👁‍🗨 in god we trust", " are you worthy hah?"),
     _make_skill(add_aoc_mode, "🎄 AOC notifier", " kekV"),
@@ -127,6 +129,7 @@ commands_list: List[Tuple[str, str]] = [
     ("longest", "size doesn't matter, or is it?"),
     ("buktopuha", "let's play a game 🤡"),
     ("znatoki", "top BuKToPuHa players"),
+    ("chirp", "🐦 warrant canary - meow!"),
 ]
 
 
