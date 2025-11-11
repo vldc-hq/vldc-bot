@@ -32,11 +32,16 @@ pipenv install
 The system needs GPG installed:
 
 ```bash
-# On Ubuntu/Debian
+# On Ubuntu/Debian (used in dev Docker)
 apt-get install gnupg
 
 # On Alpine (for Docker)
 apk add gnupg
+```
+
+**Docker Setup**: Add the following line to your Dockerfile after the apt-get update:
+```dockerfile
+RUN apt-get -y update && apt-get install -y ffmpeg build-essential gnupg
 ```
 
 ### 3. Generate GPG Key
