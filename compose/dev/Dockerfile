@@ -1,6 +1,6 @@
 FROM python:3.11.12-slim
 
-RUN apt-get -y update && apt-get install -y ffmpeg build-essential
+RUN apt-get -y update && apt-get install -y ffmpeg build-essential gnupg
 
 ENV PYTHONPATH /app
 
