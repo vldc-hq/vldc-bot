@@ -26,7 +26,7 @@ def add_kozula(upd: Updater, handlers_group: int):
 def _get_usd_rate() -> Optional[float]:
     rate: Optional[float] = None
     try:
-        request = requests.get(CBR_URL)
+        request = requests.get(CBR_URL, timeout=3)
         root = ET.fromstring(request.content)
         for child in root:
             if child.attrib["ID"] == "R01235":
@@ -40,9 +40,11 @@ def _get_usd_rate() -> Optional[float]:
 def kozula(update: Update, context: CallbackContext):
     usd_rate = _get_usd_rate()
     kozula_rates = [
-        f"{round(KOZULA_RATE_USD * usd_rate, 2)}₽"
-        if usd_rate is not None
-        else "курс ₽ недоступен",
+        (
+            f"{round(KOZULA_RATE_USD * usd_rate, 2)}₽"
+            if usd_rate is not None
+            else "курс ₽ недоступен"
+        ),
         f"${KOZULA_RATE_USD}",
     ]
 

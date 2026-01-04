@@ -1,9 +1,10 @@
 """
-    VLDC Nyan bot
-    ~=~=~=~=~=~=~=~=~=~=~=~=~=[,,_,,]:3
+VLDC Nyan bot
+~=~=~=~=~=~=~=~=~=~=~=~=~=[,,_,,]:3
 
-    https://github.com/vldc-hq/vldc-bot
+https://github.com/vldc-hq/vldc-bot
 """
+
 import logging
 
 import sentry_sdk

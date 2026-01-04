@@ -35,5 +35,6 @@ def still(update: Update, context: CallbackContext):
 
     if text:
         context.bot.send_message(
-            chat_id, f"Вот бы сейчас {text} в {to_2k_year(datetime.now().year)} лул 😹😹😹"
+            chat_id,
+            f"Вот бы сейчас {text} в {to_2k_year(datetime.now().year)} лул 😹😹😹",
         )
