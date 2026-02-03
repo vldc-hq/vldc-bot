@@ -1,29 +1,28 @@
 import logging
 
 from telegram import Update
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, ContextTypes
 
 from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
 
-def add_core(upd: Updater, core_handlers_group: int):
+def add_core(app: Application, core_handlers_group: int):
     logger.info("register smile-mode handlers")
-    dp = upd.dispatcher
-    dp.add_handler(ChatCommandHandler("start", start), core_handlers_group)
-    dp.add_handler(ChatCommandHandler("help", help_), core_handlers_group)
+    app.add_handler(ChatCommandHandler("start", start), group=core_handlers_group)
+    app.add_handler(ChatCommandHandler("help", help_), group=core_handlers_group)
 
 
-def start(update: Update, _: CallbackContext):
-    update.message.reply_text(
+async def start(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
         "I'm a VLDC Bot. 😼\n\nMy source: https://github.com/vldc-hq/vldc-bot"
     )
 
 
-def help_(update: Update, _: CallbackContext):
+async def help_(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """List of ALL commands"""
-    update.message.reply_text(
+    await update.message.reply_text(
         "The bot should be an admin with all admins permissions\n\n"
         "Skills for admins:\n\n"
         "SmileMode: allows only not text messages (stickers, GIFs)\n"
@@ -52,6 +51,6 @@ def help_(update: Update, _: CallbackContext):
     )
 
 
-def error(update: Update, context: CallbackContext):
+async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log Errors caused by Updates"""
     logger.warning('Update "%s" caused error "%s"', update, context.error)

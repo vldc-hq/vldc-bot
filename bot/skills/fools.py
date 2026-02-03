@@ -1,43 +1,49 @@
 import logging
 import os
 from typing import Callable
-
-from google.cloud import translate
 from telegram import Update, User
 from telegram.error import BadRequest, TelegramError
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, MessageHandler, ContextTypes, filters
 
-from config import get_group_chat_id
+from tg_filters import group_chat_filter
 from mode import Mode, OFF
 
 logger = logging.getLogger(__name__)
+
+try:
+    from google.cloud import translate
+except Exception as exc:  # pylint: disable=broad-except
+    translate = None
+    logger.warning("google translate unavailable; fools mode disabled: %s", exc)
 
 mode = Mode(mode_name="fools_mode", default=OFF)
 
 
 @mode.add
-def add_fools_mode(upd: Updater, handlers_group: int):
+def add_fools_mode(app: Application, handlers_group: int):
+    if translate is None:
+        logger.warning("fools mode disabled: google translate not available")
+        return
     logger.info("registering fools handlers")
-    dp = upd.dispatcher
 
-    dp.add_handler(
+    group_filter = group_chat_filter()
+    app.add_handler(
         MessageHandler(
-            ~Filters.status_update
-            & Filters.chat(username=get_group_chat_id().strip("@")),
+            ~filters.StatusUpdate.ALL & group_filter,
             mesaĝa_traduko,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
-def mesaĝa_traduko(update: Update, context: CallbackContext):
+async def mesaĝa_traduko(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message["text"]
     user: User = update.effective_user
     chat_id = update.effective_chat.id
 
     try:
-        context.bot.delete_message(chat_id, update.effective_message.message_id)
+        await context.bot.delete_message(chat_id, update.effective_message.message_id)
     except (BadRequest, TelegramError) as err:
         logger.info("can't delete msg: %s", err)
 
@@ -50,7 +56,7 @@ def mesaĝa_traduko(update: Update, context: CallbackContext):
         lingvo = "he"
         emoji = "🧘‍♂️"
     try:
-        context.bot.send_message(
+        await context.bot.send_message(
             chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}"
         )
     except TelegramError as err:
@@ -58,6 +64,8 @@ def mesaĝa_traduko(update: Update, context: CallbackContext):
 
 
 def f(text: str, lingvo: str) -> str:
+    if translate is None:
+        raise RuntimeError("google translate is not available")
     project_id = os.getenv("GOOGLE_PROJECT_ID")
 
     client = translate.TranslationServiceClient()

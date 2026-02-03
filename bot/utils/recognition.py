@@ -6,8 +6,6 @@ import subprocess
 from tempfile import NamedTemporaryFile
 import requests
 
-from google.cloud import speech
-
 TOKEN = os.environ["TOKEN"]
 
 LANG = "ru-RU"
@@ -25,6 +23,12 @@ AUDIO = "audio"
 
 logger = logging.getLogger(__name__)
 
+try:
+    from google.cloud import speech
+except Exception as exc:  # pylint: disable=broad-except
+    speech = None
+    logger.warning("google speech unavailable: %s", exc)
+
 
 class Dummy:
     "dummy class to substitute speech client when in dev mode"
@@ -38,12 +42,22 @@ class Dummy:
         return funcoff
 
 
-try:
-    speech_client = speech.SpeechClient()
-# pylint: disable=W0702
-except:  # noqa
-    logger.error("failed to initialize google speech")
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+if speech is None:
+    logger.info("google speech disabled: library is not available")
     speech_client = Dummy()
+elif not credentials_path or not os.path.exists(credentials_path):
+    logger.info(
+        "google speech disabled: GOOGLE_APPLICATION_CREDENTIALS is not set or file missing"
+    )
+    speech_client = Dummy()
+else:
+    try:
+        speech_client = speech.SpeechClient()
+    # pylint: disable=W0702
+    except:  # noqa
+        logger.error("failed to initialize google speech")
+        speech_client = Dummy()
 
 
 def _get_tg_resource(file_id: str) -> Tuple[bytes, Union[AUDIO, str]]:

@@ -21,8 +21,9 @@ def get_group_chat_id() -> Optional[str]:
     """Get VLDC chat id ENV"""
     chat_id = os.getenv("CHAT_ID", None)
     if chat_id is None:
-        raise ValueError("can't get CHAT_ID")
-    return chat_id
+        return None
+    chat_id = chat_id.strip()
+    return chat_id or None
 
 
 def get_token() -> Optional[str]:

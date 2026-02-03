@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from telegram.ext import Updater
+from telegram.ext import Application, ContextTypes
 
 from config import get_config
 from mode import Mode
@@ -22,22 +22,21 @@ mode = Mode(mode_name="since_mode", default=False, pin_info_msg=False)
 
 
 @mode.add
-def add_since_mode(upd: Updater, handlers_group: int):
+def add_since_mode(app: Application, handlers_group: int):
     logger.info("register since-mode handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "since",
             since_callback,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "since_list",
             since_list_callback,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
@@ -67,7 +66,7 @@ def _update_topic(t: Dict):
         topics_coll.insert_one(t)
 
 
-def since_callback(update, context):
+async def since_callback(update, context: ContextTypes.DEFAULT_TYPE):
     """https://github.com/vldc-hq/vldc-bot/issues/11
     todo: normal doc, not this trash
     since scheme:
@@ -81,16 +80,16 @@ def since_callback(update, context):
     topic_title = " ".join(context.args)
     if len(topic_title) == 0:
         logging.warning("topic is empty")
-        update.message.reply_text("topic is empty 😿")
+        await update.message.reply_text("topic is empty 😿")
         return
 
     if len(topic_title) > 64:
         logging.warning("topic too long")
-        update.message.reply_text("topic too long 😿")
+        await update.message.reply_text("topic too long 😿")
         return
 
     current_topic = _get_topic(topic_title)
-    update.message.reply_text(
+    await update.message.reply_text(
         f"{_get_delta_days(current_topic['since_datetime'])} days without «{current_topic['topic']}»! "
         f"Already was discussed {current_topic['count']} times\n",
     )
@@ -102,7 +101,7 @@ def _get_all_topics(limit: int) -> List[Dict]:
     return list(topics_coll.find({}).sort("-count").limit(limit))
 
 
-def since_list_callback(update):
+async def since_list_callback(update, context: ContextTypes.DEFAULT_TYPE):
     # todo: need make it msg more pretty
     ts = reduce(
         lambda acc, el: acc
@@ -111,4 +110,4 @@ def since_list_callback(update):
         _get_all_topics(20),
         "",
     )
-    update.message.reply_text(ts or "nothing yet 😿")
+    await update.message.reply_text(ts or "nothing yet 😿")

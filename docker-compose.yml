@@ -1,5 +1,3 @@
-version: "3.1"
-
 services:
   bot:
     image: ghcr.io/vldc-hq/vldc-bot/bot:latest
@@ -7,6 +5,9 @@ services:
       - mongo
     env_file:
       - ./.env
+    environment:
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2
     volumes:
       - ./:/opt/gcloud
     logging:

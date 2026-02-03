@@ -11,17 +11,23 @@ from uuid import uuid4
 import pymongo
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
-from telegram import Update, User, Message, ChatMember
+from telegram import Update, User, Message
+from telegram.constants import ChatMemberStatus
 from telegram.error import BadRequest
-from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
-from telegram.ext.filters import Filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
 from config import get_group_chat_id
 from db.mongo import get_db
-from filters import admin_filter
 from handlers import ChatCommandHandler
 from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
+from permissions import is_admin
 
 logger = logging.getLogger(__name__)
 
@@ -106,52 +112,50 @@ _db = DB(db_name="roll")
 MEME_REGEX = re.compile(r"\/[rрp][оo0][1lл]{2}", re.IGNORECASE)
 
 
-def add_roll(upd: Updater, handlers_group: int):
+def add_roll(app: Application, handlers_group: int):
     logger.info("registering roll handlers")
-    dp = upd.dispatcher
-    dp.add_handler(MessageHandler(Filters.dice, roll), handlers_group)
-    dp.add_handler(
-        MessageHandler(Filters.regex(MEME_REGEX), roll, run_async=True), handlers_group
+    app.add_handler(MessageHandler(filters.Dice.ALL, roll), group=handlers_group)
+    app.add_handler(
+        MessageHandler(filters.Regex(MEME_REGEX), roll, block=False),
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "gdpr_me",
             satisfy_GDPR,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         CommandHandler(
             "hussars",
             show_hussars,
-            filters=~Filters.chat(username=get_group_chat_id().strip("@"))
-            | admin_filter,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "htop",
             show_active_hussars,
-            filters=admin_filter,
+            require_admin=True,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "wipe_hussars",
             wipe_hussars,
-            filters=admin_filter,
+            require_admin=True,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
 barrel_lock = Lock()
 
 
-def _reload(context: CallbackContext) -> List[bool]:
+def _reload(context: ContextTypes.DEFAULT_TYPE) -> List[bool]:
     empty, bullet = False, True
     barrel: List[bool] = [empty] * NUM_BULLETS
     lucky_number = randint(0, NUM_BULLETS - 1)
@@ -174,7 +178,7 @@ def get_mute_minutes(shots_remain: int) -> int:
     return MUTE_MINUTES * (NUM_BULLETS - shots_remain)
 
 
-def _shot(context: CallbackContext) -> Tuple[bool, int]:
+def _shot(context: ContextTypes.DEFAULT_TYPE) -> Tuple[bool, int]:
     with barrel_lock:
         barrel = context.chat_data.get("barrel")
         if barrel is None or len(barrel) == 0:
@@ -263,7 +267,20 @@ def from_text_to_image(text, limit):
     return image, image_path
 
 
-def show_hussars(update: Update, context: CallbackContext):
+def _is_group_chat(update: Update) -> bool:
+    chat = update.effective_chat
+    if chat is None:
+        return False
+    chat_id_or_name = get_group_chat_id()
+    if not chat_id_or_name:
+        return False
+    try:
+        return chat.id == int(chat_id_or_name)
+    except ValueError:
+        return chat.username == chat_id_or_name.strip("@")
+
+
+async def show_hussars(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show leader board, I believe it should looks like smth like:
 
                            Hussars leader board
@@ -275,6 +292,8 @@ def show_hussars(update: Update, context: CallbackContext):
     ----------------------------------------------------
 
     """
+    if _is_group_chat(update) and not await is_admin(update, context):
+        return
     # CSS is awesome!
     # todo:
     #  need to find out how to show board for mobile telegram as well
@@ -295,7 +314,7 @@ def show_hussars(update: Update, context: CallbackContext):
     for hussar in hussars:
         username = _get_username(hussar)
         board += (
-            f"{str(timedelta(seconds=(hussar['total_time_in_club']))).ljust(18)} "
+            f"{str(timedelta(seconds=hussar['total_time_in_club'])).ljust(18)} "
             f"| {str(hussar['shot_counter']).ljust(8)} "
             f"| {str(hussar['dead_counter']).ljust(6)} "
             f"| {username.ljust(15)}\n"
@@ -311,13 +330,13 @@ def show_hussars(update: Update, context: CallbackContext):
     result: Optional[Message] = None
 
     if hussars_length <= HUSSARS_LIMIT_FOR_IMAGE:
-        result = context.bot.send_photo(
+        result = await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=board_image,
             disable_notification=True,
         )
     else:
-        result = context.bot.send_document(
+        result = await context.bot.send_document(
             chat_id=update.effective_chat.id,
             document=board_image,
             disable_notification=True,
@@ -335,7 +354,7 @@ def show_hussars(update: Update, context: CallbackContext):
     os.remove(board_image_path)
 
 
-def show_active_hussars(update: Update, context: CallbackContext):
+async def show_active_hussars(update: Update, context: ContextTypes.DEFAULT_TYPE):
     hussars = _db.find_all()
 
     message = "No hussars in da club 😒"
@@ -344,11 +363,11 @@ def show_active_hussars(update: Update, context: CallbackContext):
 
     for hussar in hussars:
         try:
-            chat_member = context.bot.get_chat_member(
+            chat_member = await context.bot.get_chat_member(
                 update.effective_chat.id, hussar.get("_id")
             )
 
-            if chat_member.status == ChatMember.RESTRICTED:
+            if chat_member.status == ChatMemberStatus.RESTRICTED:
                 restricted_hussars.append(hussar)
 
         except BadRequest:
@@ -363,7 +382,7 @@ def show_active_hussars(update: Update, context: CallbackContext):
             emoji = chr(ord("😀") + magia_nombro % 75)
             message += f"{emoji} {name} \n"
 
-    result = context.bot.send_message(update.effective_chat.id, message)
+    result = await context.bot.send_message(update.effective_chat.id, message)
 
     cleanup_queue_update(
         context.job_queue,
@@ -373,7 +392,7 @@ def show_active_hussars(update: Update, context: CallbackContext):
     )
 
 
-def roll(update: Update, context: CallbackContext):
+async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None:
         return
 
@@ -395,19 +414,19 @@ def roll(update: Update, context: CallbackContext):
         #  if bot can't restrict user, user should be passed into towel-mode like state
 
         mute_min = get_mute_minutes(shots_remained)
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]",
         )
 
-        mute_user_for_time(update, context, user, timedelta(minutes=mute_min))
+        await mute_user_for_time(update, context, user, timedelta(minutes=mute_min))
         _db.dead(user.id, mute_min)
     else:
 
         # lucky one
         _db.miss(user.id)
 
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             f"{user.full_name}: {get_miss_string(shots_remained)}",
         )
@@ -423,12 +442,12 @@ def roll(update: Update, context: CallbackContext):
 
 
 # noinspection PyPep8Naming
-def satisfy_GDPR(update: Update, context: CallbackContext):
+async def satisfy_GDPR(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user: User = update.effective_user
 
     _db.remove(user.id)
     logger.info("%s was removed from DB", user.full_name)
-    result = update.message.reply_text("ok, boomer 😒", disable_notification=True)
+    result = await update.message.reply_text("ok, boomer 😒", disable_notification=True)
 
     cleanup_queue_update(
         context.job_queue,
@@ -440,10 +459,10 @@ def satisfy_GDPR(update: Update, context: CallbackContext):
     )
 
 
-def wipe_hussars(update: Update, context: CallbackContext):
+async def wipe_hussars(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _db.remove_all()
     logger.info("all hussars was removed from DB")
-    result = update.message.reply_text("👍", disable_notification=True)
+    result = await update.message.reply_text("👍", disable_notification=True)
 
     cleanup_queue_update(
         context.job_queue,

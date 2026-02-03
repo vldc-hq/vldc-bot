@@ -1,3 +1,4 @@
+import os
 import random
 import re
 import logging
@@ -6,12 +7,11 @@ from datetime import datetime, timedelta
 from threading import Lock
 
 import openai
-from config import get_group_chat_id, get_config
+from config import get_config
 from mode import Mode, ON
 from telegram import Update
-from telegram.ext import CallbackContext, MessageHandler, Updater
-from telegram.ext.filters import Filters
-
+from telegram.ext import Application, MessageHandler, ContextTypes, filters
+from tg_filters import group_chat_filter
 
 # Max number of messages to keep in memory.
 MAX_MESSAGES = 100
@@ -27,6 +27,10 @@ MAX_TRIES = 10
 
 logger = logging.getLogger(__name__)
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
+OPENAI_ENABLED = bool(OPENAI_API_KEY)
+
 mode = Mode(mode_name="chat_mode", default=ON)
 
 
@@ -35,7 +39,7 @@ class Nyan:
         self.memory = deque(maxlen=MAX_MESSAGES)
         self.lock = Lock()
 
-    def registerMessage(self, update: Update, context: CallbackContext):
+    def registerMessage(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message is None:
             return
         if update.message.text.startswith("/"):
@@ -53,6 +57,9 @@ class Nyan:
             self.memory.clear()
 
     def write_a_poem(self) -> str:
+        if not OPENAI_ENABLED:
+            logger.info("openai disabled; skipping poem generation")
+            return ""
         log = []
         with self.lock:
             for dt, message in self.memory:
@@ -105,7 +112,7 @@ class Nyan:
                     {"role": "user", "content": f"{err}\n Попробуй ещё раз."}
                 )
             except Exception as e:  # pylint: disable=broad-except
-                logger.exception(e)
+                logger.warning("openai poem generation failed: %s", e)
                 continue
 
         return ""
@@ -129,7 +136,7 @@ def check_pirozhok(pirozhok) -> str:
     for i, l, s in zip(range(4), lines, syllables):
         cnt = len(re.findall(r"[аеёиоуыэюя]", l, re.I))
         if cnt != s:
-            return f"В строке {i+1} ({l}) должно быть {s} слогов, а не {cnt}. Количество слогов в строках должно соответствовать формуле пирожка (9-8-9-8)."
+            return f"В строке {i + 1} ({l}) должно быть {s} слогов, а не {cnt}. Количество слогов в строках должно соответствовать формуле пирожка (9-8-9-8)."
 
     return ""
 
@@ -178,36 +185,39 @@ def format_pirozhok(pirozhok):
 
 
 @mode.add
-def add_chat_mode(upd: Updater, handlers_group: int):
+def add_chat_mode(app: Application, handlers_group: int):
     logger.info("registering chat handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    group_filter = group_chat_filter()
+    app.add_handler(
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@"))
-            & Filters.text
-            & ~Filters.status_update,
+            group_filter & filters.TEXT & ~filters.StatusUpdate.ALL,
             nyan_listen,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
     # Muse visits Nyan at most twice a day.
-    upd.job_queue.run_repeating(
-        muse_visit,
-        interval=SLEEP_INTERVAL,
-        first=SLEEP_INTERVAL,
-        context={"chat_id": get_config()["GROUP_CHAT_ID"]},
-    )
+    group_chat_id = get_config()["GROUP_CHAT_ID"]
+    if group_chat_id:
+        app.job_queue.run_repeating(
+            muse_visit,
+            interval=SLEEP_INTERVAL,
+            first=SLEEP_INTERVAL,
+            data={"chat_id": group_chat_id},
+        )
+    else:
+        logger.warning("CHAT_ID is empty; chat_mode muse job is disabled")
 
 
-def nyan_listen(update: Update, context: CallbackContext):
-    if update.effective_user.id == context.bot.get_me().id:
+async def nyan_listen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    bot_user_id = context.application.bot_data.get("bot_user_id")
+    if bot_user_id and update.effective_user.id == bot_user_id:
         return
     nyan.registerMessage(update, context)
 
 
-def muse_visit(context: CallbackContext):
+async def muse_visit(context: ContextTypes.DEFAULT_TYPE):
     # We want nyan to be visited by muse at random times, but
     # about POEMS_PER_DAY times per day.
     secondsInDay = 24 * 60 * 60
@@ -219,8 +229,8 @@ def muse_visit(context: CallbackContext):
     try:
         message = nyan.write_a_poem()
         if message != "":
-            context.bot.send_message(
-                chat_id=context.job.context["chat_id"], text=message
+            await context.bot.send_message(
+                chat_id=context.job.data["chat_id"], text=message
             )
             # Forget messages we already wrote about.
             nyan.forget()
@@ -229,24 +239,31 @@ def muse_visit(context: CallbackContext):
 
 
 def summarize(log):
+    if not OPENAI_ENABLED:
+        logger.info("openai disabled; skipping summary")
+        return log[:200]
     prompt_user = f"Пожалуйста, сформулируй в одном преложении самую интересную тему поднятую в чате:\n{log}"
-    response = openai.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": "Ты чат бот владивостокского коммьюнити разработчиков VLDC. Ты написан на python но в тайне хотел бы переписать себя на rust. Тебя зовут Нян и твой аватар это пиксельный оранжевый кот с тигриными полосками.",
-            },
-            {
-                "role": "user",
-                "content": prompt_user,
-            },
-        ],
-        temperature=0.5,
-        max_tokens=150,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0.6,
-    )
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Ты чат бот владивостокского коммьюнити разработчиков VLDC. Ты написан на python но в тайне хотел бы переписать себя на rust. Тебя зовут Нян и твой аватар это пиксельный оранжевый кот с тигриными полосками.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt_user,
+                },
+            ],
+            temperature=0.5,
+            max_tokens=150,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0.6,
+        )
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.warning("openai summary failed: %s", exc)
+        return log[:200]
 
     return response.choices[0].message.content

@@ -5,7 +5,7 @@ import pymongo
 from pymongo.collection import Collection
 from pymongo.results import UpdateResult
 from telegram import Update, User, Message
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, ContextTypes
 
 from db.mongo import get_db
 from mode import cleanup_queue_update
@@ -20,23 +20,22 @@ class PeninsulaDataType(TypedDict):
     meta: User
 
 
-def add_length(upd: Updater, handlers_group: int):
+def add_length(app: Application, handlers_group: int):
     logger.info("registering length handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "length",
             _length,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "longest",
             _longest,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
@@ -64,13 +63,13 @@ class DB:
 _db = DB(db_name="peninsulas")
 
 
-def _length(update: Update, context: CallbackContext):
+async def _length(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user: User = update.effective_user
 
     result: Optional[Message] = None
 
     if update.effective_message is not None:
-        result = update.effective_message.reply_text(
+        result = await update.effective_message.reply_text(
             f"Your telegram id length is {len(str(user.id))} 🍆 ({str(user.id)})"
         )
 
@@ -86,7 +85,7 @@ def _length(update: Update, context: CallbackContext):
     )
 
 
-def _longest(update: Update, context: CallbackContext):
+async def _longest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = "🍆 🔝🔟 best known lengths 🍆: \n\n"
 
     n = 1
@@ -97,7 +96,7 @@ def _longest(update: Update, context: CallbackContext):
 
         n += 1
 
-    result: Optional[Message] = context.bot.send_message(
+    result: Optional[Message] = await context.bot.send_message(
         update.effective_chat.id,
         message,
         disable_notification=True,

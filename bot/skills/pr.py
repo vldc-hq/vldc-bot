@@ -1,7 +1,7 @@
 import logging
 
 from telegram import Update, User
-from telegram.ext import Updater, Dispatcher, CallbackContext
+from telegram.ext import Application, ContextTypes
 
 from handlers import ChatCommandHandler
 
@@ -14,17 +14,16 @@ MSG = (
 )
 
 
-def add_pr(upd: Updater, handlers_group: int):
+def add_pr(app: Application, handlers_group: int):
     logger.info("registering PR handler")
-    dp: Dispatcher = upd.dispatcher
-    dp.add_handler(ChatCommandHandler("pr", _pr), handlers_group)
+    app.add_handler(ChatCommandHandler("pr", _pr), group=handlers_group)
 
 
-def _pr(update: Update, context: CallbackContext):
+async def _pr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user: User = (
         update.message.reply_to_message.from_user
         if update.message.reply_to_message
         else None
     )
     msg = f"@{user.username} " + MSG if user else MSG
-    context.bot.send_message(update.effective_chat.id, msg)
+    await context.bot.send_message(update.effective_chat.id, msg)

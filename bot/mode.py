@@ -3,27 +3,26 @@ from functools import wraps
 from typing import Callable, List, Optional
 
 from telegram import Update, Message
+from telegram.error import BadRequest, NetworkError, TimedOut, TelegramError
 from telegram.ext import (
-    Updater,
     CommandHandler,
-    CallbackContext,
-    Dispatcher,
     JobQueue,
+    Application,
+    ContextTypes,
 )
-from telegram.ext.dispatcher import DEFAULT_GROUP
 
-from filters import admin_filter
 from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
 ON, OFF = True, False
+DEFAULT_GROUP = 0
 
 
 class Mode:
     """Todo: add docstring (no)"""
 
-    _dp: Dispatcher
+    _dp: Application
     _mode_handlers: List[CommandHandler] = []
 
     def __init__(
@@ -31,8 +30,8 @@ class Mode:
         mode_name: str,
         default: bool = True,
         pin_info_msg: bool = False,
-        off_callback: Optional[Callable[[Dispatcher], None]] = None,
-        on_callback: Optional[Callable[[Dispatcher], None]] = None,
+        off_callback: Optional[Callable[[Application], None]] = None,
+        on_callback: Optional[Callable[[Application], None]] = None,
     ) -> None:
         self.name = mode_name
         self.default = default
@@ -47,13 +46,13 @@ class Mode:
     def _gen_chat_data_key(mode_name: str) -> str:
         return f"is_{mode_name}_on".lower()
 
-    def _get_mode_state(self, context: CallbackContext):
+    def _get_mode_state(self, context: ContextTypes.DEFAULT_TYPE):
         if self.chat_data_key not in context.chat_data:
             context.chat_data[self.chat_data_key] = self.default
 
         return context.chat_data[self.chat_data_key]
 
-    def _set_mode(self, state: bool, context: CallbackContext):
+    def _set_mode(self, state: bool, context: ContextTypes.DEFAULT_TYPE):
         context.chat_data[self.chat_data_key] = state
         logger.info("new state: %s", state)
         if state is ON:
@@ -68,7 +67,7 @@ class Mode:
             ChatCommandHandler(
                 f"{self.name}_on",
                 self._mode_on,
-                filters=admin_filter,
+                require_admin=True,
             ),
             self.handlers_gr,
         )
@@ -76,7 +75,7 @@ class Mode:
             ChatCommandHandler(
                 f"{self.name}_off",
                 self._mode_off,
-                filters=admin_filter,
+                require_admin=True,
             ),
             self.handlers_gr,
         )
@@ -93,7 +92,7 @@ class Mode:
         for h in self._mode_handlers:
             self._dp.add_handler(h, self.handlers_gr)
 
-    def _mode_on(self, update: Update, context: CallbackContext):
+    async def _mode_on(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info("%s switch to ON", self.name)
         mode = self._get_mode_state(context)
         if mode is OFF:
@@ -106,15 +105,15 @@ class Mode:
                     logger.error("can't eval mode_on callback: %s", err)
                     raise err
 
-            msg = context.bot.send_message(
+            msg = await context.bot.send_message(
                 update.effective_chat.id, f"{self.name} is ON"
             )
             if self.pin_info_msg is True:
-                context.bot.pin_chat_message(
+                await context.bot.pin_chat_message(
                     update.effective_chat.id, msg.message_id, disable_notification=True
                 )
 
-    def _mode_off(self, update: Update, context: CallbackContext):
+    async def _mode_off(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info("%s switch to OFF", self.name)
         mode = self._get_mode_state(context)
         if mode is ON:
@@ -127,28 +126,30 @@ class Mode:
                     logger.error("can't eval mode_off callback: %s", err)
                     raise err
 
-            context.bot.send_message(update.effective_chat.id, f"{self.name} is OFF")
+            await context.bot.send_message(
+                update.effective_chat.id, f"{self.name} is OFF"
+            )
             if self.pin_info_msg is True:
-                context.bot.unpin_chat_message(update.effective_chat.id)
+                await context.bot.unpin_chat_message(update.effective_chat.id)
 
-    def _mode_status(self, update: Update, context: CallbackContext):
+    async def _mode_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         status = "ON" if self._get_mode_state(context) is ON else "OFF"
         msg = f"{self.name} status is {status}"
         logger.info(msg)
-        context.bot.send_message(update.effective_chat.id, msg)
+        await context.bot.send_message(update.effective_chat.id, msg)
 
     def add(self, func) -> Callable:
         @wraps(func)
-        def wrapper(upd: Updater, handlers_group: int):
-            self._dp = upd.dispatcher
+        def wrapper(app: Application, handlers_group: int):
+            self._dp = app
             self.handlers_gr = handlers_group
 
             logger.info("adding users handlers...")
-            func(upd, self.handlers_gr)
+            func(app, self.handlers_gr)
 
             # if mode doesn't define any handlers
-            if self.handlers_gr in upd.dispatcher.handlers:
-                self._mode_handlers = upd.dispatcher.handlers[self.handlers_gr].copy()
+            if self.handlers_gr in app.handlers:
+                self._mode_handlers = app.handlers[self.handlers_gr].copy()
             logger.info(
                 "registered %d %s handlers", len(self._mode_handlers), self.name
             )
@@ -191,7 +192,19 @@ def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
         message,
         seconds,
     )
-    job_queue.run_once(lambda _: message.delete(), seconds, context=message.chat_id)
+
+    async def _delete_message_job(context: ContextTypes.DEFAULT_TYPE):
+        if message is None:
+            return
+        try:
+            await context.bot.delete_message(
+                chat_id=message.chat_id,
+                message_id=message.message_id,
+            )
+        except (BadRequest, TimedOut, NetworkError, TelegramError) as exc:
+            logger.info("skip message cleanup: %s", exc)
+
+    job_queue.run_once(_delete_message_job, seconds, data=message)
 
 
 __all__ = ["Mode", "cleanup_queue_update", "ON", "OFF"]

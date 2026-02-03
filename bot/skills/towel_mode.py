@@ -9,11 +9,11 @@ from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import (
-    Updater,
     MessageHandler,
-    Filters,
-    CallbackContext,
+    ContextTypes,
     CallbackQueryHandler,
+    Application,
+    filters,
 )
 
 from config import get_config
@@ -37,7 +37,9 @@ I_AM_BOT = [
 ]
 
 logger = logging.getLogger(__name__)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
+OPENAI_ENABLED = bool(OPENAI_API_KEY)
 
 
 # todo: extract maybe?
@@ -86,50 +88,57 @@ def _is_time_gone(user: Dict) -> bool:
     return user["datetime"] < datetime.now()
 
 
-def _delete_user_rel_messages(chat_id: int, user_id: str, context: CallbackContext):
+async def _delete_user_rel_messages(
+    chat_id: int, user_id: str, context: ContextTypes.DEFAULT_TYPE
+):
     for msg_id in db.find_user(user_id=user_id)["rel_messages"]:
         try:
-            context.bot.delete_message(chat_id, msg_id)
+            await context.bot.delete_message(chat_id, msg_id)
         except BadRequest as err:
             logger.info("can't delete msg: %s", err)
 
 
 @mode.add
-def add_towel_mode(upd: Updater, handlers_group: int):
+def add_towel_mode(app: Application, handlers_group: int):
     logger.info("registering towel-mode handlers")
-    dp = upd.dispatcher
 
     # catch all new users and drop the towel
-    dp.add_handler(
+    app.add_handler(
         MessageHandler(
-            Filters.status_update.new_chat_members, catch_new_user, run_async=True
+            filters.StatusUpdate.NEW_CHAT_MEMBERS, catch_new_user, block=False
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
     # check for reply or remove messages
-    dp.add_handler(
+    app.add_handler(
         MessageHandler(
-            Filters.chat_type.groups & ~Filters.status_update,
+            filters.ChatType.GROUPS & ~filters.StatusUpdate.ALL,
             catch_reply,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
     # "i am a bot button"
-    dp.add_handler(CallbackQueryHandler(i_am_a_bot_btn, run_async=True), handlers_group)
-
-    # ban quarantine users, if time is gone
-    upd.job_queue.run_repeating(
-        ban_user,
-        interval=60,
-        first=60,
-        context={"chat_id": get_config()["GROUP_CHAT_ID"]},
+    app.add_handler(
+        CallbackQueryHandler(i_am_a_bot_btn, block=False), group=handlers_group
     )
 
+    # ban quarantine users, if time is gone
+    group_chat_id = get_config()["GROUP_CHAT_ID"]
+    if group_chat_id:
+        app.job_queue.run_repeating(
+            ban_user,
+            interval=60,
+            first=60,
+            data={"chat_id": group_chat_id},
+        )
+    else:
+        logger.warning("CHAT_ID is empty; towel_mode ban job is disabled")
 
-def quarantine_user(user: User, chat_id: str, context: CallbackContext):
+
+async def quarantine_user(user: User, chat_id: str, context: ContextTypes.DEFAULT_TYPE):
     logger.info("put %s in quarantine", user)
     db.add_user(user.id)
 
@@ -137,14 +146,16 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
         [[InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]]
     )
 
-    message_id = context.bot.send_message(
-        chat_id,
-        f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
-        "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
-        "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
-        f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
-        "Ничего личного, просто боты одолели.\n",
-        reply_markup=markup,
+    message_id = (
+        await context.bot.send_message(
+            chat_id,
+            f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
+            "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
+            "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
+            f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
+            "Ничего личного, просто боты одолели.\n",
+            reply_markup=markup,
+        )
     ).message_id
 
     # messages from `rel_message` will be deleted after greeting or ban
@@ -153,27 +164,30 @@ def quarantine_user(user: User, chat_id: str, context: CallbackContext):
         message_id,
     )
 
-    if user.id == context.bot.get_me().id:
-        message_id = context.bot.send_message(
-            chat_id,
-            "Я простой бот из Владивостока.\n"
-            "В-основном занимаюсь тем, что бросаю полотенца в новичков.\n"
-            "Увлекаюсь переписыванием себя на раст, но на это постоянно не хватает времени.\n",
-            reply_to_message_id=message_id,
+    bot_user = await context.bot.get_me()
+    if user.id == bot_user.id:
+        message_id = (
+            await context.bot.send_message(
+                chat_id,
+                "Я простой бот из Владивостока.\n"
+                "В-основном занимаюсь тем, что бросаю полотенца в новичков.\n"
+                "Увлекаюсь переписыванием себя на раст, но на это постоянно не хватает времени.\n",
+                reply_to_message_id=message_id,
+            )
         ).message_id
 
         db.delete_user(user_id=user["_id"])
-        context.bot.send_message(
+        await context.bot.send_message(
             chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id
         )
 
 
-def catch_new_user(update: Update, context: CallbackContext):
+async def catch_new_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for user in update.message.new_chat_members:
-        quarantine_user(user, update.effective_chat.id, context)
+        await quarantine_user(user, update.effective_chat.id, context)
 
 
-def catch_reply(update: Update, context: CallbackContext):
+async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # todo: cache it
     user_id = update.effective_user.id
     user = db.find_user(user_id)
@@ -184,17 +198,17 @@ def catch_reply(update: Update, context: CallbackContext):
     if (
         update.effective_message.reply_to_message is not None
         and update.effective_message.reply_to_message.from_user.id
-        == context.bot.get_me().id
+        == (await context.bot.get_me()).id
     ):
         # Check reply length
         text = update.effective_message.text or ""
         if len(text) < 15:
             # Delete the short reply
-            context.bot.delete_message(
+            await context.bot.delete_message(
                 update.effective_chat.id, update.effective_message.message_id
             )
             # Send feedback message
-            feedback_msg = context.bot.send_message(
+            feedback_msg = await context.bot.send_message(
                 update.effective_chat.id,
                 f"{update.effective_user.name}, твой ответ слишком короткий. "
                 "Я верю, что ты можешь написать больше о себе!",
@@ -203,23 +217,26 @@ def catch_reply(update: Update, context: CallbackContext):
             db.add_user_rel_message(user_id, feedback_msg.message_id)
         elif is_worthy(text):
             # Valid reply - welcome the user
-            _delete_user_rel_messages(update.effective_chat.id, user_id, context)
+            await _delete_user_rel_messages(update.effective_chat.id, user_id, context)
             db.delete_user(user_id=user["_id"])
-            update.message.reply_text("Добро пожаловать в VLDC!")
+            await update.message.reply_text("Добро пожаловать в VLDC!")
         else:
             # Reply doesn't pass OpenAI check - delete it
-            context.bot.delete_message(
+            await context.bot.delete_message(
                 update.effective_chat.id, update.effective_message.message_id, 10
             )
     else:
         # Not a reply to bot - delete it
-        context.bot.delete_message(
+        await context.bot.delete_message(
             update.effective_chat.id, update.effective_message.message_id, 10
         )
 
 
 def is_worthy(text: str) -> bool:
     """check if reply is a valid bio as requested"""
+    if not OPENAI_ENABLED:
+        logger.info("openai disabled; skipping spam check")
+        return True
 
     # backdoor for testing
     if text.lower().find("i love vldc") != -1:
@@ -235,36 +252,41 @@ For example: "я инвестор со стажем, могу дать инфо�
 Next message is the first message of the user in the chat. Can it be considered as a short bio?
 Answer with a single word: spam or legit."""
 
-    response = openai.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": text},
-        ],
-        temperature=0.9,
-        max_tokens=150,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0.6,
-    )
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": text},
+            ],
+            temperature=0.9,
+            max_tokens=150,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0.6,
+        )
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.warning("openai spam check failed: %s", exc)
+        return True
 
-    logger.info("text: %s is %s", text, response.choices[0].message.content)
+    verdict = response.choices[0].message.content
+    logger.info("text: %s is %s", text, verdict)
 
-    return response.choices[0].message.content != "spam"
+    return verdict != "spam"
 
 
-def quarantine_filter(update: Update, context: CallbackContext):
+async def quarantine_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     # todo: cache it
     user = db.find_user(user_id)
     # if user exist -> remove message
     if user is not None:
-        context.bot.delete_message(
+        await context.bot.delete_message(
             update.effective_chat.id, update.effective_message.message_id, 10
         )
 
 
-def i_am_a_bot_btn(update: Update, context: CallbackContext):
+async def i_am_a_bot_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     query = update.callback_query
 
@@ -274,19 +296,25 @@ def i_am_a_bot_btn(update: Update, context: CallbackContext):
         else:
             msg = f"Любопытство сгубило кошку, {user.name} :3"
 
-        context.bot.answer_callback_query(query.id, msg, show_alert=True)
+        await context.bot.answer_callback_query(query.id, msg, show_alert=True)
 
 
-def ban_user(context: CallbackContext):
+async def ban_user(context: ContextTypes.DEFAULT_TYPE):
     # fixme: smth wrong here
-    chat_id = context.bot.get_chat(chat_id=context.job.context["chat_id"]).id
+    job_data = context.job.data or {}
+    group_chat_id = job_data.get("chat_id")
+    if not group_chat_id:
+        logger.warning("CHAT_ID is empty; skipping ban_user job")
+        return
+
+    chat_id = (await context.bot.get_chat(chat_id=group_chat_id)).id
     logger.debug("get chat.id: %s", chat_id)
 
     for user in db.find_all_users():
         if _is_time_gone(user):
             try:
-                context.bot.kick_chat_member(chat_id, user["_id"])
-                _delete_user_rel_messages(chat_id, user["_id"], context)
+                await context.bot.ban_chat_member(chat_id, user["_id"])
+                await _delete_user_rel_messages(chat_id, user["_id"], context)
             except BadRequest as err:
                 logger.error("can't ban user %s, because of: %s", user, err)
                 continue

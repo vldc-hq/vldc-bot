@@ -2,7 +2,7 @@ import logging
 from datetime import timedelta
 
 from telegram import Update, User
-from telegram.ext import Updater, Dispatcher, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, MessageHandler, ContextTypes, filters
 
 from mode import Mode
 from skills.mute import mute_user_for_time
@@ -18,21 +18,20 @@ EXCLUDING = ["@ravino_doul"]
 
 
 @mode.add
-def add_nastya_mode(upd: Updater, handlers_group: int):
+def add_nastya_mode(app: Application, handlers_group: int):
     logger.info("registering nastya handlers")
-    dp: Dispatcher = upd.dispatcher
 
-    dp.add_handler(
+    app.add_handler(
         MessageHandler(
-            (Filters.voice | Filters.video_note) & ~Filters.status_update,
+            (filters.VOICE | filters.VIDEO_NOTE) & ~filters.StatusUpdate.ALL,
             handle_nastya_mode,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
-def handle_nastya_mode(update: Update, context: CallbackContext):
+async def handle_nastya_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user: User = update.effective_user
     chat_id = update.effective_chat.id
     message = update.message
@@ -64,9 +63,9 @@ def handle_nastya_mode(update: Update, context: CallbackContext):
                 f"\n@{user.username} пытался сказать: {recognized_text}"
             )
 
-    context.bot.send_message(chat_id=chat_id, text=message_text)
+    await context.bot.send_message(chat_id=chat_id, text=message_text)
 
     try:
-        mute_user_for_time(update, context, user, VOICE_USER_MUTE_DURATION)
+        await mute_user_for_time(update, context, user, VOICE_USER_MUTE_DURATION)
     finally:
-        context.bot.delete_message(chat_id=chat_id, message_id=message.message_id)
+        await context.bot.delete_message(chat_id=chat_id, message_id=message.message_id)

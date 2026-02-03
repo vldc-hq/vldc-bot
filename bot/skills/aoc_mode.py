@@ -7,9 +7,9 @@ import requests
 from pymongo.collection import Collection
 from telegram import Update, Bot
 from telegram.ext import (
-    Updater,
-    CallbackContext,
     JobQueue,
+    ContextTypes,
+    Application,
 )
 
 from config import get_group_chat_id, get_aoc_session
@@ -55,33 +55,33 @@ _db = DB(db_name="aoc")
 mode = Mode(
     mode_name="aoc_mode",
     default=OFF,
-    on_callback=lambda dp: start_aoc_handlers(dp.job_queue, dp.bot),
-    off_callback=lambda dp: stop_aoc_handlers(dp.job_queue, dp.bot),
+    on_callback=lambda app: start_aoc_handlers(app.job_queue),
+    off_callback=lambda app: stop_aoc_handlers(app.job_queue),
 )
 
 
-def start_aoc_handlers(queue: JobQueue, bot: Bot):
+def start_aoc_handlers(queue: JobQueue):
     logger.info("registering aoc handlers")
-    update_aoc_data(bot, queue)
     queue.run_repeating(
-        lambda _: update_aoc_data(bot, queue),
+        update_aoc_data,
         AOC_UPDATE_INTERVAL,
         name=JOB_AOC_UPDATE,
     )
+    queue.run_once(update_aoc_data, 0)
 
 
-def stop_aoc_handlers(queue: JobQueue, bot: Bot):
+def stop_aoc_handlers(queue: JobQueue):
     jobs = queue.get_jobs_by_name(JOB_AOC_UPDATE)
     for job in jobs:
         job.schedule_removal()
 
 
-def test(update: Update, context: CallbackContext):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="test")
+async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="test")
 
 
 @mode.add
-def add_aoc_mode(upd: Updater, handlers_group: int):
+def add_aoc_mode(app: Application, handlers_group: int):
     pass
 
 
@@ -122,10 +122,10 @@ def calculate_solved_by(members, current_day):
         task = None
 
         if len(tasks) == 1:
-            (task) = tasks["1"]
+            task = tasks["1"]
             solved = [datetime.fromtimestamp(task["get_star_ts"])]
         elif len(tasks) == 2:
-            (task1, task) = tasks["1"], tasks["2"]
+            task1, task = tasks["1"], tasks["2"]
             solved = [
                 datetime.fromtimestamp(task1["get_star_ts"]),
                 datetime.fromtimestamp(task["get_star_ts"]),
@@ -138,7 +138,7 @@ def calculate_solved_by(members, current_day):
     return dict(sorted(new_day_solved_by.items(), key=cmp_to_key(cmp)))
 
 
-def process_aoc_update(data, bot: Bot):
+async def process_aoc_update(data, bot: Bot):
     cached_data = _db.get()
 
     # It is okay for a first mode run, just store this one
@@ -186,10 +186,15 @@ def process_aoc_update(data, bot: Bot):
                 " Gut Gemacht! 🔥🔥🔥"
             )
 
-            bot.send_message(get_group_chat_id(), message)
+            group_chat_id = get_group_chat_id()
+            if group_chat_id:
+                await bot.send_message(group_chat_id, message)
+            else:
+                logger.warning("CHAT_ID is empty; skipping AOC notification")
 
 
-def update_aoc_data(bot: Bot, queue: JobQueue):
+async def update_aoc_data(context: ContextTypes.DEFAULT_TYPE):
+    bot = context.bot
     aoc_session = get_aoc_session()
 
     if aoc_session is None:
@@ -207,4 +212,4 @@ def update_aoc_data(bot: Bot, queue: JobQueue):
     data = response.json()
     logger.info(data)
 
-    process_aoc_update(data, bot)
+    await process_aoc_update(data, bot)

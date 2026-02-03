@@ -10,22 +10,43 @@ from typing import Dict, Optional
 from uuid import uuid4
 
 import openai
-import google.generativeai as genai
 import pymongo
 from config import get_group_chat_id
+from tg_filters import group_chat_filter
 from db.mongo import get_db
-from filters import admin_filter
-from handlers import CommandHandler
 from mode import cleanup_queue_update
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
 from skills.mute import mute_user_for_time
 from telegram import Message, Update, User
-from telegram.ext import CallbackContext, MessageHandler, Updater
-from telegram.ext.filters import Filters
-
+from telegram.ext import (
+    Application,
+    MessageHandler,
+    ContextTypes,
+    CommandHandler,
+    filters,
+)
+from permissions import is_admin
 
 logger = logging.getLogger(__name__)
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
+OPENAI_ENABLED = bool(OPENAI_API_KEY)
+
+try:
+    from google import genai
+except Exception as exc:  # pylint: disable=broad-except
+    genai = None
+    logger.warning("google genai unavailable; gemini disabled: %s", exc)
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GENAI_CLIENT = None
+if genai is not None and GEMINI_API_KEY:
+    try:
+        GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.warning("failed to init GenAI client: %s", exc)
 
 
 MEME_REGEX = re.compile(r"\/[вb][иu][kк][tт][оo][pр][иu][hн][aа]", re.IGNORECASE)
@@ -110,8 +131,8 @@ class Buktopuha:
         self.word = ""
         self.started_at = None
         self.last_game_at = None
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        if not OPENAI_ENABLED:
+            logger.warning("OpenAI is disabled: OPENAI_API_KEY is not set")
 
     def get_word(self) -> str:
         with self.the_lock:
@@ -139,7 +160,7 @@ class Buktopuha:
             self.started_at = None
 
     def hint1(self, chat_id: str, orig_word: str):
-        def _f(context: CallbackContext):
+        async def _f(context: ContextTypes.DEFAULT_TYPE):
             word = self.get_word()
             # Need to double check the word is the same
             # because game can be already stopped
@@ -148,7 +169,7 @@ class Buktopuha:
                 return
             char = word[randint(0, len(word) - 1)]
             masked = re.sub(f"[^{char}]", "*", word)
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 chat_id,
                 f"First hint: {masked}",
             )
@@ -162,14 +183,14 @@ class Buktopuha:
         return _f
 
     def hint2(self, chat_id: str, orig_word: str):
-        def _f(context: CallbackContext):
+        async def _f(context: ContextTypes.DEFAULT_TYPE):
             word = self.get_word()
             if word != orig_word:
                 return
             word = list(word)
             random.shuffle(word)
             anagram = "".join(word)
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 chat_id,
                 f"Second hint (anagram): {anagram}",
             )
@@ -183,12 +204,12 @@ class Buktopuha:
         return _f
 
     def end(self, chat_id: str, orig_word: str):
-        def _f(context: CallbackContext):
+        async def _f(context: ContextTypes.DEFAULT_TYPE):
             word = self.get_word()
             if word != orig_word:
                 return
             self.stop()
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 chat_id,
                 f"Nobody guessed the word {word} 😢",
             )
@@ -206,7 +227,7 @@ class Buktopuha:
         return word != "" and text.lower().find(word) >= 0
 
 
-def add_buktopuha(upd: Updater, handlers_group: int):
+def add_buktopuha(app: Application, handlers_group: int):
     global WORDLIST
     try:
         with open("/app/words.txt", "rt", encoding="utf8") as fi:
@@ -215,36 +236,32 @@ def add_buktopuha(upd: Updater, handlers_group: int):
         logger.error("failed to read wordlist!")
 
     logger.info("registering buktopuha handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    group_filter = group_chat_filter()
+
+    app.add_handler(
         CommandHandler(
             "znatoki",
             show_nerds,
-            filters=~Filters.chat(username=get_group_chat_id().strip("@"))
-            | admin_filter,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         # limit to groups to avoid API abuse
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@"))
-            & Filters.regex(MEME_REGEX),
+            group_filter & filters.Regex(MEME_REGEX),
             start_buktopuha,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         MessageHandler(
-            Filters.chat(username=get_group_chat_id().strip("@"))
-            & Filters.text
-            & ~Filters.status_update,
+            group_filter & filters.TEXT & ~filters.StatusUpdate.ALL,
             check_for_answer,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
@@ -262,13 +279,13 @@ WORDLIST = [
 game = Buktopuha()
 
 
-def stop_jobs(update: Update, context: CallbackContext, names: list[str]):
+def stop_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE, names: list[str]):
     for name in names:
         for job in context.job_queue.get_jobs_by_name(name):
             job.schedule_removal()
 
 
-def check_for_answer(update: Update, context: CallbackContext):
+async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_message is None:
         return
 
@@ -291,7 +308,7 @@ def check_for_answer(update: Update, context: CallbackContext):
                 "👏",
             ]
         )
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             yes,
             reply_to_message_id=update.message.message_id,
@@ -302,12 +319,12 @@ def check_for_answer(update: Update, context: CallbackContext):
         # Felix Felicis
         if random.random() < 0.1:
             minutes = random.randint(1, 10)
-            result = context.bot.send_message(
+            result = await context.bot.send_message(
                 update.effective_chat.id,
                 f"Oh, you're lucky! You get a prize: ban for {minutes} min!",
                 reply_to_message_id=update.message.message_id,
             )
-            mute_user_for_time(
+            await mute_user_for_time(
                 update, context, update.effective_user, timedelta(minutes=minutes)
             )
             cleanup_queue_update(
@@ -328,47 +345,66 @@ def check_for_answer(update: Update, context: CallbackContext):
 
 
 def generate_question(prompt, word) -> str:
-    model = random.choice(
+    gpt_models = (
         [
             "gpt-4-turbo",
             "gpt-4o",
             "gpt-4.1",
-            "gemini-1.5-pro",
-            "gemini-2.0-flash",
-            "gemini-2.5-pro-preview-03-25",
         ]
+        if OPENAI_ENABLED
+        else []
     )
+    gemini_models = [
+        "gemini-1.5-pro",
+        "gemini-2.0-flash",
+        "gemini-2.5-pro-preview-03-25",
+    ]
+    models = gpt_models + (gemini_models if GENAI_CLIENT is not None else [])
+    if not models:
+        return f"Guess the word. It has {len(word)} letters."
+    model = random.choice(models)
     if model.startswith("gpt"):
-        response = openai.chat.completions.create(
-            model=model,
-            messages=[{"role": "system", "content": prompt}],
-            temperature=0.9,
-            max_tokens=150,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0.6,
-        )
-        rs = response.choices[0].message.content
-        return f"{model}: " + re.sub(
-            word, "***", rs, flags=re.IGNORECASE
-        ).strip().strip('"')
-    if model.startswith("gemini"):
-        resp = genai.GenerativeModel(model).generate_content(prompt)
-        return f"{model}: " + re.sub(
-            word, "***", resp.text, flags=re.IGNORECASE
-        ).strip().strip('"')
+        try:
+            response = openai.chat.completions.create(
+                model=model,
+                messages=[{"role": "system", "content": prompt}],
+                temperature=0.9,
+                max_tokens=150,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0.6,
+            )
+            rs = response.choices[0].message.content
+            return f"{model}: " + re.sub(
+                word, "***", rs, flags=re.IGNORECASE
+            ).strip().strip('"')
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("openai question failed: %s", exc)
+            return f"Guess the word. It has {len(word)} letters."
+    if model.startswith("gemini") and GENAI_CLIENT is not None:
+        try:
+            resp = GENAI_CLIENT.models.generate_content(
+                model=model,
+                contents=prompt,
+            )
+            return f"{model}: " + re.sub(
+                word, "***", resp.text, flags=re.IGNORECASE
+            ).strip().strip('"')
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("genai question failed: %s", exc)
+            return f"Guess the word. It has {len(word)} letters."
 
     raise Exception(f"unknown model '{model}'")
 
 
-def start_buktopuha(update: Update, context: CallbackContext):
+async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None:
         return
 
     result: Optional[Message] = None
 
     if not game.can_start():
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             "Hey, not so fast!",
         )
@@ -378,7 +414,9 @@ def start_buktopuha(update: Update, context: CallbackContext):
             result,
             10,
         )
-        mute_user_for_time(update, context, update.effective_user, timedelta(minutes=1))
+        await mute_user_for_time(
+            update, context, update.effective_user, timedelta(minutes=1)
+        )
         return
 
     word = random.choice(WORDLIST)
@@ -395,7 +433,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
         question = generate_question(prompt, word)
     except:  # pylint: disable=bare-except # noqa: E722
         logger.error("Error calling GenAI model", exc_info=1)
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             "Sorry, my GenAI brain is dizzy 😵‍💫 Try in a minute!",
         )
@@ -412,7 +450,7 @@ def start_buktopuha(update: Update, context: CallbackContext):
     if game.since_last_game() > timedelta(minutes=120):
         msg = f"🎠 Starting the BukToPuHa! 🎪\nTry to guess the word in 30seconds:\n\n{question}"
 
-    result = context.bot.send_message(
+    result = await context.bot.send_message(
         update.effective_chat.id,
         msg,
     )
@@ -420,19 +458,16 @@ def start_buktopuha(update: Update, context: CallbackContext):
     context.job_queue.run_once(
         game.hint1(update.effective_chat.id, word),
         10,
-        context=context,
         name=f"hint1-{word}",
     )
     context.job_queue.run_once(
         game.hint2(update.effective_chat.id, word),
         20,
-        context=context,
         name=f"hint2-{word}",
     )
     context.job_queue.run_once(
         game.end(update.effective_chat.id, word),
         30,
-        context=context,
         name=f"end-{word}",
     )
 
@@ -443,7 +478,20 @@ def start_buktopuha(update: Update, context: CallbackContext):
         _db.game(user_id=update.effective_user.id)
 
 
-def show_nerds(update: Update, context: CallbackContext):
+def _is_group_chat(update: Update) -> bool:
+    chat = update.effective_chat
+    if chat is None:
+        return False
+    chat_id_or_name = get_group_chat_id()
+    if not chat_id_or_name:
+        return False
+    try:
+        return chat.id == int(chat_id_or_name)
+    except ValueError:
+        return chat.username == chat_id_or_name.strip("@")
+
+
+async def show_nerds(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show leader board, I believe it should looks like smth like:
 
                     3HaToKu BuKToPuHbI
@@ -456,19 +504,22 @@ def show_nerds(update: Update, context: CallbackContext):
 
     """
 
+    if _is_group_chat(update) and not await is_admin(update, context):
+        return
+
     logger.error(update)
     # CSS is awesome!
     # todo:
     #  need to find out how to show board for mobile telegram as well
     board = (
         f"{'3HaToKu BuKToPuHbI'.center(52)}\n"
-        f"{'='*55}\n"
+        f"{'=' * 55}\n"
         f"{'score'.center(12)} "
         f"| {'games'.center(9)} "
         f"| {'wins'.center(9)} "
         f"| {'znatok'.center(16)} "
         f"\n"
-        f"{'-'*12} + {'-'*9} + {'-'*9} + {'-'*16}\n"
+        f"{'-' * 12} + {'-' * 9} + {'-' * 9} + {'-' * 16}\n"
     )
 
     znatoki = _db.find_all()
@@ -483,7 +534,7 @@ def show_nerds(update: Update, context: CallbackContext):
             f"| {username.ljust(16)}\n"
         )
 
-    board += f"{'-'*55}"
+    board += f"{'-' * 55}"
     try:
         board_image, board_image_path = from_text_to_image(board, znatoki_length)
     except (ValueError, RuntimeError, OSError) as ex:
@@ -493,13 +544,13 @@ def show_nerds(update: Update, context: CallbackContext):
     result: Optional[Message] = None
 
     if znatoki_length <= ZNATOKI_LIMIT_FOR_IMAGE:
-        result = context.bot.send_photo(
+        result = await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=board_image,
             disable_notification=True,
         )
     else:
-        result = context.bot.send_document(
+        result = await context.bot.send_document(
             chat_id=update.effective_chat.id,
             document=board_image,
             disable_notification=True,
