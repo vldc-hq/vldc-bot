@@ -1,6 +1,7 @@
 import collections
 import functools
 import time
+from typing import Any
 
 
 def timed_lru_cache(maxsize=128, ttl=60):
@@ -12,7 +13,9 @@ def timed_lru_cache(maxsize=128, ttl=60):
     """
 
     def decorator(func):
-        cache = collections.OrderedDict()
+        cache: collections.OrderedDict[tuple[Any, ...], tuple[Any, float]] = (
+            collections.OrderedDict()
+        )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):

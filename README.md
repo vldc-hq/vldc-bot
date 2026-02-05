@@ -46,6 +46,25 @@ Setup your env vars in `example.env` and rename it to `.env`. Don't push `.env` 
 make up
 ```
 
+## Local venv (no Docker)
+Create a virtual environment and install dependencies locally:
+
+```
+make venv
+source .venv/bin/activate
+```
+
+Run the bot locally:
+```
+PYTHONPATH=./bot python bot/main.py
+```
+
+Then run linters/tests with:
+```
+make lint
+make test
+```
+
 ## Build local image
 
 ```

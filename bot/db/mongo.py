@@ -16,7 +16,7 @@ uri = "mongodb://%s:%s@%s" % (
     conf["MONGO_HOST"],
 )
 
-__client = MongoClient(uri)
+__client: MongoClient = MongoClient(uri)
 
 
 def get_db(db_name: str) -> Database:

@@ -13,7 +13,7 @@ class TrustedDB:
     def __init__(self, db_name: str):
         self._coll: Collection = get_db(db_name).users
 
-    def is_trusted(self, user_id: str) -> bool:
+    def is_trusted(self, user_id: int | str) -> bool:
         return self._coll.find_one({"_id": user_id}) is not None
 
 
@@ -23,7 +23,7 @@ _trusted_db = TrustedDB("trusted")
 class TrustedFilter(MessageFilter):
     """Messages only from trusted users"""
 
-    name = "Filter.trusted"
+    name = "Filter.trusted"  # pyright: ignore[reportAssignmentType]
 
     def filter(self, message: Message) -> Optional[Union[bool, dict]]:
         if get_debug():
@@ -34,7 +34,7 @@ class TrustedFilter(MessageFilter):
 class UwuFilter(MessageFilter):
     """Regexp check for UwU"""
 
-    name = "Filters.uwu"
+    name = "Filters.uwu"  # pyright: ignore[reportAssignmentType]
 
     def filter(self, message) -> bool:
         if message.text:

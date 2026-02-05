@@ -2,7 +2,7 @@ import os
 import logging
 from datetime import datetime, timedelta
 from random import choice
-from typing import Dict
+from typing import Dict, Any, Iterable, cast
 
 import openai
 from pymongo.collection import Collection
@@ -47,7 +47,7 @@ class DB:
     def __init__(self, db_name: str):
         self._coll: Collection = get_db(db_name).quarantine
 
-    def add_user(self, user_id: str):
+    def add_user(self, user_id: int):
         return (
             self._coll.insert_one(
                 {
@@ -60,18 +60,18 @@ class DB:
             else None
         )
 
-    def find_user(self, user_id: str):
+    def find_user(self, user_id: int) -> Dict[str, Any] | None:
         return self._coll.find_one({"_id": user_id})
 
-    def find_all_users(self):
+    def find_all_users(self) -> Iterable[Dict[str, Any]]:
         return self._coll.find({})
 
-    def add_user_rel_message(self, user_id: str, message_id: str):
+    def add_user_rel_message(self, user_id: int, message_id: int):
         self._coll.update_one(
             {"_id": user_id}, {"$addToSet": {"rel_messages": message_id}}
         )
 
-    def delete_user(self, user_id: str):
+    def delete_user(self, user_id: int):
         return self._coll.delete_one({"_id": user_id})
 
     def delete_all_users(self):
@@ -89,7 +89,7 @@ def _is_time_gone(user: Dict) -> bool:
 
 
 async def _delete_user_rel_messages(
-    chat_id: int, user_id: str, context: ContextTypes.DEFAULT_TYPE
+    chat_id: int, user_id: int, context: ContextTypes.DEFAULT_TYPE
 ):
     for msg_id in db.find_user(user_id=user_id)["rel_messages"]:
         try:
@@ -138,7 +138,7 @@ def add_towel_mode(app: Application, handlers_group: int):
         logger.warning("CHAT_ID is empty; towel_mode ban job is disabled")
 
 
-async def quarantine_user(user: User, chat_id: str, context: ContextTypes.DEFAULT_TYPE):
+async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAULT_TYPE):
     logger.info("put %s in quarantine", user)
     db.add_user(user.id)
 
@@ -176,7 +176,7 @@ async def quarantine_user(user: User, chat_id: str, context: ContextTypes.DEFAUL
             )
         ).message_id
 
-        db.delete_user(user_id=user["_id"])
+        db.delete_user(user_id=cast(int, user["_id"]))
         await context.bot.send_message(
             chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id
         )
@@ -218,17 +218,19 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif is_worthy(text):
             # Valid reply - welcome the user
             await _delete_user_rel_messages(update.effective_chat.id, user_id, context)
-            db.delete_user(user_id=user["_id"])
+            db.delete_user(user_id=cast(int, user["_id"]))
             await update.message.reply_text("Добро пожаловать в VLDC!")
         else:
             # Reply doesn't pass OpenAI check - delete it
             await context.bot.delete_message(
-                update.effective_chat.id, update.effective_message.message_id, 10
+                chat_id=update.effective_chat.id,
+                message_id=update.effective_message.message_id,
             )
     else:
         # Not a reply to bot - delete it
         await context.bot.delete_message(
-            update.effective_chat.id, update.effective_message.message_id, 10
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.message_id,
         )
 
 
@@ -282,7 +284,8 @@ async def quarantine_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # if user exist -> remove message
     if user is not None:
         await context.bot.delete_message(
-            update.effective_chat.id, update.effective_message.message_id, 10
+            chat_id=update.effective_chat.id,
+            message_id=update.effective_message.message_id,
         )
 
 
@@ -301,7 +304,10 @@ async def i_am_a_bot_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def ban_user(context: ContextTypes.DEFAULT_TYPE):
     # fixme: smth wrong here
-    job_data = context.job.data or {}
+    job_data = context.job.data
+    if not isinstance(job_data, dict):
+        logger.warning("job data missing or invalid; skipping ban_user job")
+        return
     group_chat_id = job_data.get("chat_id")
     if not group_chat_id:
         logger.warning("CHAT_ID is empty; skipping ban_user job")
@@ -312,13 +318,14 @@ async def ban_user(context: ContextTypes.DEFAULT_TYPE):
 
     for user in db.find_all_users():
         if _is_time_gone(user):
+            user_id = int(user["_id"])
             try:
-                await context.bot.ban_chat_member(chat_id, user["_id"])
-                await _delete_user_rel_messages(chat_id, user["_id"], context)
+                await context.bot.ban_chat_member(chat_id, user_id)
+                await _delete_user_rel_messages(chat_id, user_id, context)
             except BadRequest as err:
                 logger.error("can't ban user %s, because of: %s", user, err)
                 continue
 
-            db.delete_user(user["_id"])
+            db.delete_user(user_id)
 
             logger.info("user banned: %s", user)

@@ -58,7 +58,7 @@ class DB:
     def find_all(self):
         return list(self._coll.find({}).sort("total_time_in_club", pymongo.DESCENDING))
 
-    def find(self, user_id: str):
+    def find(self, user_id: int):
         return self._coll.find_one({"_id": user_id})
 
     def add(self, user: User):
@@ -78,7 +78,7 @@ class DB:
             }
         )
 
-    def dead(self, user_id: str, mute_min: int):
+    def dead(self, user_id: int, mute_min: int):
         self._coll.update_one(
             {"_id": user_id},
             {
@@ -91,7 +91,7 @@ class DB:
             },
         )
 
-    def miss(self, user_id: str):
+    def miss(self, user_id: int):
         self._coll.update_one(
             {"_id": user_id},
             {
@@ -100,7 +100,7 @@ class DB:
             },
         )
 
-    def remove(self, user_id: str):
+    def remove(self, user_id: int):
         self._coll.delete_one({"_id": user_id})
 
     def remove_all(self):

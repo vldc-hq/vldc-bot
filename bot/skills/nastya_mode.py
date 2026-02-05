@@ -41,8 +41,12 @@ async def handle_nastya_mode(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     message_type = message.voice or message.video_note
     duration = message_type.duration
+    if isinstance(duration, timedelta):
+        duration_seconds = int(duration.total_seconds())
+    else:
+        duration_seconds = int(duration)
 
-    if duration > MAX_DURATION:
+    if duration_seconds > MAX_DURATION:
         message_text = f"🤫🤫🤫 @{user.username}! Слишком много наговорил..."
     else:
         file_id = message_type.file_id

@@ -73,7 +73,7 @@ class DB:
     def find_all(self):
         return list(self._coll.find({}).sort("win_counter", pymongo.DESCENDING))
 
-    def find(self, user_id: str):
+    def find(self, user_id: int):
         return self._coll.find_one({"_id": user_id})
 
     def add(self, user: User, score: int = 0):
@@ -95,7 +95,7 @@ class DB:
             }
         )
 
-    def game(self, user_id: str):
+    def game(self, user_id: int):
         self._coll.update_one(
             {"_id": user_id},
             {
@@ -106,7 +106,7 @@ class DB:
             },
         )
 
-    def win(self, user_id: str, score: int):
+    def win(self, user_id: int, score: int):
         self._coll.update_one(
             {"_id": user_id},
             {
@@ -115,7 +115,7 @@ class DB:
             },
         )
 
-    def remove(self, user_id: str):
+    def remove(self, user_id: int):
         self._coll.delete_one({"_id": user_id})
 
     def remove_all(self):
@@ -159,7 +159,7 @@ class Buktopuha:
             self.word = ""
             self.started_at = None
 
-    def hint1(self, chat_id: str, orig_word: str):
+    def hint1(self, chat_id: int, orig_word: str):
         async def _f(context: ContextTypes.DEFAULT_TYPE):
             word = self.get_word()
             # Need to double check the word is the same
@@ -182,14 +182,14 @@ class Buktopuha:
 
         return _f
 
-    def hint2(self, chat_id: str, orig_word: str):
+    def hint2(self, chat_id: int, orig_word: str):
         async def _f(context: ContextTypes.DEFAULT_TYPE):
             word = self.get_word()
             if word != orig_word:
                 return
-            word = list(word)
-            random.shuffle(word)
-            anagram = "".join(word)
+            letters = list(word)
+            random.shuffle(letters)
+            anagram = "".join(letters)
             result = await context.bot.send_message(
                 chat_id,
                 f"Second hint (anagram): {anagram}",
@@ -203,7 +203,7 @@ class Buktopuha:
 
         return _f
 
-    def end(self, chat_id: str, orig_word: str):
+    def end(self, chat_id: int, orig_word: str):
         async def _f(context: ContextTypes.DEFAULT_TYPE):
             word = self.get_word()
             if word != orig_word:
@@ -432,7 +432,7 @@ async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         question = generate_question(prompt, word)
     except:  # pylint: disable=bare-except # noqa: E722
-        logger.error("Error calling GenAI model", exc_info=1)
+        logger.error("Error calling GenAI model", exc_info=True)
         result = await context.bot.send_message(
             update.effective_chat.id,
             "Sorry, my GenAI brain is dizzy 😵‍💫 Try in a minute!",

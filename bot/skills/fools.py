@@ -38,7 +38,7 @@ def add_fools_mode(app: Application, handlers_group: int):
 
 
 async def mesaĝa_traduko(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message["text"]
+    text = update.message.text or ""
     user: User = update.effective_user
     chat_id = update.effective_chat.id
 
@@ -56,8 +56,13 @@ async def mesaĝa_traduko(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lingvo = "he"
         emoji = "🧘‍♂️"
     try:
+        translated = traduki(text, lingvo)
+    except Exception as err:  # pylint: disable=broad-except
+        logger.warning("translation failed, sending original: %s", err)
+        translated = text
+    try:
         await context.bot.send_message(
-            chat_id, f"{emoji} {user.full_name}: {traduki(text, lingvo)}"
+            chat_id, f"{emoji} {user.full_name}: {translated}"
         )
     except TelegramError as err:
         logger.info("can't translate msg: %s, because of: %s", text, err)
@@ -67,6 +72,8 @@ def f(text: str, lingvo: str) -> str:
     if translate is None:
         raise RuntimeError("google translate is not available")
     project_id = os.getenv("GOOGLE_PROJECT_ID")
+    if not project_id:
+        raise RuntimeError("GOOGLE_PROJECT_ID is not set")
 
     client = translate.TranslationServiceClient()
 

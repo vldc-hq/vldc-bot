@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import pymongo
 from pymongo.collection import Collection
@@ -33,7 +33,7 @@ class DB:
         for word in words:
             self.add_word(word)
 
-    def find_all(self) -> list[str]:
+    def find_all(self) -> list[Dict[str, Any]]:
         return list(self._coll.find({}).sort("count", pymongo.DESCENDING))
 
 

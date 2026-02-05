@@ -34,6 +34,13 @@ async def _post_init(application):
         logger.warning("failed to fetch bot user info: %s", exc)
 
 
+async def _error_handler(update, context):
+    if update is not None:
+        logger.exception("update handling failed: %s", update, exc_info=context.error)
+    else:
+        logger.exception("update handling failed", exc_info=context.error)
+
+
 def main():
     """🐈🐈🐈"""
     conf = get_config()
@@ -66,6 +73,7 @@ def main():
         .request(request)
         .build()
     )
+    application.add_error_handler(_error_handler)
 
     for handler_group, skill in enumerate(skills, DEFAULT_GROUP + 1):
         skill["add_handlers"](application, handler_group)

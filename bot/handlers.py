@@ -1,11 +1,13 @@
 import inspect
-from typing import Callable, Optional
+from typing import Any, Callable, Coroutine
 
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes, filters as tg_filters
 
 from config import get_group_chat_id
 from permissions import is_admin
+
+CallbackType = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, Any]]
 
 
 class ChatCommandHandler(CommandHandler):
@@ -18,7 +20,8 @@ class ChatCommandHandler(CommandHandler):
     def __init__(
         self,
         command,
-        callback: Callable[[Update, ContextTypes.DEFAULT_TYPE], Optional[object]],
+        callback: CallbackType,
+        *,
         filters=None,
         require_admin: bool = False,
         block: bool = False,
@@ -44,13 +47,13 @@ class ChatCommandHandler(CommandHandler):
         )
 
 
-async def _maybe_await(result):
+async def _maybe_await(result: Any) -> Any:
     if inspect.isawaitable(result):
         return await result
     return result
 
 
-def _wrap_admin(callback):
+def _wrap_admin(callback: CallbackType) -> CallbackType:
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await is_admin(update, context):
             return None

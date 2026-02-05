@@ -5,10 +5,10 @@ from typing import Callable, List, Optional
 from telegram import Update, Message
 from telegram.error import BadRequest, NetworkError, TimedOut, TelegramError
 from telegram.ext import (
-    CommandHandler,
     JobQueue,
     Application,
     ContextTypes,
+    BaseHandler,
 )
 
 from handlers import ChatCommandHandler
@@ -23,12 +23,13 @@ class Mode:
     """Todo: add docstring (no)"""
 
     _dp: Application
-    _mode_handlers: List[CommandHandler] = []
+    _mode_handlers: List[BaseHandler] = []
 
     def __init__(
         self,
         mode_name: str,
         default: bool = True,
+        *,
         pin_info_msg: bool = False,
         off_callback: Optional[Callable[[Application], None]] = None,
         on_callback: Optional[Callable[[Application], None]] = None,
@@ -47,13 +48,19 @@ class Mode:
         return f"is_{mode_name}_on".lower()
 
     def _get_mode_state(self, context: ContextTypes.DEFAULT_TYPE):
-        if self.chat_data_key not in context.chat_data:
-            context.chat_data[self.chat_data_key] = self.default
+        chat_data = context.chat_data
+        if chat_data is None:
+            return self.default
+        if self.chat_data_key not in chat_data:
+            chat_data[self.chat_data_key] = self.default
 
-        return context.chat_data[self.chat_data_key]
+        return chat_data[self.chat_data_key]
 
     def _set_mode(self, state: bool, context: ContextTypes.DEFAULT_TYPE):
-        context.chat_data[self.chat_data_key] = state
+        chat_data = context.chat_data
+        if chat_data is None:
+            return
+        chat_data[self.chat_data_key] = state
         logger.info("new state: %s", state)
         if state is ON:
             self._add_mode_handlers()
@@ -168,13 +175,16 @@ class Mode:
 
 
 def cleanup_queue_update(
-    queue: JobQueue,
+    queue: JobQueue | None,
     cmd: Optional[Message],
     result: Optional[Message],
     seconds: int,
+    *,
     remove_cmd=True,
     remove_reply=False,
 ):
+    if queue is None:
+        return
     _remove_message_after(result, queue, seconds)
 
     if remove_cmd and cmd:
@@ -185,7 +195,7 @@ def cleanup_queue_update(
         _remove_message_after(reply, queue, seconds)
 
 
-def _remove_message_after(message: Message, job_queue: JobQueue, seconds: int):
+def _remove_message_after(message: Message | None, job_queue: JobQueue, seconds: int):
     logger.debug(
         "Scheduling cleanup of message %s \
                    in %d seconds",

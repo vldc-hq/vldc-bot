@@ -114,7 +114,7 @@ commands_list: List[Tuple[str, str]] = [
     ("ban", "ban! ban! ban!"),
     ("roll", "life is so cruel... isn't it?"),
     ("tree", "advent of code time!"),
-    ("kozula", "💰 kozula", " Don't argue with kozula rate!"),
+    ("kozula", "💰 kozula: Don't argue with kozula rate!"),
     ("still", "do u remember it?"),
     ("banme", "commit sudoku"),
     ("prism", "top N PRISM words with optional predicate"),

@@ -5,6 +5,7 @@ import logging
 from collections import deque
 from datetime import datetime, timedelta
 from threading import Lock
+from typing import Any, cast
 
 import openai
 from config import get_config
@@ -36,7 +37,7 @@ mode = Mode(mode_name="chat_mode", default=ON)
 
 class Nyan:
     def __init__(self):
-        self.memory = deque(maxlen=MAX_MESSAGES)
+        self.memory: deque[tuple[datetime, str]] = deque(maxlen=MAX_MESSAGES)
         self.lock = Lock()
 
     def registerMessage(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -82,7 +83,7 @@ class Nyan:
 {get_examples(5)}"""
 
         theme = summarize("\n".join(log))
-        messages = [
+        messages: list[dict[str, str]] = [
             {"role": "system", "content": prompt},
             {
                 "role": "user",
@@ -90,12 +91,13 @@ class Nyan:
 {theme}.""",
             },
         ]
+        typed_messages = cast(list[Any], messages)
 
         for _ in range(MAX_TRIES):
             try:
                 response = openai.chat.completions.create(
                     model="gpt-4.1",
-                    messages=messages,
+                    messages=typed_messages,
                     temperature=0.3,
                     max_tokens=150,
                     top_p=1,
@@ -145,7 +147,7 @@ def get_examples(n=10):
     with open("pirozhki.txt", "r", encoding="utf-8") as f:
         examples = f.read().splitlines()
 
-        poems = []
+        poems: list[str] = []
         while len(poems) < n:
             pirozhok = random.choice(examples)
             try:
@@ -229,9 +231,15 @@ async def muse_visit(context: ContextTypes.DEFAULT_TYPE):
     try:
         message = nyan.write_a_poem()
         if message != "":
-            await context.bot.send_message(
-                chat_id=context.job.data["chat_id"], text=message
-            )
+            job_data = context.job.data
+            if not isinstance(job_data, dict):
+                logger.warning("muse job data missing or invalid; skipping")
+                return
+            chat_id = job_data.get("chat_id")
+            if not chat_id:
+                logger.warning("muse job data missing chat_id; skipping")
+                return
+            await context.bot.send_message(chat_id=chat_id, text=message)
             # Forget messages we already wrote about.
             nyan.forget()
     except Exception as e:  # pylint: disable=broad-except

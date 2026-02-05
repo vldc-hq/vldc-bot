@@ -13,7 +13,9 @@ from handlers import ChatCommandHandler
 
 conf = get_config()
 
-client = MongoClient(f"mongodb://{conf['MONGO_USER']}:{conf['MONGO_PASS']}@mongo:27017")
+client: MongoClient = MongoClient(
+    f"mongodb://{conf['MONGO_USER']}:{conf['MONGO_PASS']}@mongo:27017"
+)
 topics_coll: Collection = client.since_mode.topics
 
 logger = logging.getLogger(__name__)

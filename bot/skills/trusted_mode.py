@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 
 from pymongo.collection import Collection
 from telegram import Update, User
@@ -26,7 +26,7 @@ class DB:
             }
         )
 
-    def trust(self, user_id: str, admin_id: str):
+    def trust(self, user_id: int, admin_id: int):
         self._coll.insert_one(
             {
                 "_id": user_id,
@@ -35,7 +35,7 @@ class DB:
             }
         )
 
-    def untrust(self, user_id):
+    def untrust(self, user_id: int):
         self._coll.delete_one({"_id": user_id})
 
 
@@ -62,7 +62,7 @@ def add_trusted_mode(app: Application, handlers_group: int):
     )
 
 
-def _get_user_and_admin(update) -> (str, str, str):
+def _get_user_and_admin(update) -> Tuple[User, int, User]:
     user: User = update.message.reply_to_message.from_user
     admin: User = update.effective_user
     chat_id = update.effective_chat.id
