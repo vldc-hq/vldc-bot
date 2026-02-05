@@ -27,6 +27,8 @@ def add_banme(app: Application, handlers_group: int):
 
 async def banme(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        if update.message is None or update.message.from_user is None:
+            return
         user: User = update.message.from_user
         await mute_user_for_time(update, context, user, get_mute_minutes())
     except TelegramError as err:

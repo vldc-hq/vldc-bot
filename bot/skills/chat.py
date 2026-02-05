@@ -105,7 +105,7 @@ class Nyan:
                     presence_penalty=0.6,
                 )
 
-                text = response.choices[0].message.content
+                text = response.choices[0].message.content or ""
                 err = check_pirozhok(text)
                 if err == "":
                     return text
@@ -155,7 +155,7 @@ def get_examples(n=10):
                 poems.append(formatted)
             except:
                 # Some pirozhki do not match
-                None
+                pass
 
         return "\n\n".join(poems)
 

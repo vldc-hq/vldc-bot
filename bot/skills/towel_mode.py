@@ -79,9 +79,13 @@ class DB:
 
 
 db = DB("towel_mode")
-mode = Mode(
-    mode_name="towel_mode", default=True, off_callback=lambda _: db.delete_all_users()
-)
+
+
+def _clear_quarantine(_: Application) -> None:
+    db.delete_all_users()
+
+
+mode = Mode(mode_name="towel_mode", default=True, off_callback=_clear_quarantine)
 
 
 def _is_time_gone(user: Dict) -> bool:

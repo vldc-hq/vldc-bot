@@ -39,7 +39,9 @@ def add_fools_mode(app: Application, handlers_group: int):
 
 async def mesaĝa_traduko(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text or ""
-    user: User = update.effective_user
+    user: User | None = update.effective_user
+    if user is None:
+        return
     chat_id = update.effective_chat.id
 
     try:

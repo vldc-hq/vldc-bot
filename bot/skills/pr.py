@@ -20,7 +20,9 @@ def add_pr(app: Application, handlers_group: int):
 
 
 async def _pr(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user: User = (
+    if update.message is None:
+        return
+    user: User | None = (
         update.message.reply_to_message.from_user
         if update.message.reply_to_message
         else None

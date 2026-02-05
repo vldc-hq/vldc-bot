@@ -32,9 +32,13 @@ def add_nastya_mode(app: Application, handlers_group: int):
 
 
 async def handle_nastya_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user: User = update.effective_user
+    user: User | None = update.effective_user
+    if user is None:
+        return
     chat_id = update.effective_chat.id
     message = update.message
+    if message is None:
+        return
 
     if user.name in EXCLUDING:
         return

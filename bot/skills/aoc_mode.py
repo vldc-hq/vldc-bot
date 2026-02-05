@@ -60,8 +60,10 @@ mode = Mode(
 )
 
 
-def start_aoc_handlers(queue: JobQueue):
+def start_aoc_handlers(queue: JobQueue | None):
     logger.info("registering aoc handlers")
+    if queue is None:
+        return
     queue.run_repeating(
         update_aoc_data,
         AOC_UPDATE_INTERVAL,
@@ -70,7 +72,9 @@ def start_aoc_handlers(queue: JobQueue):
     queue.run_once(update_aoc_data, 0)
 
 
-def stop_aoc_handlers(queue: JobQueue):
+def stop_aoc_handlers(queue: JobQueue | None):
+    if queue is None:
+        return
     jobs = queue.get_jobs_by_name(JOB_AOC_UPDATE)
     for job in jobs:
         job.schedule_removal()

@@ -62,7 +62,14 @@ def add_prism(app: Application, handlers_group: int):
 
 
 async def extract_words(update: Update, _: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text if update.message else update.edited_message.text
+    if update.message is not None:
+        text = update.message.text
+    elif update.edited_message is not None:
+        text = update.edited_message.text
+    else:
+        return
+    if text is None:
+        return
     _db.add_words(_normalize_words(_get_words(text)))
 
 
@@ -79,7 +86,8 @@ def _normalize_pred(pred: str) -> str:
 
 
 def _get_pred(context: ContextTypes.DEFAULT_TYPE) -> str:
-    return " ".join(context.args) if len(context.args) > 0 else "True"
+    args = context.args or []
+    return " ".join(args) if len(args) > 0 else "True"
 
 
 def _eval_filter(words: List[Dict], pred: str):

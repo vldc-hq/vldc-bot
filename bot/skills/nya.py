@@ -21,7 +21,8 @@ def add_nya(app: Application, handlers_group: int):
 
 
 async def nya(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = " ".join(context.args)
+    args = context.args or []
+    text = " ".join(args)
     chat_id = update.effective_chat.id
 
     try:

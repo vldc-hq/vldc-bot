@@ -79,7 +79,8 @@ async def since_callback(update, context: ContextTypes.DEFAULT_TYPE):
         }
 
     """
-    topic_title = " ".join(context.args)
+    args = context.args or []
+    topic_title = " ".join(args)
     if len(topic_title) == 0:
         logging.warning("topic is empty")
         await update.message.reply_text("topic is empty 😿")

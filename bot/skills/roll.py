@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from random import randint
 from tempfile import gettempdir
 from threading import Lock
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Mapping, Any
 from uuid import uuid4
 
 import pymongo
@@ -195,7 +195,7 @@ def _shot(context: ContextTypes.DEFAULT_TYPE) -> Tuple[bool, int]:
     return fate, shots_remained
 
 
-def _get_username(h: Dict) -> str:
+def _get_username(h: Mapping[str, Any]) -> str:
     """Get username or fullname or unknown"""
     m = h["meta"]
     username = m.get("username")
@@ -396,7 +396,9 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None:
         return
 
-    user: User = update.effective_user
+    user: User | None = update.effective_user
+    if user is None:
+        return
     result: Optional[Message] = None
     # check if hussar already exist or create new one
     existing_user = _db.find(user_id=user.id)
@@ -443,7 +445,11 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # noinspection PyPep8Naming
 async def satisfy_GDPR(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user: User = update.effective_user
+    if update.message is None:
+        return
+    user: User | None = update.effective_user
+    if user is None:
+        return
 
     _db.remove(user.id)
     logger.info("%s was removed from DB", user.full_name)

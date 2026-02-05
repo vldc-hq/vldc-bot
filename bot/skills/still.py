@@ -25,7 +25,8 @@ def to_2k_year(year: int):
 
 
 async def still(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = " ".join(context.args)
+    args = context.args or []
+    text = " ".join(args)
     chat_id = update.effective_chat.id
     try:
         await context.bot.delete_message(chat_id, update.effective_message.message_id)

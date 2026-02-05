@@ -4,6 +4,5 @@
   "reportMissingTypeStubs": "none",
   "reportOptionalMemberAccess": "none",
   "reportOptionalSubscript": "none",
-  "reportOptionalCall": "none",
-  "exclude": ["bot/skills/**"]
+  "reportOptionalCall": "none"
 }

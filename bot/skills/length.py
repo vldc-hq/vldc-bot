@@ -64,7 +64,9 @@ _db = DB(db_name="peninsulas")
 
 
 async def _length(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user: User = update.effective_user
+    user: User | None = update.effective_user
+    if user is None:
+        return
 
     result: Optional[Message] = None
 

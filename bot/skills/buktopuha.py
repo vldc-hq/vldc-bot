@@ -288,8 +288,14 @@ def stop_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE, names: list[st
 async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_message is None:
         return
+    text = update.effective_message.text or ""
+    if not text:
+        return
 
-    if game.check_for_answer(update.effective_message.text):
+    if game.check_for_answer(text):
+        user = update.effective_user
+        if user is None:
+            return
         word = game.get_word()
         yes = random.choice(
             [
@@ -324,9 +330,7 @@ async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Oh, you're lucky! You get a prize: ban for {minutes} min!",
                 reply_to_message_id=update.message.message_id,
             )
-            await mute_user_for_time(
-                update, context, update.effective_user, timedelta(minutes=minutes)
-            )
+            await mute_user_for_time(update, context, user, timedelta(minutes=minutes))
             cleanup_queue_update(
                 context.job_queue,
                 update.message,
@@ -337,11 +341,11 @@ async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # game.since_last_game() at this point is the start time of the current game.
         # So the maximum score achievable is 30 + len(word) if the user guesses in zero seconds.
         score = GAME_TIME_SEC - game.since_last_game().seconds + len(word)
-        existing_user = _db.find(user_id=update.effective_user.id)
+        existing_user = _db.find(user_id=user.id)
         if existing_user is None:
-            _db.add(user=update.effective_user, score=score)
+            _db.add(user=user, score=score)
         else:
-            _db.win(user_id=update.effective_user.id, score=score)
+            _db.win(user_id=user.id, score=score)
 
 
 def generate_question(prompt, word) -> str:
@@ -374,7 +378,7 @@ def generate_question(prompt, word) -> str:
                 frequency_penalty=0,
                 presence_penalty=0.6,
             )
-            rs = response.choices[0].message.content
+            rs = response.choices[0].message.content or ""
             return f"{model}: " + re.sub(
                 word, "***", rs, flags=re.IGNORECASE
             ).strip().strip('"')
@@ -387,8 +391,9 @@ def generate_question(prompt, word) -> str:
                 model=model,
                 contents=prompt,
             )
+            resp_text = resp.text or ""
             return f"{model}: " + re.sub(
-                word, "***", resp.text, flags=re.IGNORECASE
+                word, "***", resp_text, flags=re.IGNORECASE
             ).strip().strip('"')
         except Exception as exc:  # pylint: disable=broad-except
             logger.warning("genai question failed: %s", exc)
@@ -399,6 +404,9 @@ def generate_question(prompt, word) -> str:
 
 async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None:
+        return
+    user = update.effective_user
+    if user is None:
         return
 
     result: Optional[Message] = None
@@ -414,9 +422,7 @@ async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result,
             10,
         )
-        await mute_user_for_time(
-            update, context, update.effective_user, timedelta(minutes=1)
-        )
+        await mute_user_for_time(update, context, user, timedelta(minutes=1))
         return
 
     word = random.choice(WORDLIST)
@@ -471,11 +477,11 @@ async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name=f"end-{word}",
     )
 
-    existing_user = _db.find(user_id=update.effective_user.id)
+    existing_user = _db.find(user_id=user.id)
     if existing_user is None:
-        _db.add(user=update.effective_user, score=0)
+        _db.add(user=user, score=0)
     else:
-        _db.game(user_id=update.effective_user.id)
+        _db.game(user_id=user.id)
 
 
 def _is_group_chat(update: Update) -> bool:

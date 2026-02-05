@@ -85,13 +85,20 @@ async def mute_user_for_time(
 
 
 async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user: User = update.message.reply_to_message.from_user
-    mute_minutes = _get_minutes(context.args)
+    if update.message is None or update.message.reply_to_message is None:
+        return
+    user: User | None = update.message.reply_to_message.from_user
+    if user is None:
+        return
+    args = context.args or []
+    mute_minutes = _get_minutes(args)
     await mute_user_for_time(update, context, user, mute_minutes)
 
 
 async def mute_self(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user: User = update.effective_user
+    user: User | None = update.effective_user
+    if user is None:
+        return
     await mute_user_for_time(update, context, user, timedelta(days=1))
     self_mute_messages = [
         f"Да как эта штука работает вообще, {user.name}?",
@@ -140,5 +147,9 @@ async def unmute_user(
 
 
 async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.message.reply_to_message.from_user
+    if update.message is None or update.message.reply_to_message is None:
+        return
+    user: User | None = update.message.reply_to_message.from_user
+    if user is None:
+        return
     await unmute_user(update, context, user)

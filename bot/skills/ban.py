@@ -15,7 +15,9 @@ def add_ban(app: Application, handlers_group: int):
 
 
 async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user: User = update.message.reply_to_message.from_user
+    if update.message is None or update.message.reply_to_message is None:
+        return
+    user: User | None = update.message.reply_to_message.from_user
     chat_id = update.effective_chat.id
 
     if user and chat_id:
