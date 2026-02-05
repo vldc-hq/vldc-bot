@@ -5,23 +5,29 @@ from datetime import datetime, timedelta
 from random import randint
 from tempfile import gettempdir
 from threading import Lock
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Mapping, Any, IO, TypedDict
 from uuid import uuid4
 
 import pymongo
 from PIL import Image, ImageDraw, ImageFont
 from pymongo.collection import Collection
-from telegram import Update, User, Message, ChatMember
+from telegram import Update, User, Message
+from telegram.constants import ChatMemberStatus
 from telegram.error import BadRequest
-from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
-from telegram.ext.filters import Filters
+from telegram.ext import (
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
 from config import get_group_chat_id
 from db.mongo import get_db
-from filters import admin_filter
 from handlers import ChatCommandHandler
 from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
+from permissions import is_admin
+from typing_utils import App, get_job_queue
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +53,15 @@ class DB:
     """
 
     def __init__(self, db_name: str):
-        self._coll: Collection = get_db(db_name).hussars
+        self._coll: Collection[HussarRecord] = get_db(db_name).hussars
 
-    def find_all(self):
+    def find_all(self) -> list["HussarRecord"]:
         return list(self._coll.find({}).sort("total_time_in_club", pymongo.DESCENDING))
 
-    def find(self, user_id: str):
+    def find(self, user_id: int) -> "HussarRecord | None":
         return self._coll.find_one({"_id": user_id})
 
-    def add(self, user: User):
+    def add(self, user: User) -> Any:
         now: datetime = datetime.now()
         return self._coll.insert_one(
             {
@@ -72,7 +78,7 @@ class DB:
             }
         )
 
-    def dead(self, user_id: str, mute_min: int):
+    def dead(self, user_id: int, mute_min: int) -> None:
         self._coll.update_one(
             {"_id": user_id},
             {
@@ -85,7 +91,7 @@ class DB:
             },
         )
 
-    def miss(self, user_id: str):
+    def miss(self, user_id: int) -> None:
         self._coll.update_one(
             {"_id": user_id},
             {
@@ -94,10 +100,10 @@ class DB:
             },
         )
 
-    def remove(self, user_id: str):
+    def remove(self, user_id: int) -> None:
         self._coll.delete_one({"_id": user_id})
 
-    def remove_all(self):
+    def remove_all(self) -> None:
         self._coll.delete_many({})
 
 
@@ -106,57 +112,68 @@ _db = DB(db_name="roll")
 MEME_REGEX = re.compile(r"\/[rрp][оo0][1lл]{2}", re.IGNORECASE)
 
 
-def add_roll(upd: Updater, handlers_group: int):
+class HussarRecord(TypedDict):
+    _id: int
+    meta: dict[str, Any]
+    shot_counter: int
+    miss_counter: int
+    dead_counter: int
+    total_time_in_club: int
+    first_shot: datetime
+    last_shot: datetime
+
+
+def add_roll(app: App, handlers_group: int):
     logger.info("registering roll handlers")
-    dp = upd.dispatcher
-    dp.add_handler(MessageHandler(Filters.dice, roll), handlers_group)
-    dp.add_handler(
-        MessageHandler(Filters.regex(MEME_REGEX), roll, run_async=True), handlers_group
+    app.add_handler(MessageHandler(filters.Dice.ALL, roll), group=handlers_group)
+    app.add_handler(
+        MessageHandler(filters.Regex(MEME_REGEX), roll, block=False),
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "gdpr_me",
             satisfy_GDPR,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         CommandHandler(
             "hussars",
             show_hussars,
-            filters=~Filters.chat(username=get_group_chat_id().strip("@"))
-            | admin_filter,
-            run_async=True,
+            block=False,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "htop",
             show_active_hussars,
-            filters=admin_filter,
+            require_admin=True,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "wipe_hussars",
             wipe_hussars,
-            filters=admin_filter,
+            require_admin=True,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
 barrel_lock = Lock()
 
 
-def _reload(context: CallbackContext) -> List[bool]:
+def _reload(context: ContextTypes.DEFAULT_TYPE) -> List[bool]:
     empty, bullet = False, True
     barrel: List[bool] = [empty] * NUM_BULLETS
     lucky_number = randint(0, NUM_BULLETS - 1)
     barrel[lucky_number] = bullet
-    context.chat_data["barrel"] = barrel
+    chat_data = context.chat_data
+    if chat_data is not None:
+        chat_data["barrel"] = barrel
 
     return barrel
 
@@ -174,16 +191,19 @@ def get_mute_minutes(shots_remain: int) -> int:
     return MUTE_MINUTES * (NUM_BULLETS - shots_remain)
 
 
-def _shot(context: CallbackContext) -> Tuple[bool, int]:
+def _shot(context: ContextTypes.DEFAULT_TYPE) -> Tuple[bool, int]:
     with barrel_lock:
-        barrel = context.chat_data.get("barrel")
+        chat_data = context.chat_data
+        if chat_data is None:
+            return False, NUM_BULLETS
+        barrel = chat_data.get("barrel")
         if barrel is None or len(barrel) == 0:
             barrel = _reload(context)
 
         logger.debug("barrel before shot: %s", barrel)
 
         fate = barrel.pop()
-        context.chat_data["barrel"] = barrel
+        chat_data["barrel"] = barrel
         shots_remained = len(barrel)  # number before reload
         if fate:
             _reload(context)
@@ -191,17 +211,17 @@ def _shot(context: CallbackContext) -> Tuple[bool, int]:
     return fate, shots_remained
 
 
-def _get_username(h: Dict) -> str:
+def _get_username(h: Mapping[str, Any]) -> str:
     """Get username or fullname or unknown"""
     m = h["meta"]
     username = m.get("username")
     fname = m.get("first_name")
     lname = m.get("last_name")
-    return (
-        username
-        or " ".join(filter(lambda x: x is not None, [fname, lname]))
-        or "unknown"
-    )
+    username = username if isinstance(username, str) else None
+    fname = fname if isinstance(fname, str) else None
+    lname = lname if isinstance(lname, str) else None
+    fullname_parts = [part for part in (fname, lname) if part]
+    return username or " ".join(fullname_parts) or "unknown"
 
 
 JPEG = "JPEG"
@@ -211,7 +231,7 @@ MODE = "L"
 FONT_SIZE = 12
 
 
-def _create_empty_image(image_path, limit):
+def _create_empty_image(image_path: str, limit: int) -> Image.Image | None:
     width = 480
     line_multi = 1
     header_height = 30
@@ -230,7 +250,7 @@ def _create_empty_image(image_path, limit):
     return image
 
 
-def _add_text_to_image(text, image_path):
+def _add_text_to_image(text: str, image_path: str) -> Image.Image | None:
     logger.info("Adding text to image")
     image = Image.open(image_path)
     logger.info("Getting font")
@@ -250,7 +270,7 @@ def _add_text_to_image(text, image_path):
     return image
 
 
-def from_text_to_image(text, limit):
+def from_text_to_image(text: str, limit: int) -> tuple[IO[bytes], str]:
     limit = max(limit, HUSSARS_LIMIT_FOR_IMAGE)
     logger.info("Getting temp dir")
     tmp_dir = gettempdir()
@@ -263,7 +283,20 @@ def from_text_to_image(text, limit):
     return image, image_path
 
 
-def show_hussars(update: Update, context: CallbackContext):
+def _is_group_chat(update: Update) -> bool:
+    chat = update.effective_chat
+    if chat is None:
+        return False
+    chat_id_or_name = get_group_chat_id()
+    if not chat_id_or_name:
+        return False
+    try:
+        return chat.id == int(chat_id_or_name)
+    except ValueError:
+        return chat.username == chat_id_or_name.strip("@")
+
+
+async def show_hussars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show leader board, I believe it should looks like smth like:
 
                            Hussars leader board
@@ -275,6 +308,10 @@ def show_hussars(update: Update, context: CallbackContext):
     ----------------------------------------------------
 
     """
+    if _is_group_chat(update) and not await is_admin(update, context):
+        return
+    if update.effective_chat is None:
+        return
     # CSS is awesome!
     # todo:
     #  need to find out how to show board for mobile telegram as well
@@ -289,13 +326,13 @@ def show_hussars(update: Update, context: CallbackContext):
         f"{''.ljust(18, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
     )
 
-    hussars = _db.find_all()
+    hussars: list[HussarRecord] = _db.find_all()
     hussars_length = len(hussars)
 
     for hussar in hussars:
         username = _get_username(hussar)
         board += (
-            f"{str(timedelta(seconds=(hussar['total_time_in_club']))).ljust(18)} "
+            f"{str(timedelta(seconds=hussar['total_time_in_club'])).ljust(18)} "
             f"| {str(hussar['shot_counter']).ljust(8)} "
             f"| {str(hussar['dead_counter']).ljust(6)} "
             f"| {username.ljust(15)}\n"
@@ -311,20 +348,20 @@ def show_hussars(update: Update, context: CallbackContext):
     result: Optional[Message] = None
 
     if hussars_length <= HUSSARS_LIMIT_FOR_IMAGE:
-        result = context.bot.send_photo(
+        result = await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=board_image,
             disable_notification=True,
         )
     else:
-        result = context.bot.send_document(
+        result = await context.bot.send_document(
             chat_id=update.effective_chat.id,
             document=board_image,
             disable_notification=True,
         )
 
     cleanup_queue_update(
-        context.job_queue,
+        get_job_queue(context),
         update.message,
         result,
         600,
@@ -335,20 +372,25 @@ def show_hussars(update: Update, context: CallbackContext):
     os.remove(board_image_path)
 
 
-def show_active_hussars(update: Update, context: CallbackContext):
-    hussars = _db.find_all()
+async def show_active_hussars(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    if update.effective_chat is None:
+        return
+    hussars: list[HussarRecord] = _db.find_all()
 
     message = "No hussars in da club 😒"
 
-    restricted_hussars = []
+    restricted_hussars: list[HussarRecord] = []
 
     for hussar in hussars:
         try:
-            chat_member = context.bot.get_chat_member(
-                update.effective_chat.id, hussar.get("_id")
+            user_id = hussar["_id"]
+            chat_member = await context.bot.get_chat_member(
+                update.effective_chat.id, user_id
             )
 
-            if chat_member.status == ChatMember.RESTRICTED:
+            if chat_member.status == ChatMemberStatus.RESTRICTED:
                 restricted_hussars.append(hussar)
 
         except BadRequest:
@@ -363,21 +405,25 @@ def show_active_hussars(update: Update, context: CallbackContext):
             emoji = chr(ord("😀") + magia_nombro % 75)
             message += f"{emoji} {name} \n"
 
-    result = context.bot.send_message(update.effective_chat.id, message)
+    result = await context.bot.send_message(update.effective_chat.id, message)
 
     cleanup_queue_update(
-        context.job_queue,
+        get_job_queue(context),
         update.message,
         result,
         120,
     )
 
 
-def roll(update: Update, context: CallbackContext):
+async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message is None:
         return
+    if update.effective_chat is None:
+        return
 
-    user: User = update.effective_user
+    user: User | None = update.effective_user
+    if user is None:
+        return
     result: Optional[Message] = None
     # check if hussar already exist or create new one
     existing_user = _db.find(user_id=user.id)
@@ -395,25 +441,25 @@ def roll(update: Update, context: CallbackContext):
         #  if bot can't restrict user, user should be passed into towel-mode like state
 
         mute_min = get_mute_minutes(shots_remained)
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]",
         )
 
-        mute_user_for_time(update, context, user, timedelta(minutes=mute_min))
+        await mute_user_for_time(update, context, user, timedelta(minutes=mute_min))
         _db.dead(user.id, mute_min)
     else:
 
         # lucky one
         _db.miss(user.id)
 
-        result = context.bot.send_message(
+        result = await context.bot.send_message(
             update.effective_chat.id,
             f"{user.full_name}: {get_miss_string(shots_remained)}",
         )
 
     cleanup_queue_update(
-        context.job_queue,
+        get_job_queue(context),
         update.message,
         result,
         120,
@@ -423,15 +469,19 @@ def roll(update: Update, context: CallbackContext):
 
 
 # noinspection PyPep8Naming
-def satisfy_GDPR(update: Update, context: CallbackContext):
-    user: User = update.effective_user
+async def satisfy_GDPR(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message is None:
+        return
+    user: User | None = update.effective_user
+    if user is None:
+        return
 
     _db.remove(user.id)
     logger.info("%s was removed from DB", user.full_name)
-    result = update.message.reply_text("ok, boomer 😒", disable_notification=True)
+    result = await update.message.reply_text("ok, boomer 😒", disable_notification=True)
 
     cleanup_queue_update(
-        context.job_queue,
+        get_job_queue(context),
         update.message,
         result,
         120,
@@ -440,13 +490,15 @@ def satisfy_GDPR(update: Update, context: CallbackContext):
     )
 
 
-def wipe_hussars(update: Update, context: CallbackContext):
+async def wipe_hussars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message is None:
+        return
     _db.remove_all()
     logger.info("all hussars was removed from DB")
-    result = update.message.reply_text("👍", disable_notification=True)
+    result = await update.message.reply_text("👍", disable_notification=True)
 
     cleanup_queue_update(
-        context.job_queue,
+        get_job_queue(context),
         update.message,
         result,
         120,

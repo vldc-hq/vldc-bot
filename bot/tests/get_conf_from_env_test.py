@@ -1,8 +1,7 @@
 import os
-from typing import Dict
 from unittest import TestCase
 
-from config import get_config
+from config import get_config, Config
 
 
 class ConfigTestCase(TestCase):
@@ -22,7 +21,7 @@ class ConfigTestCase(TestCase):
         os.environ["MONGO_INITDB_ROOT_PASSWORD"] = self.env_mongo_initdb_root_password
 
     def test_get_config(self):
-        c: Dict = get_config()
+        c: Config = get_config()
         self.assertEqual(c["DEBUG"], True)
         self.assertEqual(c["GROUP_CHAT_ID"], self.env_chat_id)
         self.assertEqual(c["TOKEN"], self.env_token)

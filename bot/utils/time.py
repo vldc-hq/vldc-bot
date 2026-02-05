@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from functools import reduce
+from typing import Callable, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +9,7 @@ logger = logging.getLogger(__name__)
 def get_duration(raw_duration: str) -> timedelta:
     """Convert duration string like `4w 7d 2h 20m 48s` to python timedelta"""
 
-    _dispatcher = {
+    _dispatcher: Dict[str, Callable[[timedelta, int], timedelta]] = {
         "w": lambda total_duration, duration: total_duration
         + timedelta(weeks=duration),
         "d": lambda total_duration, duration: total_duration + timedelta(days=duration),

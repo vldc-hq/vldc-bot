@@ -5,16 +5,38 @@ VLDC Nyan bot
 https://github.com/vldc-hq/vldc-bot
 """
 
+# pylint: disable=wrong-import-position
+
 import logging
+import os
+from typing import Any, cast
 
-import sentry_sdk
-from telegram.ext import Updater
-from telegram.ext.dispatcher import DEFAULT_GROUP
+# Work around protobuf C-extension incompatibility with Python 3.14
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
-from config import get_config
-from skills import skills, commands_list
+import sentry_sdk  # noqa: E402
+from telegram.ext import ApplicationBuilder, ContextTypes  # noqa: E402
+from telegram.request import HTTPXRequest  # noqa: E402
+
+from config import get_config  # noqa: E402
+from skills import skills, commands_list  # noqa: E402
+from typing_utils import App  # noqa: E402
 
 logger = logging.getLogger(__name__)
+DEFAULT_GROUP = 0
+
+
+async def _post_init(application: App) -> None:
+    await application.bot.set_my_commands(commands=commands_list)
+    try:
+        bot_user = await application.bot.get_me()
+        application.bot_data["bot_user_id"] = bot_user.id
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.warning("failed to fetch bot user info: %s", exc)
+
+
+async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.exception("update handling failed: %s", update, exc_info=context.error)
 
 
 def main():
@@ -26,27 +48,33 @@ def main():
 
     if conf["DEBUGGER"]:
         # pylint: disable=import-outside-toplevel
-        import ptvsd
+        import debugpy
 
-        ptvsd.enable_attach(address=("0.0.0.0", 5678))
-        ptvsd.wait_for_attach()
+        debugpy.listen(("0.0.0.0", 5678))
+        debugpy.wait_for_client()
 
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         level=logging.DEBUG if conf["DEBUG"] else logging.INFO,
     )
 
-    updater = Updater(conf["TOKEN"], use_context=True)
+    request = HTTPXRequest(
+        connect_timeout=10,
+        read_timeout=30,
+        write_timeout=30,
+        pool_timeout=5,
+    )
+    builder = cast(Any, ApplicationBuilder())
+    application = (
+        builder.token(conf["TOKEN"]).post_init(_post_init).request(request).build()
+    )
+    application.add_error_handler(_error_handler)
 
     for handler_group, skill in enumerate(skills, DEFAULT_GROUP + 1):
-        skill["add_handlers"](updater, handler_group)
-
-    # update commands list
-    updater.bot.set_my_commands(commands=commands_list)
+        skill["add_handlers"](application, handler_group)
 
     # let's go dude
-    updater.start_polling()
-    updater.idle()
+    application.run_polling(bootstrap_retries=-1)
 
 
 if __name__ == "__main__":

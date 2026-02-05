@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 .DEFAULT_GOAL := help
-.PHONY: dev test lint start dev_build dev_start dev_test
+.PHONY: dev test lint start dev_build dev_start dev_test venv
 
 
 build:  ## Build all
@@ -27,9 +27,16 @@ lint:  ## Run linters (black, flake8, mypy, pylint)
 	pylint ./bot --rcfile .pylintrc
 	flake8 ./bot --config .flake8 --count --show-source --statistics
 	mypy --config-file mypy.ini ./bot
+	pyright ./bot
 
 format:  ## Format code (black)
 	black ./bot
+
+venv:  ## Create local .venv and install deps (uv)
+	python3 -m venv .venv
+	. .venv/bin/activate && python -m pip install -U pip
+	. .venv/bin/activate && python -m pip install -U uv
+	. .venv/bin/activate && uv sync --active --dev --no-install-project
 
 ## Help
 
