@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from urllib.parse import quote_plus
 
 from pymongo import MongoClient
@@ -16,8 +17,8 @@ uri = "mongodb://%s:%s@%s" % (
     conf["MONGO_HOST"],
 )
 
-__client: MongoClient = MongoClient(uri)
+__client: MongoClient[Any] = MongoClient(uri)
 
 
-def get_db(db_name: str) -> Database:
+def get_db(db_name: str) -> Database[Any]:
     return __client.get_database(db_name)

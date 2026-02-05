@@ -2,13 +2,14 @@ import logging
 
 from telegram import Update
 from telegram.error import BadRequest
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
+from typing_utils import App
 from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
 
-def add_nya(app: Application, handlers_group: int):
+def add_nya(app: App, handlers_group: int):
     logger.info("registering nya handlers")
     app.add_handler(
         ChatCommandHandler(
@@ -23,6 +24,8 @@ def add_nya(app: Application, handlers_group: int):
 async def nya(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args or []
     text = " ".join(args)
+    if update.effective_chat is None or update.effective_message is None:
+        return
     chat_id = update.effective_chat.id
 
     try:

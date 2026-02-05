@@ -1,7 +1,8 @@
 import logging
 
 from telegram import Update, User
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
+from typing_utils import App, get_job_queue
 
 from mode import cleanup_queue_update
 from handlers import ChatCommandHandler
@@ -9,13 +10,15 @@ from handlers import ChatCommandHandler
 logger = logging.getLogger(__name__)
 
 
-def add_ban(app: Application, handlers_group: int):
+def add_ban(app: App, handlers_group: int):
     logger.info("registering ban handlers")
     app.add_handler(ChatCommandHandler("ban", ban), group=handlers_group)
 
 
 async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None or update.message.reply_to_message is None:
+        return
+    if update.effective_chat is None:
         return
     user: User | None = update.message.reply_to_message.from_user
     chat_id = update.effective_chat.id
@@ -25,7 +28,7 @@ async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id, f"Пользователь {user.name} был забанен"
         )
         cleanup_queue_update(
-            context.job_queue,
+            get_job_queue(context),
             update.message,
             result,
             600,

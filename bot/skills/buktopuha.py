@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from random import randint
 from tempfile import gettempdir
 from threading import Lock
-from typing import Dict, Optional
+from typing import Any, Optional, TypedDict, Mapping, IO
 from uuid import uuid4
 
 import openai
@@ -20,13 +20,13 @@ from pymongo.collection import Collection
 from skills.mute import mute_user_for_time
 from telegram import Message, Update, User
 from telegram.ext import (
-    Application,
     MessageHandler,
     ContextTypes,
     CommandHandler,
     filters,
 )
 from permissions import is_admin
+from typing_utils import App, get_job_queue
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +41,26 @@ except Exception as exc:  # pylint: disable=broad-except
     logger.warning("google genai unavailable; gemini disabled: %s", exc)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GENAI_CLIENT = None
+genai_client: Any | None = None
 if genai is not None and GEMINI_API_KEY:
     try:
-        GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+        genai_client = genai.Client(api_key=GEMINI_API_KEY)
     except Exception as exc:  # pylint: disable=broad-except
         logger.warning("failed to init GenAI client: %s", exc)
 
 
 MEME_REGEX = re.compile(r"\/[вb][иu][kк][tт][оo][pр][иu][hн][aа]", re.IGNORECASE)
 GAME_TIME_SEC = 30
+
+
+class PlayerRecord(TypedDict):
+    _id: int
+    meta: dict[str, Any]
+    game_counter: int
+    win_counter: int
+    total_score: int
+    created_at: datetime
+    updated_at: datetime
 
 
 class DB:
@@ -68,12 +78,12 @@ class DB:
     """
 
     def __init__(self, db_name: str):
-        self._coll: Collection = get_db(db_name).players
+        self._coll: Collection[PlayerRecord] = get_db(db_name).players
 
-    def find_all(self):
+    def find_all(self) -> list["PlayerRecord"]:
         return list(self._coll.find({}).sort("win_counter", pymongo.DESCENDING))
 
-    def find(self, user_id: int):
+    def find(self, user_id: int) -> "PlayerRecord | None":
         return self._coll.find_one({"_id": user_id})
 
     def add(self, user: User, score: int = 0):
@@ -174,7 +184,7 @@ class Buktopuha:
                 f"First hint: {masked}",
             )
             cleanup_queue_update(
-                context.job_queue,
+                get_job_queue(context),
                 None,
                 result,
                 seconds=30,
@@ -195,7 +205,7 @@ class Buktopuha:
                 f"Second hint (anagram): {anagram}",
             )
             cleanup_queue_update(
-                context.job_queue,
+                get_job_queue(context),
                 None,
                 result,
                 seconds=30,
@@ -214,7 +224,7 @@ class Buktopuha:
                 f"Nobody guessed the word {word} 😢",
             )
             cleanup_queue_update(
-                context.job_queue,
+                get_job_queue(context),
                 None,
                 result,
                 seconds=30,
@@ -222,16 +232,16 @@ class Buktopuha:
 
         return _f
 
-    def check_for_answer(self, text: str):
+    def check_for_answer(self, text: str) -> bool:
         word = self.get_word()
         return word != "" and text.lower().find(word) >= 0
 
 
-def add_buktopuha(app: Application, handlers_group: int):
-    global WORDLIST
+def add_buktopuha(app: App, handlers_group: int):
+    global wordlist
     try:
         with open("/app/words.txt", "rt", encoding="utf8") as fi:
-            WORDLIST = fi.read().splitlines()
+            wordlist = fi.read().splitlines()
     except:  # noqa: E722
         logger.error("failed to read wordlist!")
 
@@ -265,7 +275,7 @@ def add_buktopuha(app: Application, handlers_group: int):
     )
 
 
-WORDLIST = [
+wordlist: list[str] = [
     "babirusa",
     "gerenuk",
     "pangolin",
@@ -280,13 +290,18 @@ game = Buktopuha()
 
 
 def stop_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE, names: list[str]):
+    job_queue = get_job_queue(context)
+    if job_queue is None:
+        return
     for name in names:
-        for job in context.job_queue.get_jobs_by_name(name):
+        for job in job_queue.get_jobs_by_name(name):
             job.schedule_removal()
 
 
 async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_message is None:
+        return
+    if update.effective_chat is None or update.message is None:
         return
     text = update.effective_message.text or ""
     if not text:
@@ -332,7 +347,7 @@ async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await mute_user_for_time(update, context, user, timedelta(minutes=minutes))
             cleanup_queue_update(
-                context.job_queue,
+                get_job_queue(context),
                 update.message,
                 result,
                 30,
@@ -348,7 +363,7 @@ async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             _db.win(user_id=user.id, score=score)
 
 
-def generate_question(prompt, word) -> str:
+def generate_question(prompt: str, word: str) -> str:
     gpt_models = (
         [
             "gpt-4-turbo",
@@ -363,7 +378,7 @@ def generate_question(prompt, word) -> str:
         "gemini-2.0-flash",
         "gemini-2.5-pro-preview-03-25",
     ]
-    models = gpt_models + (gemini_models if GENAI_CLIENT is not None else [])
+    models = gpt_models + (gemini_models if genai_client is not None else [])
     if not models:
         return f"Guess the word. It has {len(word)} letters."
     model = random.choice(models)
@@ -385,9 +400,9 @@ def generate_question(prompt, word) -> str:
         except Exception as exc:  # pylint: disable=broad-except
             logger.warning("openai question failed: %s", exc)
             return f"Guess the word. It has {len(word)} letters."
-    if model.startswith("gemini") and GENAI_CLIENT is not None:
+    if model.startswith("gemini") and genai_client is not None:
         try:
-            resp = GENAI_CLIENT.models.generate_content(
+            resp = genai_client.models.generate_content(
                 model=model,
                 contents=prompt,
             )
@@ -405,6 +420,8 @@ def generate_question(prompt, word) -> str:
 async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None:
         return
+    if update.effective_chat is None:
+        return
     user = update.effective_user
     if user is None:
         return
@@ -417,7 +434,7 @@ async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Hey, not so fast!",
         )
         cleanup_queue_update(
-            context.job_queue,
+            get_job_queue(context),
             update.message,
             result,
             10,
@@ -425,7 +442,7 @@ async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await mute_user_for_time(update, context, user, timedelta(minutes=1))
         return
 
-    word = random.choice(WORDLIST)
+    word = random.choice(wordlist)
     prompt = f"""You are a facilitator of an online quiz game.
     Your task is to make engaging and tricky quiz questions.
     You should try to make your question fun and interesting, but keep your wording simple and short (less than 15 words).
@@ -444,7 +461,7 @@ async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Sorry, my GenAI brain is dizzy 😵‍💫 Try in a minute!",
         )
         cleanup_queue_update(
-            context.job_queue,
+            get_job_queue(context),
             update.message,
             result,
             10,
@@ -461,21 +478,25 @@ async def start_buktopuha(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg,
     )
     game.start(word)
-    context.job_queue.run_once(
-        game.hint1(update.effective_chat.id, word),
-        10,
-        name=f"hint1-{word}",
-    )
-    context.job_queue.run_once(
-        game.hint2(update.effective_chat.id, word),
-        20,
-        name=f"hint2-{word}",
-    )
-    context.job_queue.run_once(
-        game.end(update.effective_chat.id, word),
-        30,
-        name=f"end-{word}",
-    )
+    job_queue = get_job_queue(context)
+    if job_queue is None:
+        logger.warning("job_queue missing; skipping hints")
+    else:
+        job_queue.run_once(
+            game.hint1(update.effective_chat.id, word),
+            10,
+            name=f"hint1-{word}",
+        )
+        job_queue.run_once(
+            game.hint2(update.effective_chat.id, word),
+            20,
+            name=f"hint2-{word}",
+        )
+        job_queue.run_once(
+            game.end(update.effective_chat.id, word),
+            30,
+            name=f"end-{word}",
+        )
 
     existing_user = _db.find(user_id=user.id)
     if existing_user is None:
@@ -511,6 +532,9 @@ async def show_nerds(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
 
     if _is_group_chat(update) and not await is_admin(update, context):
+        return
+
+    if update.effective_chat is None:
         return
 
     logger.error(update)
@@ -563,7 +587,7 @@ async def show_nerds(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     cleanup_queue_update(
-        context.job_queue,
+        get_job_queue(context),
         update.message,
         result,
         600,
@@ -574,17 +598,17 @@ async def show_nerds(update: Update, context: ContextTypes.DEFAULT_TYPE):
     os.remove(board_image_path)
 
 
-def _get_username(h: Dict) -> str:
+def _get_username(h: Mapping[str, Any]) -> str:
     """Get username or fullname or unknown"""
     m = h["meta"]
     username = m.get("username")
     fname = m.get("first_name")
     lname = m.get("last_name")
-    return (
-        username
-        or " ".join(filter(lambda x: x is not None, [fname, lname]))
-        or "unknown"
-    )
+    username = username if isinstance(username, str) else None
+    fname = fname if isinstance(fname, str) else None
+    lname = lname if isinstance(lname, str) else None
+    fullname_parts = [part for part in (fname, lname) if part]
+    return username or " ".join(fullname_parts) or "unknown"
 
 
 JPEG = "JPEG"
@@ -596,7 +620,7 @@ ZNATOKI_LIMIT_FOR_IMAGE = 25
 FONT = "firacode.ttf"
 
 
-def _create_empty_image(image_path, limit):
+def _create_empty_image(image_path: str, limit: int) -> Image.Image | None:
     width = 480
     line_multi = 1
     header_height = 30
@@ -615,7 +639,7 @@ def _create_empty_image(image_path, limit):
     return image
 
 
-def _add_text_to_image(text, image_path):
+def _add_text_to_image(text: str, image_path: str) -> Image.Image | None:
     logger.info("Adding text to image")
     image = Image.open(image_path)
     logger.info("Getting font")
@@ -635,7 +659,7 @@ def _add_text_to_image(text, image_path):
     return image
 
 
-def from_text_to_image(text, limit):
+def from_text_to_image(text: str, limit: int) -> tuple[IO[bytes], str]:
     limit = max(limit, ZNATOKI_LIMIT_FOR_IMAGE)
     logger.info("Getting temp dir")
     tmp_dir = gettempdir()

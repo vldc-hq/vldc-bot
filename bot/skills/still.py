@@ -3,14 +3,15 @@ from datetime import datetime
 
 from telegram import Update
 from telegram.error import BadRequest
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
+from typing_utils import App
 
 from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
 
-def add_still(app: Application, handlers_group: int):
+def add_still(app: App, handlers_group: int):
     logger.info("registering still handlers")
     app.add_handler(ChatCommandHandler("still", still), group=handlers_group)
 
@@ -27,6 +28,8 @@ def to_2k_year(year: int):
 async def still(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args or []
     text = " ".join(args)
+    if update.effective_chat is None or update.effective_message is None:
+        return
     chat_id = update.effective_chat.id
     try:
         await context.bot.delete_message(chat_id, update.effective_message.message_id)

@@ -12,13 +12,13 @@ from telegram.ext import (
     MessageHandler,
     ContextTypes,
     CallbackQueryHandler,
-    Application,
     filters,
 )
 
 from config import get_config
 from db.mongo import get_db
 from mode import Mode
+from typing_utils import App
 
 MAGIC_NUMBER = "42"
 QUARANTINE_TIME = 60
@@ -45,7 +45,7 @@ OPENAI_ENABLED = bool(OPENAI_API_KEY)
 # todo: extract maybe?
 class DB:
     def __init__(self, db_name: str):
-        self._coll: Collection = get_db(db_name).quarantine
+        self._coll: Collection[dict[str, Any]] = get_db(db_name).quarantine
 
     def add_user(self, user_id: int):
         return (
@@ -81,21 +81,24 @@ class DB:
 db = DB("towel_mode")
 
 
-def _clear_quarantine(_: Application) -> None:
+def _clear_quarantine(_: App) -> None:
     db.delete_all_users()
 
 
 mode = Mode(mode_name="towel_mode", default=True, off_callback=_clear_quarantine)
 
 
-def _is_time_gone(user: Dict) -> bool:
+def _is_time_gone(user: Dict[str, Any]) -> bool:
     return user["datetime"] < datetime.now()
 
 
 async def _delete_user_rel_messages(
     chat_id: int, user_id: int, context: ContextTypes.DEFAULT_TYPE
 ):
-    for msg_id in db.find_user(user_id=user_id)["rel_messages"]:
+    user = db.find_user(user_id=user_id)
+    if user is None:
+        return
+    for msg_id in user["rel_messages"]:
         try:
             await context.bot.delete_message(chat_id, msg_id)
         except BadRequest as err:
@@ -103,7 +106,7 @@ async def _delete_user_rel_messages(
 
 
 @mode.add
-def add_towel_mode(app: Application, handlers_group: int):
+def add_towel_mode(app: App, handlers_group: int):
     logger.info("registering towel-mode handlers")
 
     # catch all new users and drop the towel
@@ -131,7 +134,7 @@ def add_towel_mode(app: Application, handlers_group: int):
 
     # ban quarantine users, if time is gone
     group_chat_id = get_config()["GROUP_CHAT_ID"]
-    if group_chat_id:
+    if group_chat_id and app.job_queue is not None:
         app.job_queue.run_repeating(
             ban_user,
             interval=60,
@@ -180,19 +183,27 @@ async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAUL
             )
         ).message_id
 
-        db.delete_user(user_id=cast(int, user["_id"]))
+        db.delete_user(user_id=user.id)
         await context.bot.send_message(
             chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id
         )
 
 
 async def catch_new_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message is None or update.effective_chat is None:
+        return
     for user in update.message.new_chat_members:
         await quarantine_user(user, update.effective_chat.id, context)
 
 
 async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # todo: cache it
+    if update.effective_user is None:
+        return
+    if update.effective_message is None:
+        return
+    if update.effective_chat is None:
+        return
     user_id = update.effective_user.id
     user = db.find_user(user_id)
     if user is None:
@@ -201,6 +212,7 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if the message is a reply to the bot
     if (
         update.effective_message.reply_to_message is not None
+        and update.effective_message.reply_to_message.from_user is not None
         and update.effective_message.reply_to_message.from_user.id
         == (await context.bot.get_me()).id
     ):
@@ -223,7 +235,8 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Valid reply - welcome the user
             await _delete_user_rel_messages(update.effective_chat.id, user_id, context)
             db.delete_user(user_id=cast(int, user["_id"]))
-            await update.message.reply_text("Добро пожаловать в VLDC!")
+            if update.message is not None:
+                await update.message.reply_text("Добро пожаловать в VLDC!")
         else:
             # Reply doesn't pass OpenAI check - delete it
             await context.bot.delete_message(
@@ -282,6 +295,12 @@ Answer with a single word: spam or legit."""
 
 
 async def quarantine_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user is None:
+        return
+    if update.effective_message is None:
+        return
+    if update.effective_chat is None:
+        return
     user_id = update.effective_user.id
     # todo: cache it
     user = db.find_user(user_id)
@@ -296,6 +315,8 @@ async def quarantine_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def i_am_a_bot_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     query = update.callback_query
+    if user is None or query is None:
+        return
 
     if query.data == MAGIC_NUMBER:
         if db.find_user(user.id) is not None:
@@ -308,11 +329,18 @@ async def i_am_a_bot_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def ban_user(context: ContextTypes.DEFAULT_TYPE):
     # fixme: smth wrong here
+    if context.job is None:
+        logger.warning("job is missing; skipping ban_user job")
+        return
     job_data = context.job.data
     if not isinstance(job_data, dict):
         logger.warning("job data missing or invalid; skipping ban_user job")
         return
+    job_data = cast(dict[str, Any], job_data)
     group_chat_id = job_data.get("chat_id")
+    if not isinstance(group_chat_id, (int, str)):
+        logger.warning("CHAT_ID has invalid type; skipping ban_user job")
+        return
     if not group_chat_id:
         logger.warning("CHAT_ID is empty; skipping ban_user job")
         return

@@ -1,27 +1,28 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cmp_to_key
 from http import HTTPStatus
+from typing import Any
 
 import requests
 from pymongo.collection import Collection
 from telegram import Update, Bot
-from telegram.ext import (
-    JobQueue,
-    ContextTypes,
-    Application,
-)
+from telegram.ext import ContextTypes
 
 from config import get_group_chat_id, get_aoc_session
 from db.mongo import get_db
 from mode import Mode, OFF
+from typing_utils import App, JobQueueT
 
 logger = logging.getLogger(__name__)
 
 
-AOC_ENDPOINT = f"https://adventofcode.com/{datetime.utcnow().year}/leaderboard/private/view/458538.json"
-AOC_START_TIME = datetime.utcnow().replace(
-    year=datetime.utcnow().year,
+_now_utc = datetime.now(timezone.utc)
+AOC_ENDPOINT = (
+    f"https://adventofcode.com/{_now_utc.year}/leaderboard/private/view/458538.json"
+)
+AOC_START_TIME = _now_utc.replace(
+    year=_now_utc.year,
     month=12,
     day=1,
     hour=5,
@@ -39,15 +40,15 @@ class DB:
     """
 
     def __init__(self, db_name: str):
-        self._coll: Collection = get_db(db_name).aoc
+        self._coll: Collection[dict[str, Any]] = get_db(db_name).aoc
 
-    def update(self, data):
+    def update(self, data: dict[str, Any]) -> None:
         self._coll.update_one({}, {"$set": data}, True)
 
-    def get(self):
+    def get(self) -> dict[str, Any] | None:
         return self._coll.find_one()
 
-    def remove_all(self):
+    def remove_all(self) -> None:
         self._coll.delete_many({})
 
 
@@ -60,7 +61,7 @@ mode = Mode(
 )
 
 
-def start_aoc_handlers(queue: JobQueue | None):
+def start_aoc_handlers(queue: JobQueueT | None):
     logger.info("registering aoc handlers")
     if queue is None:
         return
@@ -72,7 +73,7 @@ def start_aoc_handlers(queue: JobQueue | None):
     queue.run_once(update_aoc_data, 0)
 
 
-def stop_aoc_handlers(queue: JobQueue | None):
+def stop_aoc_handlers(queue: JobQueueT | None):
     if queue is None:
         return
     jobs = queue.get_jobs_by_name(JOB_AOC_UPDATE)
@@ -80,28 +81,30 @@ def stop_aoc_handlers(queue: JobQueue | None):
         job.schedule_removal()
 
 
-async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_chat is None:
+        return
     await context.bot.send_message(chat_id=update.effective_chat.id, text="test")
 
 
 @mode.add
-def add_aoc_mode(app: Application, handlers_group: int):
+def add_aoc_mode(app: App, handlers_group: int):
     pass
 
 
-def aoc_day_from_datetime(dt):
+def aoc_day_from_datetime(dt: datetime) -> float:
     return (dt - AOC_START_TIME) / timedelta(days=1)
 
 
-def aoc_time_since_day_start(dt):
+def aoc_time_since_day_start(dt: datetime) -> timedelta:
     return dt - (AOC_START_TIME + int(aoc_day_from_datetime(dt)) * timedelta(days=1))
 
 
-def cmp(_x, _y):
+def cmp(_x: tuple[Any, Any], _y: tuple[Any, Any]) -> int:
     x = _x[1]
     y = _y[1]
 
-    def inner_cmp(x, y):
+    def inner_cmp(x: Any, y: Any) -> int:
         if x < y:
             return -1
         if y < x:
@@ -115,8 +118,10 @@ def cmp(_x, _y):
     return 0
 
 
-def calculate_solved_by(members, current_day):
-    new_day_solved_by = {}
+def calculate_solved_by(
+    members: dict[str, Any], current_day: int
+) -> dict[str, list[datetime]]:
+    new_day_solved_by: dict[str, list[datetime]] = {}
 
     for memberId, member in members.items():
         if str(current_day) not in member["completion_day_level"]:
@@ -142,21 +147,17 @@ def calculate_solved_by(members, current_day):
     return dict(sorted(new_day_solved_by.items(), key=cmp_to_key(cmp)))
 
 
-async def process_aoc_update(data, bot: Bot):
-    cached_data = _db.get()
+async def process_aoc_update(data: dict[str, Any], bot: Bot) -> None:
+    cached_data = _db.get() or {"members": {}}
 
     # It is okay for a first mode run, just store this one
-    if cached_data is None:
-        # Return?
-        cached_data = {"members": {}}
-
     _db.update(data)
 
-    current_day = int(aoc_day_from_datetime(datetime.utcnow())) + 1
+    current_day = int(aoc_day_from_datetime(datetime.now(timezone.utc))) + 1
     logger.info("Current AOC day is %d", current_day)
 
-    day_solved_by = calculate_solved_by(cached_data["members"], current_day)
-    updated_day_solved_by = calculate_solved_by(data["members"], current_day)
+    day_solved_by = calculate_solved_by(cached_data.get("members", {}), current_day)
+    updated_day_solved_by = calculate_solved_by(data.get("members", {}), current_day)
 
     solved_both = False
     for _, tasks in day_solved_by.items():
@@ -197,7 +198,7 @@ async def process_aoc_update(data, bot: Bot):
                 logger.warning("CHAT_ID is empty; skipping AOC notification")
 
 
-async def update_aoc_data(context: ContextTypes.DEFAULT_TYPE):
+async def update_aoc_data(context: ContextTypes.DEFAULT_TYPE) -> None:
     bot = context.bot
     aoc_session = get_aoc_session()
 
@@ -213,7 +214,7 @@ async def update_aoc_data(context: ContextTypes.DEFAULT_TYPE):
         logging.error("AOC response error %d %s", response.status_code, response.text)
         return
 
-    data = response.json()
+    data: dict[str, Any] = response.json()
     logger.info(data)
 
     await process_aoc_update(data, bot)

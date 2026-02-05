@@ -1,5 +1,5 @@
 import json
-from typing import Tuple, Optional, Literal, Any
+from typing import Tuple, Optional, Literal, Any, Callable, NoReturn
 import logging
 import os
 import subprocess
@@ -36,8 +36,8 @@ except Exception as exc:  # pylint: disable=broad-except
 class Dummy:
     "dummy class to substitute speech client when in dev mode"
 
-    def __getattribute__(self, name):
-        def funcoff(*args, **kwargs):
+    def __getattribute__(self, name: str) -> Callable[..., NoReturn]:
+        def funcoff(*args: Any, **kwargs: Any) -> NoReturn:
             raise Exception(
                 "google speech failed to initialize, voice recognition unavailable"
             )
@@ -116,7 +116,7 @@ def _get_converted_audio_content(buffer: bytes) -> Optional[bytes]:
     return converted_wav_bin
 
 
-def _send_binary_to_google_speech(content):
+def _send_binary_to_google_speech(content: bytes) -> Any:
     """Sends binary data of voice to google speech."""
     config = {
         "language_code": LANG,
@@ -131,16 +131,21 @@ def _send_binary_to_google_speech(content):
     return speech_client.recognize(config=config, audio=audio)
 
 
-def _check_google_speech_response(response) -> Optional[str]:
-    result = response.results[-1]
+def _check_google_speech_response(response: Any) -> Optional[str]:
+    results = list(getattr(response, "results", []) or [])
+    if not results:
+        return None
+    result = results[-1]
     logger.info("Google speech response results: %s", result)
 
-    any_alternatives = result.alternatives or []
-    if len(any_alternatives) == 0:
+    any_alternatives = list(getattr(result, "alternatives", []) or [])
+    if not any_alternatives:
         return None
 
-    transcription = any_alternatives[0].transcript
-    return transcription
+    transcription = getattr(any_alternatives[0], "transcript", None)
+    if transcription is None:
+        return None
+    return str(transcription)
 
 
 def _get_converted_video_content(buffer: bytes) -> Optional[bytes]:

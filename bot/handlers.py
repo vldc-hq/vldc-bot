@@ -1,8 +1,9 @@
 import inspect
-from typing import Any, Callable, Coroutine
+from typing import Any, Callable, Coroutine, Collection
 
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes, filters as tg_filters
+from telegram.ext.filters import BaseFilter
 
 from config import get_group_chat_id
 from permissions import is_admin
@@ -10,7 +11,7 @@ from permissions import is_admin
 CallbackType = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, Any]]
 
 
-class ChatCommandHandler(CommandHandler):
+class ChatCommandHandler(CommandHandler[ContextTypes.DEFAULT_TYPE, Any]):
     """ChatCommandHandler is class-wrapper for `CommandHandler`. It provides default `chat_id` filtering.
     `chat_id` takes from `config.get_group_chat_id() -> str` and it could be either
     chat_username :: str (for public groups) or chat_id :: int (for private or public). So, this wrapper
@@ -19,10 +20,10 @@ class ChatCommandHandler(CommandHandler):
 
     def __init__(
         self,
-        command,
+        command: str | Collection[str],
         callback: CallbackType,
         *,
-        filters=None,
+        filters: BaseFilter | None = None,
         require_admin: bool = False,
         block: bool = False,
     ):

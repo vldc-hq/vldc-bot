@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 
 from pymongo.collection import Collection
 from telegram import Update, User
@@ -17,9 +17,9 @@ mode = Mode(mode_name="trusted_mode", default=ON)
 
 class DB:
     def __init__(self, db_name: str):
-        self._coll: Collection = get_db(db_name).users
+        self._coll: Collection[dict[str, Any]] = get_db(db_name).users
 
-    def get_user(self, user_id: int) -> Optional[dict]:
+    def get_user(self, user_id: int) -> Optional[dict[str, Any]]:
         return self._coll.find_one(
             {
                 "_id": user_id,
@@ -42,7 +42,10 @@ class DB:
 _db = DB(db_name="trusted")
 
 
-def add_trusted_mode(app: Application, handlers_group: int):
+App = Application[Any, Any, Any, Any, Any, Any]
+
+
+def add_trusted_mode(app: App, handlers_group: int):
     logger.info("register trusted-mode handlers")
     app.add_handler(
         ChatCommandHandler(
@@ -62,15 +65,22 @@ def add_trusted_mode(app: Application, handlers_group: int):
     )
 
 
-def _get_user_and_admin(update) -> Tuple[User, int, User]:
-    user: User = update.message.reply_to_message.from_user
-    admin: User = update.effective_user
-    chat_id = update.effective_chat.id
-    return user, chat_id, admin
+def _get_user_and_admin(update: Update) -> Optional[Tuple[User, int, User]]:
+    if update.message is None or update.message.reply_to_message is None:
+        return None
+    user = update.message.reply_to_message.from_user
+    admin = update.effective_user
+    chat = update.effective_chat
+    if user is None or admin is None or chat is None:
+        return None
+    return user, chat.id, admin
 
 
 async def trust_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user, chat_id, admin = _get_user_and_admin(update)
+    data = _get_user_and_admin(update)
+    if data is None:
+        return
+    user, chat_id, admin = data
 
     if user and admin and chat_id:
         if _db.get_user(user.id) is not None:
@@ -83,7 +93,10 @@ async def trust_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def untrust_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user, chat_id, _ = _get_user_and_admin(update)
+    data = _get_user_and_admin(update)
+    if data is None:
+        return
+    user, chat_id, _ = data
 
     if user and chat_id:
         _db.untrust(user.id)

@@ -1,6 +1,6 @@
 import logging
-
 from datetime import datetime
+from typing import Any
 
 from telegram import Update
 from telegram.ext import Application, ContextTypes
@@ -19,7 +19,10 @@ AOC_LEADERBOARD_LINK = (
 )
 
 
-def add_tree(app: Application, handlers_group: int):
+App = Application[Any, Any, Any, Any, Any, Any]
+
+
+def add_tree(app: App, handlers_group: int):
     logger.info("registering tree handlers")
     app.add_handler(ChatCommandHandler("tree", tree), group=handlers_group)
 
@@ -32,4 +35,6 @@ async def tree(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Join Code: `458538-e2a0698b`"
     )
 
+    if update.effective_chat is None:
+        return
     await context.bot.send_message(update.effective_chat.id, text)

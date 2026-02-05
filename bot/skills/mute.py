@@ -5,10 +5,11 @@ from typing import List
 
 from telegram import Update, User, ChatPermissions
 from telegram.error import TelegramError
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
 from mode import cleanup_queue_update
 from handlers import ChatCommandHandler
 from utils.time import get_duration
+from typing_utils import App, get_job_queue
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ MIN_MUTE_TIME = timedelta(minutes=1)
 MAX_MUTE_TIME = timedelta(days=365)
 
 
-def add_mute(app: Application, handlers_group: int):
+def add_mute(app: App, handlers_group: int):
     logger.info("registering mute handlers")
     app.add_handler(
         ChatCommandHandler(
@@ -53,6 +54,9 @@ async def mute_user_for_time(
     user: User,
     mute_duration: timedelta,
 ):
+    if update.message is None or update.effective_chat is None:
+        return
+    message = update.message
     mute_duration = max(mute_duration, MIN_MUTE_TIME)
     mute_duration = min(mute_duration, MAX_MUTE_TIME)
     try:
@@ -61,9 +65,7 @@ async def mute_user_for_time(
             "user: %s[%d] will be muted for %s", user.full_name, user.id, mute_duration
         )
 
-        await update.message.reply_text(
-            f"Таймаут для {user.full_name} на {mute_duration}"
-        )
+        await message.reply_text(f"Таймаут для {user.full_name} на {mute_duration}")
         mute_perm = ChatPermissions(
             can_add_web_page_previews=False,
             can_send_other_messages=False,
@@ -81,7 +83,7 @@ async def mute_user_for_time(
         )
     except TelegramError as err:
         logger.error("can't mute user %s: %s", user, err)
-        await update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
+        await message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
 async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -99,6 +101,9 @@ async def mute_self(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user: User | None = update.effective_user
     if user is None:
         return
+    if update.message is None:
+        return
+    message = update.message
     await mute_user_for_time(update, context, user, timedelta(days=1))
     self_mute_messages = [
         f"Да как эта штука работает вообще, {user.name}?",
@@ -107,11 +112,11 @@ async def mute_self(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Насилие порождает насилие, {user.name}",
         f"Опять ты, {user.name}!",
     ]
-    result = await update.message.reply_text(choice(self_mute_messages))
+    result = await message.reply_text(choice(self_mute_messages))
 
     cleanup_queue_update(
-        context.job_queue,
-        update.message,
+        get_job_queue(context),
+        message,
         result,
         600,
         remove_cmd=True,
@@ -122,10 +127,11 @@ async def mute_self(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def unmute_user(
     update: Update, context: ContextTypes.DEFAULT_TYPE, user: User
 ) -> None:
+    if update.message is None or update.effective_chat is None:
+        return
+    message = update.message
     try:
-        await update.message.reply_text(
-            f"{user.full_name}, не озоруй! Мало ли кто увидит 🧐"
-        )
+        await message.reply_text(f"{user.full_name}, не озоруй! Мало ли кто увидит 🧐")
         unmute_perm = ChatPermissions(
             can_add_web_page_previews=True,
             can_send_other_messages=True,
@@ -143,7 +149,7 @@ async def unmute_user(
             update.effective_chat.id, user.id, unmute_perm
         )
     except TelegramError as err:
-        await update.message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
+        await message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
 
 
 async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

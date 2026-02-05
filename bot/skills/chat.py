@@ -11,8 +11,9 @@ import openai
 from config import get_config
 from mode import Mode, ON
 from telegram import Update
-from telegram.ext import Application, MessageHandler, ContextTypes, filters
+from telegram.ext import MessageHandler, ContextTypes, filters
 from tg_filters import group_chat_filter
+from typing_utils import App
 
 # Max number of messages to keep in memory.
 MAX_MESSAGES = 100
@@ -40,20 +41,27 @@ class Nyan:
         self.memory: deque[tuple[datetime, str]] = deque(maxlen=MAX_MESSAGES)
         self.lock = Lock()
 
-    def registerMessage(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    def registerMessage(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         if update.message is None:
             return
-        if update.message.text.startswith("/"):
+        if update.effective_user is None:
+            return
+        text = update.message.text
+        if not text:
+            return
+        if text.startswith("/"):
             return
         with self.lock:
             self.memory.append(
                 (
                     datetime.now(),
-                    f"{update.effective_user.full_name}: {update.message.text}",
+                    f"{update.effective_user.full_name}: {text}",
                 ),
             )
 
-    def forget(self):
+    def forget(self) -> None:
         with self.lock:
             self.memory.clear()
 
@@ -61,7 +69,7 @@ class Nyan:
         if not OPENAI_ENABLED:
             logger.info("openai disabled; skipping poem generation")
             return ""
-        log = []
+        log: list[str] = []
         with self.lock:
             for dt, message in self.memory:
                 if datetime.now() - dt > MAX_AGE:
@@ -123,7 +131,7 @@ class Nyan:
 nyan = Nyan()
 
 
-def check_pirozhok(pirozhok) -> str:
+def check_pirozhok(pirozhok: str) -> str:
     syllables = [9, 8, 9, 8]
 
     for w in [w.strip() for w in pirozhok.split()]:
@@ -143,7 +151,7 @@ def check_pirozhok(pirozhok) -> str:
     return ""
 
 
-def get_examples(n=10):
+def get_examples(n: int = 10) -> str:
     with open("pirozhki.txt", "r", encoding="utf-8") as f:
         examples = f.read().splitlines()
 
@@ -153,23 +161,23 @@ def get_examples(n=10):
             try:
                 formatted = format_pirozhok(pirozhok)
                 poems.append(formatted)
-            except:
+            except ValueError:
                 # Some pirozhki do not match
                 pass
 
         return "\n\n".join(poems)
 
 
-def format_pirozhok(pirozhok):
+def format_pirozhok(pirozhok: str) -> str:
     syllables = [9, 8, 9, 8]
     words = pirozhok.split()
     if len(words) == 0:
         raise ValueError("Пирожок не содержит ни одного слова.")
-    lines = []
+    lines: list[str] = []
 
     for s in syllables:
         cnt = 0
-        line = []
+        line: list[str] = []
         while cnt < s:
             word = words.pop(0)
             cnt += len(re.findall(r"[аеёиоуыэюя]", word, re.I))
@@ -187,7 +195,7 @@ def format_pirozhok(pirozhok):
 
 
 @mode.add
-def add_chat_mode(app: Application, handlers_group: int):
+def add_chat_mode(app: App, handlers_group: int):
     logger.info("registering chat handlers")
     group_filter = group_chat_filter()
     app.add_handler(
@@ -201,7 +209,7 @@ def add_chat_mode(app: Application, handlers_group: int):
 
     # Muse visits Nyan at most twice a day.
     group_chat_id = get_config()["GROUP_CHAT_ID"]
-    if group_chat_id:
+    if group_chat_id and app.job_queue is not None:
         app.job_queue.run_repeating(
             muse_visit,
             interval=SLEEP_INTERVAL,
@@ -213,8 +221,11 @@ def add_chat_mode(app: Application, handlers_group: int):
 
 
 async def nyan_listen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    bot_user_id = context.application.bot_data.get("bot_user_id")
-    if bot_user_id and update.effective_user.id == bot_user_id:
+    bot_user_id = context.bot_data.get("bot_user_id")
+    user = update.effective_user
+    if user is None:
+        return
+    if bot_user_id and user.id == bot_user_id:
         return
     nyan.registerMessage(update, context)
 
@@ -231,12 +242,16 @@ async def muse_visit(context: ContextTypes.DEFAULT_TYPE):
     try:
         message = nyan.write_a_poem()
         if message != "":
+            if context.job is None:
+                logger.warning("muse job missing; skipping")
+                return
             job_data = context.job.data
             if not isinstance(job_data, dict):
                 logger.warning("muse job data missing or invalid; skipping")
                 return
+            job_data = cast(dict[str, Any], job_data)
             chat_id = job_data.get("chat_id")
-            if not chat_id:
+            if not isinstance(chat_id, (int, str)) or not chat_id:
                 logger.warning("muse job data missing chat_id; skipping")
                 return
             await context.bot.send_message(chat_id=chat_id, text=message)
@@ -246,7 +261,7 @@ async def muse_visit(context: ContextTypes.DEFAULT_TYPE):
         logger.error("inspiration failed: %s", e)
 
 
-def summarize(log):
+def summarize(log: str) -> str:
     if not OPENAI_ENABLED:
         logger.info("openai disabled; skipping summary")
         return log[:200]
@@ -274,4 +289,4 @@ def summarize(log):
         logger.warning("openai summary failed: %s", exc)
         return log[:200]
 
-    return response.choices[0].message.content
+    return response.choices[0].message.content or ""

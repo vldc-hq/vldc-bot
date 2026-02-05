@@ -1,7 +1,8 @@
 import logging
 
 from telegram import Update, User
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
+from typing_utils import App
 
 from handlers import ChatCommandHandler
 
@@ -14,13 +15,15 @@ MSG = (
 )
 
 
-def add_pr(app: Application, handlers_group: int):
+def add_pr(app: App, handlers_group: int):
     logger.info("registering PR handler")
     app.add_handler(ChatCommandHandler("pr", _pr), group=handlers_group)
 
 
 async def _pr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is None:
+        return
+    if update.effective_chat is None:
         return
     user: User | None = (
         update.message.reply_to_message.from_user

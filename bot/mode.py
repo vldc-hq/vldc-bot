@@ -5,13 +5,11 @@ from typing import Callable, List, Optional
 from telegram import Update, Message
 from telegram.error import BadRequest, NetworkError, TimedOut, TelegramError
 from telegram.ext import (
-    JobQueue,
-    Application,
     ContextTypes,
-    BaseHandler,
 )
 
 from handlers import ChatCommandHandler
+from typing_utils import App, JobQueueT, BaseHandlerT
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +20,8 @@ DEFAULT_GROUP = 0
 class Mode:
     """Todo: add docstring (no)"""
 
-    _dp: Application
-    _mode_handlers: List[BaseHandler] = []
+    _dp: App
+    _mode_handlers: List[BaseHandlerT] = []
 
     def __init__(
         self,
@@ -31,8 +29,8 @@ class Mode:
         default: bool = True,
         *,
         pin_info_msg: bool = False,
-        off_callback: Optional[Callable[[Application], None]] = None,
-        on_callback: Optional[Callable[[Application], None]] = None,
+        off_callback: Optional[Callable[[App], None]] = None,
+        on_callback: Optional[Callable[[App], None]] = None,
     ) -> None:
         self.name = mode_name
         self.default = default
@@ -47,7 +45,7 @@ class Mode:
     def _gen_chat_data_key(mode_name: str) -> str:
         return f"is_{mode_name}_on".lower()
 
-    def _get_mode_state(self, context: ContextTypes.DEFAULT_TYPE):
+    def _get_mode_state(self, context: ContextTypes.DEFAULT_TYPE) -> bool:
         chat_data = context.chat_data
         if chat_data is None:
             return self.default
@@ -56,7 +54,7 @@ class Mode:
 
         return chat_data[self.chat_data_key]
 
-    def _set_mode(self, state: bool, context: ContextTypes.DEFAULT_TYPE):
+    def _set_mode(self, state: bool, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat_data = context.chat_data
         if chat_data is None:
             return
@@ -69,7 +67,7 @@ class Mode:
         else:
             raise ValueError(f"wrong mode state. expect [True, False], got: {state}")
 
-    def _add_on_off_handlers(self):
+    def _add_on_off_handlers(self) -> None:
         self._dp.add_handler(
             ChatCommandHandler(
                 f"{self.name}_on",
@@ -91,15 +89,17 @@ class Mode:
             self.handlers_gr,
         )
 
-    def _remove_mode_handlers(self):
+    def _remove_mode_handlers(self) -> None:
         for h in self._mode_handlers:
             self._dp.remove_handler(h, self.handlers_gr)
 
-    def _add_mode_handlers(self):
+    def _add_mode_handlers(self) -> None:
         for h in self._mode_handlers:
             self._dp.add_handler(h, self.handlers_gr)
 
-    async def _mode_on(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def _mode_on(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         logger.info("%s switch to ON", self.name)
         mode = self._get_mode_state(context)
         if mode is OFF:
@@ -112,15 +112,18 @@ class Mode:
                     logger.error("can't eval mode_on callback: %s", err)
                     raise err
 
-            msg = await context.bot.send_message(
-                update.effective_chat.id, f"{self.name} is ON"
-            )
+            chat = update.effective_chat
+            if chat is None:
+                return
+            msg = await context.bot.send_message(chat.id, f"{self.name} is ON")
             if self.pin_info_msg is True:
                 await context.bot.pin_chat_message(
-                    update.effective_chat.id, msg.message_id, disable_notification=True
+                    chat.id, msg.message_id, disable_notification=True
                 )
 
-    async def _mode_off(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def _mode_off(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         logger.info("%s switch to OFF", self.name)
         mode = self._get_mode_state(context)
         if mode is ON:
@@ -133,21 +136,27 @@ class Mode:
                     logger.error("can't eval mode_off callback: %s", err)
                     raise err
 
-            await context.bot.send_message(
-                update.effective_chat.id, f"{self.name} is OFF"
-            )
+            chat = update.effective_chat
+            if chat is None:
+                return
+            await context.bot.send_message(chat.id, f"{self.name} is OFF")
             if self.pin_info_msg is True:
-                await context.bot.unpin_chat_message(update.effective_chat.id)
+                await context.bot.unpin_chat_message(chat.id)
 
-    async def _mode_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def _mode_status(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         status = "ON" if self._get_mode_state(context) is ON else "OFF"
         msg = f"{self.name} status is {status}"
         logger.info(msg)
-        await context.bot.send_message(update.effective_chat.id, msg)
+        chat = update.effective_chat
+        if chat is None:
+            return
+        await context.bot.send_message(chat.id, msg)
 
-    def add(self, func) -> Callable:
+    def add(self, func: Callable[[App, int], None]) -> Callable[[App, int], None]:
         @wraps(func)
-        def wrapper(app: Application, handlers_group: int):
+        def wrapper(app: App, handlers_group: int) -> None:
             self._dp = app
             self.handlers_gr = handlers_group
 
@@ -175,13 +184,13 @@ class Mode:
 
 
 def cleanup_queue_update(
-    queue: JobQueue | None,
+    queue: JobQueueT | None,
     cmd: Optional[Message],
     result: Optional[Message],
     seconds: int,
     *,
-    remove_cmd=True,
-    remove_reply=False,
+    remove_cmd: bool = True,
+    remove_reply: bool = False,
 ):
     if queue is None:
         return
@@ -195,7 +204,9 @@ def cleanup_queue_update(
         _remove_message_after(reply, queue, seconds)
 
 
-def _remove_message_after(message: Message | None, job_queue: JobQueue, seconds: int):
+def _remove_message_after(
+    message: Message | None, job_queue: JobQueueT, seconds: int
+) -> None:
     logger.debug(
         "Scheduling cleanup of message %s \
                    in %d seconds",
@@ -203,7 +214,7 @@ def _remove_message_after(message: Message | None, job_queue: JobQueue, seconds:
         seconds,
     )
 
-    async def _delete_message_job(context: ContextTypes.DEFAULT_TYPE):
+    async def _delete_message_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         if message is None:
             return
         try:

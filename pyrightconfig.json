@@ -1,8 +1,6 @@
 {
   "pythonVersion": "3.14",
-  "typeCheckingMode": "basic",
+  "typeCheckingMode": "strict",
   "reportMissingTypeStubs": "none",
-  "reportOptionalMemberAccess": "none",
-  "reportOptionalSubscript": "none",
-  "reportOptionalCall": "none"
+  "extraPaths": ["./bot"]
 }

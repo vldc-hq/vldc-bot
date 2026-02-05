@@ -4,7 +4,8 @@ from typing import Optional
 
 import requests
 from telegram import Update
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
+from typing_utils import App, get_job_queue
 
 from mode import cleanup_queue_update
 from handlers import ChatCommandHandler
@@ -16,7 +17,7 @@ KOZULA_RATE_USD = 15_000
 CBR_URL = "https://cbr.ru/scripts/XML_daily.asp"
 
 
-def add_kozula(app: Application, handlers_group: int):
+def add_kozula(app: App, handlers_group: int):
     logger.info("registering tree handlers")
     app.add_handler(ChatCommandHandler("kozula", kozula), group=handlers_group)
 
@@ -29,7 +30,9 @@ def _get_usd_rate() -> Optional[float]:
         root = ET.fromstring(request.content)
         for child in root:
             if child.attrib["ID"] == "R01235":
-                rate = float(child.find("Value").text.replace(",", "."))
+                value = child.findtext("Value")
+                if value is not None:
+                    rate = float(value.replace(",", "."))
     except requests.exceptions.RequestException as e:
         logger.error("can't get USD rate: %s", e)
 
@@ -37,6 +40,8 @@ def _get_usd_rate() -> Optional[float]:
 
 
 async def kozula(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat is None:
+        return
     usd_rate = _get_usd_rate()
     kozula_rates = [
         (
@@ -54,7 +59,7 @@ async def kozula(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     cleanup_queue_update(
-        queue=context.job_queue,
+        queue=get_job_queue(context),
         cmd=update.message,
         result=result,
         seconds=300,

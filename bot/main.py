@@ -7,25 +7,26 @@ https://github.com/vldc-hq/vldc-bot
 
 # pylint: disable=wrong-import-position
 
-import os
 import logging
+import os
+from typing import Any, cast
 
 # Work around protobuf C-extension incompatibility with Python 3.14
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 import sentry_sdk  # noqa: E402
-from telegram.ext import ApplicationBuilder  # noqa: E402
+from telegram.ext import ApplicationBuilder, ContextTypes  # noqa: E402
 from telegram.request import HTTPXRequest  # noqa: E402
 
 from config import get_config  # noqa: E402
 from skills import skills, commands_list  # noqa: E402
-
-DEFAULT_GROUP = 0
+from typing_utils import App  # noqa: E402
 
 logger = logging.getLogger(__name__)
+DEFAULT_GROUP = 0
 
 
-async def _post_init(application):
+async def _post_init(application: App) -> None:
     await application.bot.set_my_commands(commands=commands_list)
     try:
         bot_user = await application.bot.get_me()
@@ -34,11 +35,8 @@ async def _post_init(application):
         logger.warning("failed to fetch bot user info: %s", exc)
 
 
-async def _error_handler(update, context):
-    if update is not None:
-        logger.exception("update handling failed: %s", update, exc_info=context.error)
-    else:
-        logger.exception("update handling failed", exc_info=context.error)
+async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.exception("update handling failed: %s", update, exc_info=context.error)
 
 
 def main():
@@ -66,12 +64,9 @@ def main():
         write_timeout=30,
         pool_timeout=5,
     )
+    builder = cast(Any, ApplicationBuilder())
     application = (
-        ApplicationBuilder()
-        .token(conf["TOKEN"])
-        .post_init(_post_init)
-        .request(request)
-        .build()
+        builder.token(conf["TOKEN"]).post_init(_post_init).request(request).build()
     )
     application.add_error_handler(_error_handler)
 

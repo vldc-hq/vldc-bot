@@ -1,10 +1,11 @@
 import logging
-from typing import List, Dict, Callable, Tuple
+from typing import List, Callable, Tuple, TypedDict
 
 from telegram import Update
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
 from handlers import ChatCommandHandler
 from mode import cleanup_queue_update
+from typing_utils import App, get_job_queue
 from skills.aoc_mode import add_aoc_mode
 from skills.at_least_70k import add_70k
 from skills.ban import add_ban
@@ -34,7 +35,13 @@ logger = logging.getLogger(__name__)
 VERSION = "0.12.0"
 
 
-def _add_version(app: Application, version_handlers_group: int):
+class Skill(TypedDict):
+    name: str
+    add_handlers: Callable[[App, int], None]
+    hint: str
+
+
+def _add_version(app: App, version_handlers_group: int) -> None:
     logger.info("register version handlers")
     app.add_handler(
         ChatCommandHandler(
@@ -51,6 +58,8 @@ async def _version(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     logger.info("current ver.: %s", VERSION)
 
+    if update.effective_chat is None:
+        return
     chat_id = update.effective_chat.id
 
     result = await context.bot.send_message(
@@ -58,19 +67,22 @@ async def _version(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"~=~~=~=~=_ver.:{VERSION}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
     )
 
+    job_queue = get_job_queue(context)
     cleanup_queue_update(
-        context.job_queue,
+        job_queue,
         update.message,
         result,
         120,
     )
 
 
-def _make_skill(add_handlers: Callable, name: str, hint: str) -> Dict:
+def _make_skill(
+    add_handlers: Callable[[App, int], None], name: str, hint: str
+) -> Skill:
     return {"name": name, "add_handlers": add_handlers, "hint": hint}
 
 
-skills: List[Dict] = [
+skills: List[Skill] = [
     # commands
     _make_skill(add_core, "😼 core", " core"),
     _make_skill(_add_version, "😼 version", " show this message"),
@@ -127,5 +139,5 @@ commands_list: List[Tuple[str, str]] = [
 ]
 
 
-def _get_skills_hints(skills_list: List[Dict]) -> str:
+def _get_skills_hints(skills_list: List[Skill]) -> str:
     return "\n".join(f"{s['name']} – {s['hint']}" for s in skills_list)

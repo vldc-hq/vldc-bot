@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from pymongo.collection import Collection
 from telegram import Message
@@ -11,7 +11,7 @@ from db.mongo import get_db
 
 class TrustedDB:
     def __init__(self, db_name: str):
-        self._coll: Collection = get_db(db_name).users
+        self._coll: Collection[dict[str, Any]] = get_db(db_name).users
 
     def is_trusted(self, user_id: int | str) -> bool:
         return self._coll.find_one({"_id": user_id}) is not None
@@ -23,20 +23,34 @@ _trusted_db = TrustedDB("trusted")
 class TrustedFilter(MessageFilter):
     """Messages only from trusted users"""
 
-    name = "Filter.trusted"  # pyright: ignore[reportAssignmentType]
+    @property
+    def name(self) -> str:
+        return "Filter.trusted"
 
-    def filter(self, message: Message) -> Optional[Union[bool, dict]]:
+    @name.setter
+    def name(self, name: str) -> None:
+        del name
+
+    def filter(self, message: Message) -> Optional[Union[bool, dict[str, Any]]]:
         if get_debug():
             return True
+        if message.from_user is None:
+            return None
         return _trusted_db.is_trusted(message.from_user.id)
 
 
 class UwuFilter(MessageFilter):
     """Regexp check for UwU"""
 
-    name = "Filters.uwu"  # pyright: ignore[reportAssignmentType]
+    @property
+    def name(self) -> str:
+        return "Filters.uwu"
 
-    def filter(self, message) -> bool:
+    @name.setter
+    def name(self, name: str) -> None:
+        del name
+
+    def filter(self, message: Message) -> bool:
         if message.text:
             return bool(re.search(r"\bu[wv]+u\b", message.text, re.IGNORECASE))
 

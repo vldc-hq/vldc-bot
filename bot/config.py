@@ -1,5 +1,18 @@
 import os
-from typing import Dict, Optional
+from typing import Optional, TypedDict
+
+
+class Config(TypedDict):
+    DEBUG: bool
+    DEBUGGER: Optional[str]
+    TOKEN: str
+    AOC_SESSION: Optional[str]
+    GROUP_CHAT_ID: Optional[str]
+    MONGO_USER: str
+    MONGO_PASS: str
+    MONGO_HOST: str
+    MONGO_PORT: str
+    SENTRY_DSN: Optional[str]
 
 
 def get_aoc_session() -> Optional[str]:
@@ -14,7 +27,8 @@ def get_debug() -> bool:
 
 def get_debugger() -> Optional[str]:
     """Get debugger value DEBUGGER ENV"""
-    return os.getenv("DEBUGGER", "")
+    debugger = os.getenv("DEBUGGER", "")
+    return debugger or None
 
 
 def get_group_chat_id() -> Optional[str]:
@@ -26,7 +40,7 @@ def get_group_chat_id() -> Optional[str]:
     return chat_id or None
 
 
-def get_token() -> Optional[str]:
+def get_token() -> str:
     """Get Telegram bot Token from ENV"""
     token = os.getenv("TOKEN", None)
     if token is None:
@@ -34,22 +48,22 @@ def get_token() -> Optional[str]:
     return token
 
 
-def get_mongo_user():
+def get_mongo_user() -> str:
     user = os.getenv("MONGO_INITDB_ROOT_USERNAME", None)
     if user is None:
         raise ValueError("can't get mongodb username")
     return user
 
 
-def get_mongo_pass():
+def get_mongo_pass() -> str:
     user = os.getenv("MONGO_INITDB_ROOT_PASSWORD", None)
     if user is None:
         raise ValueError("can't get mongodb password")
     return user
 
 
-def get_config() -> Dict:
-    return {
+def get_config() -> Config:
+    config: Config = {
         "DEBUG": get_debug(),
         "DEBUGGER": get_debugger(),
         "TOKEN": get_token(),
@@ -61,3 +75,4 @@ def get_config() -> Dict:
         "MONGO_PORT": os.getenv("MONGO_PORT", "27017"),
         "SENTRY_DSN": os.getenv("SENTRY_DSN", None),
     }
+    return config

@@ -1,5 +1,6 @@
 import logging
 import random
+from typing import Any
 
 from telegram import Update
 from telegram.ext import Application, MessageHandler, ContextTypes
@@ -10,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 # FIXME: uwu is broken: telegram.error.BadRequest: Wrong file identifier/http url specified
-def add_uwu(app: Application, handlers_group: int):
+App = Application[Any, Any, Any, Any, Any, Any]
+
+
+def add_uwu(app: App, handlers_group: int):
     logger.info("register uwu handlers")
     app.add_handler(MessageHandler(uwu_filter, uwu, block=False), group=handlers_group)
 
@@ -21,6 +25,8 @@ async def uwu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "AgADAgADQKwxG2TDCElWC03ITmP10r5fyw4ABAEAAwIAA20AA73rAAIWBA",
         "AgADAgADQawxG2TDCEm-OKVgXYSOoxUawQ4ABAEAAwIAA20AA-aVAQABFgQ",
     ]
+    if update.effective_chat is None or update.message is None:
+        return
     chat_id = update.effective_chat.id
     message_id = update.message.message_id
     fairly_random_pic = random.choice(well_prepared_anti_UwU_imgs)

@@ -1,20 +1,23 @@
 import logging
 
 from telegram import Update
-from telegram.ext import Application, ContextTypes
+from telegram.ext import ContextTypes
+from typing_utils import App
 
 from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
 
-def add_core(app: Application, core_handlers_group: int):
+def add_core(app: App, core_handlers_group: int):
     logger.info("register smile-mode handlers")
     app.add_handler(ChatCommandHandler("start", start), group=core_handlers_group)
     app.add_handler(ChatCommandHandler("help", help_), group=core_handlers_group)
 
 
 async def start(update: Update, _: ContextTypes.DEFAULT_TYPE):
+    if update.message is None:
+        return
     await update.message.reply_text(
         "I'm a VLDC Bot. 😼\n\nMy source: https://github.com/vldc-hq/vldc-bot"
     )
@@ -22,6 +25,8 @@ async def start(update: Update, _: ContextTypes.DEFAULT_TYPE):
 
 async def help_(update: Update, _: ContextTypes.DEFAULT_TYPE):
     """List of ALL commands"""
+    if update.message is None:
+        return
     await update.message.reply_text(
         "The bot should be an admin with all admins permissions\n\n"
         "Skills for admins:\n\n"
