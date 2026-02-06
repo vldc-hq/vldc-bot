@@ -1,0 +1,6 @@
+{
+  "pythonVersion": "3.14",
+  "typeCheckingMode": "strict",
+  "reportMissingTypeStubs": "none",
+  "extraPaths": ["./bot"]
+}
