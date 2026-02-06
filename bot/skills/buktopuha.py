@@ -369,6 +369,7 @@ def generate_question(prompt: str, word: str) -> str:
             "gpt-4-turbo",
             "gpt-4o",
             "gpt-4.1",
+            "gpt-5-mini",
         ]
         if OPENAI_ENABLED
         else []
@@ -377,6 +378,7 @@ def generate_question(prompt: str, word: str) -> str:
         "gemini-1.5-pro",
         "gemini-2.0-flash",
         "gemini-2.5-pro-preview-03-25",
+        "gemini-3-flash-preview",
     ]
     models = gpt_models + (gemini_models if genai_client is not None else [])
     if not models:
@@ -387,11 +389,6 @@ def generate_question(prompt: str, word: str) -> str:
             response = openai.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": prompt}],
-                temperature=0.9,
-                max_tokens=150,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0.6,
             )
             rs = response.choices[0].message.content or ""
             return f"{model}: " + re.sub(
