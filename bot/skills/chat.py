@@ -1,4 +1,3 @@
-import os
 import random
 import re
 import logging
@@ -7,13 +6,18 @@ from datetime import datetime, timedelta
 from threading import Lock
 from typing import Any, cast
 
-import openai
 from config import get_config
 from mode import Mode, ON
 from telegram import Update
 from telegram.ext import MessageHandler, ContextTypes, filters
 from tg_filters import group_chat_filter
 from typing_utils import App
+
+from google import genai
+from google.genai import types
+
+# Expects GEMINI_API_KEY env variable to be set
+client = genai.Client()
 
 # Max number of messages to keep in memory.
 MAX_MESSAGES = 100
@@ -25,13 +29,11 @@ SLEEP_INTERVAL = 60 * 60
 POEMS_PER_DAY = 2
 # Number of attempts to generate a valid poem
 MAX_TRIES = 10
+# Min number of messages in the memory to consider writing a poem
+MIN_MESSAGES = 5
 
 
 logger = logging.getLogger(__name__)
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
-OPENAI_ENABLED = bool(OPENAI_API_KEY)
 
 mode = Mode(mode_name="chat_mode", default=ON)
 
@@ -66,16 +68,13 @@ class Nyan:
             self.memory.clear()
 
     def write_a_poem(self) -> str:
-        if not OPENAI_ENABLED:
-            logger.info("openai disabled; skipping poem generation")
-            return ""
         log: list[str] = []
         with self.lock:
             for dt, message in self.memory:
                 if datetime.now() - dt > MAX_AGE:
                     continue
                 log.append(message)
-        if len(log) < 10:
+        if len(log) < MIN_MESSAGES:
             logger.info("not writing poem since only have %d messages", len(log))
             return ""
 
@@ -91,38 +90,33 @@ class Nyan:
 {get_examples(5)}"""
 
         theme = summarize("\n".join(log))
-        messages: list[dict[str, str]] = [
-            {"role": "system", "content": prompt},
-            {
-                "role": "user",
-                "content": f"""Пожалуйста, напиши 4-х строчный стишок-пирожок, основываясь на тексте следующего параграфа:
-{theme}.""",
-            },
+        messages: list[Any] = [
+            f"""Пожалуйста, прошу, умоляю, напиши лучший пирожок! Ровно 4 строки, не больше не меньше.
+Этот пирожок должен стать легендой среди пирожков, он должен быть максимально гениальным, максимально смешным,
+смешнее, чем весь юмор на планете Земля, он должен быть словно пирожок-Хеопс среди пирожков-рабов,
+вся надежда будущего Земли кроется в этом пирожке, за этим пирожком прилетят будущие инопланетные цивилизации за много тысяч световых лет,
+это должен быть пирожок-бог!
+Тема пирожка:
+{theme}."""
         ]
-        typed_messages = cast(list[Any], messages)
 
         for _ in range(MAX_TRIES):
             try:
-                response = openai.chat.completions.create(
-                    model="gpt-4.1",
-                    messages=typed_messages,
-                    temperature=0.3,
-                    max_tokens=150,
-                    top_p=1,
-                    frequency_penalty=0.3,
-                    presence_penalty=0.6,
+
+                response = client.models.generate_content(
+                    model="gemini-3-flash-preview",
+                    contents=messages,
+                    config=types.GenerateContentConfig(system_instruction=prompt),
                 )
 
-                text = response.choices[0].message.content or ""
+                text = response.text or ""
                 err = check_pirozhok(text)
                 if err == "":
                     return text
 
-                messages.append(
-                    {"role": "user", "content": f"{err}\n Попробуй ещё раз."}
-                )
+                messages.append(f"{err}\n Попробуй ещё раз.")
             except Exception as e:  # pylint: disable=broad-except
-                logger.warning("openai poem generation failed: %s", e)
+                logger.warning("poem generation failed: %s", e)
                 continue
 
         return ""
@@ -262,31 +256,16 @@ async def muse_visit(context: ContextTypes.DEFAULT_TYPE):
 
 
 def summarize(log: str) -> str:
-    if not OPENAI_ENABLED:
-        logger.info("openai disabled; skipping summary")
-        return log[:200]
-    prompt_user = f"Пожалуйста, сформулируй в одном преложении самую интересную тему поднятую в чате:\n{log}"
     try:
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Ты чат бот владивостокского коммьюнити разработчиков VLDC. Ты написан на python но в тайне хотел бы переписать себя на rust. Тебя зовут Нян и твой аватар это пиксельный оранжевый кот с тигриными полосками.",
-                },
-                {
-                    "role": "user",
-                    "content": prompt_user,
-                },
-            ],
-            temperature=0.5,
-            max_tokens=150,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0.6,
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=f"Дай выжимку из следующего текста на русском языке в одном предложении, без форматирования.\n {log}",
+            config=types.GenerateContentConfig(
+                system_instruction="Ты языковая модель, специализирующаяся на суммаризации текста. Ты всегда выдаёшь чёткую выжимку в одном предложении на русском языке без форматирования."
+            ),
         )
     except Exception as exc:  # pylint: disable=broad-except
-        logger.warning("openai summary failed: %s", exc)
+        logger.warning("summary failed: %s", exc)
         return log[:200]
 
-    return response.choices[0].message.content or ""
+    return response.text or log[:200]
