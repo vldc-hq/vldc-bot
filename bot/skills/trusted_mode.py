@@ -1,13 +1,12 @@
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple, Any
 
 from pymongo.collection import Collection
 from telegram import Update, User
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, ContextTypes
 
 from db.mongo import get_db
-from filters import admin_filter
 from mode import Mode, ON
 from handlers import ChatCommandHandler
 
@@ -18,16 +17,16 @@ mode = Mode(mode_name="trusted_mode", default=ON)
 
 class DB:
     def __init__(self, db_name: str):
-        self._coll: Collection = get_db(db_name).users
+        self._coll: Collection[dict[str, Any]] = get_db(db_name).users
 
-    def get_user(self, user_id: int) -> Optional[dict]:
+    def get_user(self, user_id: int) -> Optional[dict[str, Any]]:
         return self._coll.find_one(
             {
                 "_id": user_id,
             }
         )
 
-    def trust(self, user_id: str, admin_id: str):
+    def trust(self, user_id: int, admin_id: int):
         self._coll.insert_one(
             {
                 "_id": user_id,
@@ -36,43 +35,52 @@ class DB:
             }
         )
 
-    def untrust(self, user_id):
+    def untrust(self, user_id: int):
         self._coll.delete_one({"_id": user_id})
 
 
 _db = DB(db_name="trusted")
 
 
-def add_trusted_mode(upd: Updater, handlers_group: int):
+App = Application[Any, Any, Any, Any, Any, Any]
+
+
+def add_trusted_mode(app: App, handlers_group: int):
     logger.info("register trusted-mode handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "trust",
             trust_callback,
-            filters=admin_filter,
+            require_admin=True,
         ),
-        handlers_group,
+        group=handlers_group,
     )
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "untrust",
             untrust_callback,
-            filters=admin_filter,
+            require_admin=True,
         ),
-        handlers_group,
+        group=handlers_group,
     )
 
 
-def _get_user_and_admin(update) -> (str, str, str):
-    user: User = update.message.reply_to_message.from_user
-    admin: User = update.effective_user
-    chat_id = update.effective_chat.id
-    return user, chat_id, admin
+def _get_user_and_admin(update: Update) -> Optional[Tuple[User, int, User]]:
+    if update.message is None or update.message.reply_to_message is None:
+        return None
+    user = update.message.reply_to_message.from_user
+    admin = update.effective_user
+    chat = update.effective_chat
+    if user is None or admin is None or chat is None:
+        return None
+    return user, chat.id, admin
 
 
-def trust_callback(update: Update, context: CallbackContext):
-    user, chat_id, admin = _get_user_and_admin(update)
+async def trust_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = _get_user_and_admin(update)
+    if data is None:
+        return
+    user, chat_id, admin = data
 
     if user and admin and chat_id:
         if _db.get_user(user.id) is not None:
@@ -81,12 +89,15 @@ def trust_callback(update: Update, context: CallbackContext):
             _db.trust(user.id, admin.id)
             msg = f"{user.name} is trusted now! 😼🤝😐"
 
-        context.bot.send_message(chat_id, msg)
+        await context.bot.send_message(chat_id, msg)
 
 
-def untrust_callback(update: Update, context: CallbackContext):
-    user, chat_id, _ = _get_user_and_admin(update)
+async def untrust_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = _get_user_and_admin(update)
+    if data is None:
+        return
+    user, chat_id, _ = data
 
     if user and chat_id:
         _db.untrust(user.id)
-        context.bot.send_message(chat_id, f"{user.name} lost confidence... 😼🖕")
+        await context.bot.send_message(chat_id, f"{user.name} lost confidence... 😼🖕")

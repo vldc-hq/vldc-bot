@@ -1,13 +1,11 @@
 import logging
-from typing import List, Dict, Callable, Tuple
+from typing import List, Callable, Tuple, TypedDict
 
-import toml
 from telegram import Update
-from telegram.ext import Updater, CallbackContext
-
-from filters import admin_filter
+from telegram.ext import ContextTypes
 from handlers import ChatCommandHandler
 from mode import cleanup_queue_update
+from typing_utils import App, get_job_queue
 from skills.aoc_mode import add_aoc_mode
 from skills.at_least_70k import add_70k
 from skills.ban import add_ban
@@ -34,56 +32,57 @@ from skills.buktopuha import add_buktopuha
 from skills.chat import add_chat_mode
 
 logger = logging.getLogger(__name__)
+VERSION = "0.12.0"
 
 
-def _add_version(upd: Updater, version_handlers_group: int):
+class Skill(TypedDict):
+    name: str
+    add_handlers: Callable[[App, int], None]
+    hint: str
+
+
+def _add_version(app: App, version_handlers_group: int) -> None:
     logger.info("register version handlers")
-    dp = upd.dispatcher
-    dp.add_handler(
+    app.add_handler(
         ChatCommandHandler(
             "version",
             _version,
-            filters=admin_filter,
+            require_admin=True,
         ),
-        version_handlers_group,
+        group=version_handlers_group,
     )
 
 
-def _get_version_from_pipfile() -> str:
-    """Parse toml file for version"""
-    with open("Pipfile", "r") as pipfile:
-        toml_dict = toml.loads(pipfile.read())
-    version = toml_dict["description"][0]["version"]
-    return version
-
-
-def _version(update: Update, context: CallbackContext):
+async def _version(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show a current version of bot"""
 
-    version = _get_version_from_pipfile()
+    logger.info("current ver.: %s", VERSION)
 
-    logger.info("current ver.: %s", version)
-
+    if update.effective_chat is None:
+        return
     chat_id = update.effective_chat.id
 
-    result = context.bot.send_message(
+    result = await context.bot.send_message(
         chat_id,
-        f"~=~~=~=~=_ver.:{version}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
+        f"~=~~=~=~=_ver.:{VERSION}_~=~=~=[,,_,,]:3\n\n" f"{_get_skills_hints(skills)}",
     )
 
+    job_queue = get_job_queue(context)
     cleanup_queue_update(
-        context.job_queue,
+        job_queue,
         update.message,
         result,
         120,
     )
 
 
-def _make_skill(add_handlers: Callable, name: str, hint: str) -> Dict:
+def _make_skill(
+    add_handlers: Callable[[App, int], None], name: str, hint: str
+) -> Skill:
     return {"name": name, "add_handlers": add_handlers, "hint": hint}
 
 
-skills: List[Dict] = [
+skills: List[Skill] = [
     # commands
     _make_skill(add_core, "😼 core", " core"),
     _make_skill(_add_version, "😼 version", " show this message"),
@@ -127,7 +126,7 @@ commands_list: List[Tuple[str, str]] = [
     ("ban", "ban! ban! ban!"),
     ("roll", "life is so cruel... isn't it?"),
     ("tree", "advent of code time!"),
-    ("kozula", "💰 kozula", " Don't argue with kozula rate!"),
+    ("kozula", "💰 kozula: Don't argue with kozula rate!"),
     ("still", "do u remember it?"),
     ("banme", "commit sudoku"),
     ("prism", "top N PRISM words with optional predicate"),
@@ -140,5 +139,5 @@ commands_list: List[Tuple[str, str]] = [
 ]
 
 
-def _get_skills_hints(skills_list: List[Dict]) -> str:
+def _get_skills_hints(skills_list: List[Skill]) -> str:
     return "\n".join(f"{s['name']} – {s['hint']}" for s in skills_list)

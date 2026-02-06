@@ -1,22 +1,33 @@
 import logging
+from datetime import datetime
+from typing import Any
 
 from telegram import Update
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Application, ContextTypes
 
 from handlers import ChatCommandHandler
 
 logger = logging.getLogger(__name__)
 
-AOC_LEADERBOARD_LINK = "https://adventofcode.com/2023/leaderboard/private/view/458538"
+now = datetime.now()
+year = now.year
+if now.month < 12:
+    year -= 1
+
+AOC_LEADERBOARD_LINK = (
+    f"https://adventofcode.com/{year}/leaderboard/private/view/458538"
+)
 
 
-def add_tree(upd: Updater, handlers_group: int):
+App = Application[Any, Any, Any, Any, Any, Any]
+
+
+def add_tree(app: App, handlers_group: int):
     logger.info("registering tree handlers")
-    dp = upd.dispatcher
-    dp.add_handler(ChatCommandHandler("tree", tree), handlers_group)
+    app.add_handler(ChatCommandHandler("tree", tree), group=handlers_group)
 
 
-def tree(update: Update, context: CallbackContext):
+async def tree(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"🎄🎄🎄 Присоединяйся к ежегодному решению елки! 🎄🎄🎄 \n"
         f"👉👉👉 https://adventofcode.com/ 👈👈👈 \n"
@@ -24,4 +35,6 @@ def tree(update: Update, context: CallbackContext):
         f"Join Code: `458538-e2a0698b`"
     )
 
-    context.bot.send_message(update.effective_chat.id, text)
+    if update.effective_chat is None:
+        return
+    await context.bot.send_message(update.effective_chat.id, text)
