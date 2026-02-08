@@ -24,6 +24,7 @@ from typing_utils import App, get_job_queue
 MAGIC_NUMBER = "42"
 QUARANTINE_TIME = 60
 HELLO_MESSAGE_PIN_TIME = 48  # hours
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 I_AM_BOT = [
     "I am a bot!",
     "Я бот!",
@@ -93,11 +94,11 @@ class DB:
                 "message_text": message_text,
                 "message_id": message_id,
                 "timestamp": datetime.now(),
-                "expires_at": datetime.now() + timedelta(hours=48),
+                "expires_at": datetime.now() + timedelta(hours=HELLO_MESSAGE_PIN_TIME),
             }
         )
 
-    def get_hello_message(self, user_id: int) -> Dict[str, Any] | None:
+    def get_hello_message(self, user_id: int) -> dict[str, Any] | None:
         """Get user's hello message if it exists and hasn't expired"""
         return self._hello_messages.find_one(
             {
@@ -483,8 +484,8 @@ async def view_hello_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     # Format the response
-    timestamp = hello_msg["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
-    expires_at = hello_msg["expires_at"].strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = hello_msg["timestamp"].strftime(DATETIME_FORMAT)
+    expires_at = hello_msg["expires_at"].strftime(DATETIME_FORMAT)
     response = (
         f"📝 Приветственное сообщение от {hello_msg['username']}:\n"
         f"Отправлено: {timestamp}\n"
