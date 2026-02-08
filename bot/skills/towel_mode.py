@@ -52,6 +52,7 @@ class DB:
         self._hello_messages: Collection[dict[str, Any]] = get_db(
             db_name
         ).hello_messages
+        self._ensure_indexes()
 
     def add_user(self, user_id: int):
         return (
@@ -83,19 +84,35 @@ class DB:
     def delete_all_users(self):
         return self._coll.delete_many({})
 
+    def _ensure_indexes(self):
+        """Create necessary indexes for hello_messages collection"""
+        try:
+            # TTL index to automatically delete expired documents
+            self._hello_messages.create_index(
+                "expires_at", expireAfterSeconds=0, background=True
+            )
+            # Index on user_id for efficient lookups
+            self._hello_messages.create_index("user_id", background=True)
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("failed to create indexes: %s", exc)
+
     def save_hello_message(
         self, user_id: int, username: str, message_text: str, message_id: int
     ):
-        """Save user's hello message for 48 hours"""
-        self._hello_messages.insert_one(
+        """Save user's hello message for 48 hours (upsert to avoid duplicates)"""
+        self._hello_messages.update_one(
+            {"user_id": user_id},
             {
-                "user_id": user_id,
-                "username": username,
-                "message_text": message_text,
-                "message_id": message_id,
-                "timestamp": datetime.now(),
-                "expires_at": datetime.now() + timedelta(hours=HELLO_MESSAGE_PIN_TIME),
-            }
+                "$set": {
+                    "username": username,
+                    "message_text": message_text,
+                    "message_id": message_id,
+                    "timestamp": datetime.now(),
+                    "expires_at": datetime.now()
+                    + timedelta(hours=HELLO_MESSAGE_PIN_TIME),
+                }
+            },
+            upsert=True,
         )
 
     def get_hello_message(self, user_id: int) -> dict[str, Any] | None:
@@ -104,6 +121,16 @@ class DB:
             {
                 "user_id": user_id,
                 "expires_at": {"$gt": datetime.now()},
+            },
+            sort=[("timestamp", -1)],
+        )
+
+    def get_all_pinned_messages(self) -> Iterable[dict[str, Any]]:
+        """Get all hello messages that should still be pinned"""
+        return self._hello_messages.find(
+            {
+                "expires_at": {"$gt": datetime.now()},
+                "message_id": {"$exists": True},
             }
         )
 
@@ -150,6 +177,37 @@ async def _unpin_message_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.info("can't unpin message: %s", err)
 
 
+async def _cleanup_expired_pins(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Periodic job to unpin messages whose expires_at has passed (handles bot restarts)"""
+    if context.job is None or context.job.data is None:
+        return
+    chat_id = context.job.data.get("chat_id")
+    if chat_id is None:
+        return
+
+    # Find all hello messages that have expired but might still be pinned
+    now = datetime.now()
+    expired_messages = db._hello_messages.find(
+        {
+            "expires_at": {"$lte": now},
+            "message_id": {"$exists": True},
+        }
+    )
+
+    for msg_doc in expired_messages:
+        message_id = msg_doc.get("message_id")
+        if message_id:
+            try:
+                await context.bot.unpin_chat_message(chat_id, message_id)
+                logger.info(
+                    "cleanup: unpinned expired message %d in chat %d",
+                    message_id,
+                    chat_id,
+                )
+            except BadRequest as err:
+                logger.debug("cleanup: can't unpin message %d: %s", message_id, err)
+
+
 async def _pin_hello_message(
     chat_id: int, message_id: int, username: str, context: ContextTypes.DEFAULT_TYPE
 ):
@@ -165,7 +223,7 @@ async def _pin_hello_message(
         if job_queue is not None:
             job_queue.run_once(
                 _unpin_message_job,
-                timedelta(hours=HELLO_MESSAGE_PIN_TIME),
+                HELLO_MESSAGE_PIN_TIME * 3600,  # Convert hours to seconds
                 data={"chat_id": chat_id, "message_id": message_id},
             )
     except BadRequest as err:
@@ -206,6 +264,13 @@ def add_towel_mode(app: App, handlers_group: int):
             ban_user,
             interval=60,
             first=60,
+            data={"chat_id": group_chat_id},
+        )
+        # Cleanup job to unpin expired hello messages (handles bot restarts)
+        app.job_queue.run_repeating(
+            _cleanup_expired_pins,
+            interval=3600,  # Run every hour
+            first=10,  # Start 10 seconds after bot starts
             data={"chat_id": group_chat_id},
         )
     else:
