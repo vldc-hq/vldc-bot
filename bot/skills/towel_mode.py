@@ -17,11 +17,13 @@ from telegram.ext import (
 
 from config import get_config
 from db.mongo import get_db
+from handlers import ChatCommandHandler
 from mode import Mode
-from typing_utils import App
+from typing_utils import App, get_job_queue
 
 MAGIC_NUMBER = "42"
 QUARANTINE_TIME = 60
+HELLO_MESSAGE_PIN_TIME = 48  # hours
 I_AM_BOT = [
     "I am a bot!",
     "Я бот!",
@@ -46,6 +48,7 @@ OPENAI_ENABLED = bool(OPENAI_API_KEY)
 class DB:
     def __init__(self, db_name: str):
         self._coll: Collection[dict[str, Any]] = get_db(db_name).quarantine
+        self._hello_messages: Collection[dict[str, Any]] = get_db(db_name).hello_messages
 
     def add_user(self, user_id: int):
         return (
@@ -77,6 +80,30 @@ class DB:
     def delete_all_users(self):
         return self._coll.delete_many({})
 
+    def save_hello_message(
+        self, user_id: int, username: str, message_text: str, message_id: int
+    ):
+        """Save user's hello message for 48 hours"""
+        self._hello_messages.insert_one(
+            {
+                "user_id": user_id,
+                "username": username,
+                "message_text": message_text,
+                "message_id": message_id,
+                "timestamp": datetime.now(),
+                "expires_at": datetime.now() + timedelta(hours=48),
+            }
+        )
+
+    def get_hello_message(self, user_id: int) -> Dict[str, Any] | None:
+        """Get user's hello message if it exists and hasn't expired"""
+        return self._hello_messages.find_one(
+            {
+                "user_id": user_id,
+                "expires_at": {"$gt": datetime.now()},
+            }
+        )
+
 
 db = DB("towel_mode")
 
@@ -103,6 +130,21 @@ async def _delete_user_rel_messages(
             await context.bot.delete_message(chat_id, msg_id)
         except BadRequest as err:
             logger.info("can't delete msg: %s", err)
+
+
+async def _unpin_message_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Job to unpin a message after 48 hours"""
+    if context.job is None or context.job.data is None:
+        return
+    chat_id = context.job.data.get("chat_id")
+    message_id = context.job.data.get("message_id")
+    if chat_id is None or message_id is None:
+        return
+    try:
+        await context.bot.unpin_chat_message(chat_id, message_id)
+        logger.info("unpinned message %d in chat %d", message_id, chat_id)
+    except BadRequest as err:
+        logger.info("can't unpin message: %s", err)
 
 
 @mode.add
@@ -143,6 +185,16 @@ def add_towel_mode(app: App, handlers_group: int):
         )
     else:
         logger.warning("CHAT_ID is empty; towel_mode ban job is disabled")
+    
+    # admin command to view saved hello messages
+    app.add_handler(
+        ChatCommandHandler(
+            "hellomsg",
+            view_hello_message,
+            require_admin=True,
+        ),
+        group=handlers_group,
+    )
 
 
 async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAULT_TYPE):
@@ -236,6 +288,41 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await _delete_user_rel_messages(update.effective_chat.id, user_id, context)
             db.delete_user(user_id=cast(int, user["_id"]))
             if update.message is not None:
+                # Save hello message to database
+                db.save_hello_message(
+                    user_id=user_id,
+                    username=update.effective_user.name or str(user_id),
+                    message_text=text,
+                    message_id=update.effective_message.message_id,
+                )
+                
+                # Pin the hello message for 48 hours
+                try:
+                    await context.bot.pin_chat_message(
+                        update.effective_chat.id,
+                        update.effective_message.message_id,
+                        disable_notification=True,
+                    )
+                    logger.info(
+                        "pinned hello message %d for user %s",
+                        update.effective_message.message_id,
+                        update.effective_user.name,
+                    )
+                    
+                    # Schedule unpinning after 48 hours
+                    job_queue = get_job_queue(context)
+                    if job_queue is not None:
+                        job_queue.run_once(
+                            _unpin_message_job,
+                            timedelta(hours=HELLO_MESSAGE_PIN_TIME),
+                            data={
+                                "chat_id": update.effective_chat.id,
+                                "message_id": update.effective_message.message_id,
+                            },
+                        )
+                except BadRequest as err:
+                    logger.warning("can't pin message: %s", err)
+                
                 await update.message.reply_text("Добро пожаловать в VLDC!")
         else:
             # Reply doesn't pass OpenAI check - delete it
@@ -361,3 +448,44 @@ async def ban_user(context: ContextTypes.DEFAULT_TYPE):
             db.delete_user(user_id)
 
             logger.info("user banned: %s", user)
+
+
+async def view_hello_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to view a user's saved hello message"""
+    if update.message is None:
+        return
+    
+    # Check if command is a reply to a message
+    if update.message.reply_to_message is None:
+        await update.message.reply_text(
+            "Используй эту команду как ответ (reply) на сообщение пользователя."
+        )
+        return
+    
+    target_user = update.message.reply_to_message.from_user
+    if target_user is None:
+        await update.message.reply_text("Не могу определить пользователя.")
+        return
+    
+    # Get the saved hello message from database
+    hello_msg = db.get_hello_message(target_user.id)
+    
+    if hello_msg is None:
+        await update.message.reply_text(
+            f"Не найдено сохранённое приветственное сообщение для {target_user.name}.\n"
+            "Возможно, оно было отправлено более 48 часов назад или пользователь ещё не прошёл карантин."
+        )
+        return
+    
+    # Format the response
+    timestamp = hello_msg["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+    expires_at = hello_msg["expires_at"].strftime("%Y-%m-%d %H:%M:%S")
+    response = (
+        f"📝 Приветственное сообщение от {hello_msg['username']}:\n"
+        f"Отправлено: {timestamp}\n"
+        f"Истекает: {expires_at}\n\n"
+        f"Текст:\n{hello_msg['message_text']}"
+    )
+    
+    await update.message.reply_text(response)
+
