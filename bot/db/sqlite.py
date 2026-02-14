@@ -3,7 +3,7 @@ import logging
 import json
 from datetime import datetime, timedelta
 from typing import Any, List, Dict, Optional
-from config import get_config
+from config import get_sqlite_db_path
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +28,7 @@ sqlite3.register_converter("DATETIME", convert_datetime)
 class BotDB:
     def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
-            conf = get_config()
-            self.db_path = conf["SQLITE_DB_PATH"]
+            self.db_path = get_sqlite_db_path()
         else:
             self.db_path = db_path
         self._init_db()

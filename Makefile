@@ -19,7 +19,10 @@ stop:  ## Stop all
 down:  ## Down all
 	docker-compose -f docker-compose-dev.yml down
 
-test:  ## Run tests
+test:  ## Run tests locally
+	export PYTHONPATH=./bot && pytest bot/tests
+
+test_docker:  ## Run tests in docker
 	docker-compose -f docker-compose-dev.yml run --rm bot pytest bot/tests
 
 lint:  ## Run linters (black, flake8, mypy, pylint)

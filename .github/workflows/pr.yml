@@ -21,4 +21,4 @@ jobs:
     - name: Lint
       run: uv run make lint
     - name: Test with pytest
-      run: export PYTHONPATH=./bot && uv run pytest
+      run: uv run make test
