@@ -243,7 +243,7 @@ Answer with a single word: spam or legit."""
     if GEMINI_ENABLED and genai_client is not None:
         try:
             gemini_resp = genai_client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-3-flash-preview",
                 contents=f"{prompt}\n\nUser message: {text}",
             )
             verdict = (gemini_resp.text or "").strip().lower()
@@ -255,7 +255,7 @@ Answer with a single word: spam or legit."""
     if verdict is None and OPENAI_ENABLED:
         try:
             openai_resp = openai.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano",
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text},
