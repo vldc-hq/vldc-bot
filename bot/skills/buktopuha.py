@@ -269,9 +269,9 @@ async def check_for_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def generate_question(prompt: str, word: str) -> str:
     openai_models = [
-        "gpt-oss-120b",
         "o4-mini",
         "gpt-5-mini",
+        "gpt-5-nano",
     ]
     google_models = [
         "gemma-3-27b-it",
