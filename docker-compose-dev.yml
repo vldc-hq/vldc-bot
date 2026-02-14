@@ -8,25 +8,12 @@ services:
     volumes:
       - .:/app
       - .:/opt/gcloud
-    depends_on:
-      - mongo
     env_file:
       - ./.env
     environment:
       - PYTHONPATH=./bot
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2
-    logging:
-      options:
-        max-size: "1M"
-        max-file: "10"
-
-  mongo:
-    image: mongo:4.2.15
-    ports:
-      - "27017:27017"
-    env_file:
-      - ./.env
     logging:
       options:
         max-size: "1M"

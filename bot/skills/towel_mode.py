@@ -1,11 +1,10 @@
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from random import choice
-from typing import Dict, Any, Iterable, cast
+from typing import Dict, Any, cast
 
 import openai
-from pymongo.collection import Collection
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import (
@@ -16,7 +15,7 @@ from telegram.ext import (
 )
 
 from config import get_config
-from db.mongo import get_db
+from db.sqlite import db as sqlite_db
 from mode import Mode
 from typing_utils import App
 
@@ -42,47 +41,8 @@ openai.api_key = OPENAI_API_KEY
 OPENAI_ENABLED = bool(OPENAI_API_KEY)
 
 
-# todo: extract maybe?
-class DB:
-    def __init__(self, db_name: str):
-        self._coll: Collection[dict[str, Any]] = get_db(db_name).quarantine
-
-    def add_user(self, user_id: int):
-        return (
-            self._coll.insert_one(
-                {
-                    "_id": user_id,
-                    "rel_messages": [],
-                    "datetime": datetime.now() + timedelta(minutes=QUARANTINE_TIME),
-                }
-            )
-            if self.find_user(user_id) is None
-            else None
-        )
-
-    def find_user(self, user_id: int) -> Dict[str, Any] | None:
-        return self._coll.find_one({"_id": user_id})
-
-    def find_all_users(self) -> Iterable[Dict[str, Any]]:
-        return self._coll.find({})
-
-    def add_user_rel_message(self, user_id: int, message_id: int):
-        self._coll.update_one(
-            {"_id": user_id}, {"$addToSet": {"rel_messages": message_id}}
-        )
-
-    def delete_user(self, user_id: int):
-        return self._coll.delete_one({"_id": user_id})
-
-    def delete_all_users(self):
-        return self._coll.delete_many({})
-
-
-db = DB("towel_mode")
-
-
 def _clear_quarantine(_: App) -> None:
-    db.delete_all_users()
+    sqlite_db.delete_all_quarantine_users()
 
 
 mode = Mode(mode_name="towel_mode", default=True, off_callback=_clear_quarantine)
@@ -95,7 +55,7 @@ def _is_time_gone(user: Dict[str, Any]) -> bool:
 async def _delete_user_rel_messages(
     chat_id: int, user_id: int, context: ContextTypes.DEFAULT_TYPE
 ):
-    user = db.find_user(user_id=user_id)
+    user = sqlite_db.find_quarantine_user(user_id=user_id)
     if user is None:
         return
     for msg_id in user["rel_messages"]:
@@ -147,7 +107,7 @@ def add_towel_mode(app: App, handlers_group: int):
 
 async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAULT_TYPE):
     logger.info("put %s in quarantine", user)
-    db.add_user(user.id)
+    sqlite_db.add_quarantine_user(user.id, QUARANTINE_TIME)
 
     markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]]
@@ -166,7 +126,7 @@ async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAUL
     ).message_id
 
     # messages from `rel_message` will be deleted after greeting or ban
-    db.add_user_rel_message(
+    sqlite_db.add_quarantine_rel_message(
         user.id,
         message_id,
     )
@@ -183,7 +143,7 @@ async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAUL
             )
         ).message_id
 
-        db.delete_user(user_id=user.id)
+        sqlite_db.delete_quarantine_user(user_id=user.id)
         await context.bot.send_message(
             chat_id, "Добро пожаловать в VLDC!", reply_to_message_id=message_id
         )
@@ -205,7 +165,7 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat is None:
         return
     user_id = update.effective_user.id
-    user = db.find_user(user_id)
+    user = sqlite_db.find_quarantine_user(user_id)
     if user is None:
         return
 
@@ -230,11 +190,11 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Я верю, что ты можешь написать больше о себе!",
             )
             # Add feedback message to related messages for cleanup
-            db.add_user_rel_message(user_id, feedback_msg.message_id)
+            sqlite_db.add_quarantine_rel_message(user_id, feedback_msg.message_id)
         elif is_worthy(text):
             # Valid reply - welcome the user
             await _delete_user_rel_messages(update.effective_chat.id, user_id, context)
-            db.delete_user(user_id=cast(int, user["_id"]))
+            sqlite_db.delete_quarantine_user(user_id=cast(int, user["_id"]))
             if update.message is not None:
                 await update.message.reply_text("Добро пожаловать в VLDC!")
         else:
@@ -303,7 +263,7 @@ async def quarantine_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     user_id = update.effective_user.id
     # todo: cache it
-    user = db.find_user(user_id)
+    user = sqlite_db.find_quarantine_user(user_id)
     # if user exist -> remove message
     if user is not None:
         await context.bot.delete_message(
@@ -319,7 +279,7 @@ async def i_am_a_bot_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if query.data == MAGIC_NUMBER:
-        if db.find_user(user.id) is not None:
+        if sqlite_db.find_quarantine_user(user.id) is not None:
             msg = f"{user.name}, попробуй прочитать сообщение от бота внимательней :3"
         else:
             msg = f"Любопытство сгубило кошку, {user.name} :3"
@@ -348,7 +308,7 @@ async def ban_user(context: ContextTypes.DEFAULT_TYPE):
     chat_id = (await context.bot.get_chat(chat_id=group_chat_id)).id
     logger.debug("get chat.id: %s", chat_id)
 
-    for user in db.find_all_users():
+    for user in sqlite_db.find_all_quarantine_users():
         if _is_time_gone(user):
             user_id = int(user["_id"])
             try:
@@ -358,6 +318,6 @@ async def ban_user(context: ContextTypes.DEFAULT_TYPE):
                 logger.error("can't ban user %s, because of: %s", user, err)
                 continue
 
-            db.delete_user(user_id)
+            sqlite_db.delete_quarantine_user(user_id)
 
             logger.info("user banned: %s", user)

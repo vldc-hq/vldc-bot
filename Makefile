@@ -20,7 +20,7 @@ down:  ## Down all
 	docker-compose -f docker-compose-dev.yml down
 
 test:  ## Run tests
-	docker-compose -f docker-compose-dev.yml run --rm bot pytest
+	docker-compose -f docker-compose-dev.yml run --rm bot pytest bot/tests
 
 lint:  ## Run linters (black, flake8, mypy, pylint)
 	black ./bot --check --diff

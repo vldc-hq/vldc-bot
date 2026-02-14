@@ -8,11 +8,13 @@ class Config(TypedDict):
     TOKEN: str
     AOC_SESSION: Optional[str]
     GROUP_CHAT_ID: Optional[str]
-    MONGO_USER: str
-    MONGO_PASS: str
-    MONGO_HOST: str
-    MONGO_PORT: str
+    SQLITE_DB_PATH: str
     SENTRY_DSN: Optional[str]
+
+
+def get_sqlite_db_path() -> str:
+    """Get SQLite database path from ENV"""
+    return os.getenv("SQLITE_DB_PATH", "bot.db")
 
 
 def get_aoc_session() -> Optional[str]:
@@ -48,20 +50,6 @@ def get_token() -> str:
     return token
 
 
-def get_mongo_user() -> str:
-    user = os.getenv("MONGO_INITDB_ROOT_USERNAME", None)
-    if user is None:
-        raise ValueError("can't get mongodb username")
-    return user
-
-
-def get_mongo_pass() -> str:
-    user = os.getenv("MONGO_INITDB_ROOT_PASSWORD", None)
-    if user is None:
-        raise ValueError("can't get mongodb password")
-    return user
-
-
 def get_config() -> Config:
     config: Config = {
         "DEBUG": get_debug(),
@@ -69,10 +57,7 @@ def get_config() -> Config:
         "TOKEN": get_token(),
         "AOC_SESSION": get_aoc_session(),
         "GROUP_CHAT_ID": get_group_chat_id(),
-        "MONGO_USER": get_mongo_user(),
-        "MONGO_PASS": get_mongo_pass(),
-        "MONGO_HOST": os.getenv("MONGO_HOST", "mongo"),
-        "MONGO_PORT": os.getenv("MONGO_PORT", "27017"),
+        "SQLITE_DB_PATH": get_sqlite_db_path(),
         "SENTRY_DSN": os.getenv("SENTRY_DSN", None),
     }
     return config
