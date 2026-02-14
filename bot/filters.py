@@ -1,23 +1,11 @@
 import re
 from typing import Optional, Union, Any
 
-from pymongo.collection import Collection
 from telegram import Message
 from telegram.ext.filters import MessageFilter
 
 from config import get_debug
-from db.mongo import get_db
-
-
-class TrustedDB:
-    def __init__(self, db_name: str):
-        self._coll: Collection[dict[str, Any]] = get_db(db_name).users
-
-    def is_trusted(self, user_id: int | str) -> bool:
-        return self._coll.find_one({"_id": user_id}) is not None
-
-
-_trusted_db = TrustedDB("trusted")
+from db.sqlite import db
 
 
 class TrustedFilter(MessageFilter):
@@ -36,7 +24,7 @@ class TrustedFilter(MessageFilter):
             return True
         if message.from_user is None:
             return None
-        return _trusted_db.is_trusted(message.from_user.id)
+        return db.is_user_trusted(message.from_user.id)
 
 
 class UwuFilter(MessageFilter):

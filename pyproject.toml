@@ -1,12 +1,11 @@
 [project]
 name = "vldc-bot"
-version = "0.12.1"
+version = "0.13.0"
 description = "VLDC Nyan bot"
 readme = "README.md"
 requires-python = "==3.14.2"
 dependencies = [
   "python-telegram-bot[job-queue]==22.6",
-  "pymongo==4.16.0",
   "google-cloud-translate==3.24.0",
   "google-cloud-speech==2.36.0",
   "sentry-sdk==2.51.0",
@@ -25,7 +24,7 @@ dev = [
   "black==26.1.0",
   "flake8==7.3.0",
   "mypy==1.19.1",
-  "pyright==1.1.396",
+  "pyright==1.1.408",
   "pylint==4.0.4",
   "pytest==9.0.2",
   "types-requests==2.32.0.20241016",

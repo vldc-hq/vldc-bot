@@ -5,12 +5,11 @@ from http import HTTPStatus
 from typing import Any
 
 import requests
-from pymongo.collection import Collection
 from telegram import Update, Bot
 from telegram.ext import ContextTypes
 
 from config import get_group_chat_id, get_aoc_session
-from db.mongo import get_db
+from db.sqlite import db
 from mode import Mode, OFF
 from typing_utils import App, JobQueueT
 
@@ -34,25 +33,6 @@ AOC_UPDATE_INTERVAL = timedelta(minutes=15)
 JOB_AOC_UPDATE = "aoc_update_job"
 
 
-class DB:
-    """
-    AOC document:
-    """
-
-    def __init__(self, db_name: str):
-        self._coll: Collection[dict[str, Any]] = get_db(db_name).aoc
-
-    def update(self, data: dict[str, Any]) -> None:
-        self._coll.update_one({}, {"$set": data}, True)
-
-    def get(self) -> dict[str, Any] | None:
-        return self._coll.find_one()
-
-    def remove_all(self) -> None:
-        self._coll.delete_many({})
-
-
-_db = DB(db_name="aoc")
 mode = Mode(
     mode_name="aoc_mode",
     default=OFF,
@@ -148,10 +128,10 @@ def calculate_solved_by(
 
 
 async def process_aoc_update(data: dict[str, Any], bot: Bot) -> None:
-    cached_data = _db.get() or {"members": {}}
+    cached_data = db.get_aoc_data() or {"members": {}}
 
     # It is okay for a first mode run, just store this one
-    _db.update(data)
+    db.update_aoc_data(data)
 
     current_day = int(aoc_day_from_datetime(datetime.now(timezone.utc))) + 1
     logger.info("Current AOC day is %d", current_day)

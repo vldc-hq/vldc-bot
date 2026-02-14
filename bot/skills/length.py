@@ -1,14 +1,11 @@
 import logging
-from typing import Optional, List, TypedDict, Any, Mapping
+from typing import Optional, TypedDict, Any, Mapping
 
-import pymongo
-from pymongo.collection import Collection
-from pymongo.results import UpdateResult
 from telegram import Update, User, Message
 from telegram.ext import ContextTypes
 from typing_utils import App, get_job_queue
 
-from db.mongo import get_db
+from db.sqlite import db
 from mode import cleanup_queue_update
 from handlers import ChatCommandHandler
 
@@ -39,30 +36,6 @@ def add_length(app: App, handlers_group: int):
     )
 
 
-class DB:
-    def __init__(self, db_name: str):
-        self._coll: Collection[PeninsulaDataType] = get_db(db_name).peninsulas
-
-    def get_best_n(self, n: int = 10) -> List[PeninsulaDataType]:
-        return list(self._coll.find({}).sort("_id", pymongo.ASCENDING).limit(n))
-
-    def add(self, user: User) -> UpdateResult:
-        return self._coll.update_one(
-            {
-                "_id": int(user.id),
-            },
-            {
-                "$set": {
-                    "meta": user.to_dict(),
-                }
-            },
-            upsert=True,
-        )
-
-
-_db = DB(db_name="peninsulas")
-
-
 def _get_username(h: Mapping[str, Any]) -> str:
     """Get username or fullname or unknown."""
     m = h.get("meta", {})
@@ -88,7 +61,7 @@ async def _length(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Your telegram id length is {len(str(user.id))} 🍆 ({str(user.id)})"
         )
 
-    _db.add(user)
+    db.add_peninsula_user(user.id, user.to_dict())
 
     cleanup_queue_update(
         get_job_queue(context),
@@ -105,7 +78,7 @@ async def _longest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     n = 1
 
-    for col in _db.get_best_n(10):
+    for col in db.get_best_peninsulas(10):
         username = _get_username(col)
         message += f"{n} → {username}\n"
 

@@ -5,12 +5,10 @@ from datetime import datetime, timedelta
 from random import randint
 from tempfile import gettempdir
 from threading import Lock
-from typing import List, Optional, Tuple, Mapping, Any, IO, TypedDict
+from typing import List, Optional, Tuple, Mapping, Any, IO, TypedDict, cast
 from uuid import uuid4
 
-import pymongo
 from PIL import Image, ImageDraw, ImageFont
-from pymongo.collection import Collection
 from telegram import Update, User, Message
 from telegram.constants import ChatMemberStatus
 from telegram.error import BadRequest
@@ -22,7 +20,7 @@ from telegram.ext import (
 )
 
 from config import get_group_chat_id
-from db.mongo import get_db
+from db.sqlite import db
 from handlers import ChatCommandHandler
 from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
@@ -37,83 +35,11 @@ HUSSARS_LIMIT_FOR_IMAGE = 25
 FONT = "firacode.ttf"
 
 
-class DB:
-    """
-    Hussar document:
-    {
-        _id: 420,                                   # int       -- tg user id
-        meta: {...},                                # Dict      -- full tg user object (just in case)
-        shot_counter: 10,                           # int       -- full amount of shots
-        miss_counter: 8,                            # int       -- amount of miss
-        dead_counter: 2,                            # int       -- amount of dead shots
-        total_time_in_club: datetime(...),          # DateTime  -- all time in the club
-        first_shot": datetime(...),                 # DateTIme  -- time of first shot
-        "last_shot": datetime(...)                  # DateTIme  -- time of last shot
-    }
-    """
-
-    def __init__(self, db_name: str):
-        self._coll: Collection[HussarRecord] = get_db(db_name).hussars
-
-    def find_all(self) -> list["HussarRecord"]:
-        return list(self._coll.find({}).sort("total_time_in_club", pymongo.DESCENDING))
-
-    def find(self, user_id: int) -> "HussarRecord | None":
-        return self._coll.find_one({"_id": user_id})
-
-    def add(self, user: User) -> Any:
-        now: datetime = datetime.now()
-        return self._coll.insert_one(
-            {
-                "_id": user.id,
-                "meta": user.to_dict(),
-                "shot_counter": 0,
-                "miss_counter": 0,
-                "dead_counter": 0,
-                "total_time_in_club": timedelta().seconds,
-                # TODO: wat about ranks?
-                # "rank": meh,
-                "first_shot": now,
-                "last_shot": now,
-            }
-        )
-
-    def dead(self, user_id: int, mute_min: int) -> None:
-        self._coll.update_one(
-            {"_id": user_id},
-            {
-                "$inc": {
-                    "shot_counter": 1,
-                    "dead_counter": 1,
-                    "total_time_in_club": mute_min * 60,
-                },
-                "$set": {"last_shot": datetime.now()},
-            },
-        )
-
-    def miss(self, user_id: int) -> None:
-        self._coll.update_one(
-            {"_id": user_id},
-            {
-                "$inc": {"shot_counter": 1, "miss_counter": 1},
-                "$set": {"last_shot": datetime.now()},
-            },
-        )
-
-    def remove(self, user_id: int) -> None:
-        self._coll.delete_one({"_id": user_id})
-
-    def remove_all(self) -> None:
-        self._coll.delete_many({})
-
-
-_db = DB(db_name="roll")
-
 MEME_REGEX = re.compile(r"\/[rрp][оo0][1lл]{2}", re.IGNORECASE)
 
 
 class HussarRecord(TypedDict):
-    _id: int
+    user_id: int
     meta: dict[str, Any]
     shot_counter: int
     miss_counter: int
@@ -326,7 +252,7 @@ async def show_hussars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         f"{''.ljust(18, '-')} + {''.ljust(8, '-')} + {''.ljust(6, '-')} + {''.ljust(11, '-')}\n"
     )
 
-    hussars: list[HussarRecord] = _db.find_all()
+    hussars = db.get_all_hussars()
     hussars_length = len(hussars)
 
     for hussar in hussars:
@@ -377,7 +303,7 @@ async def show_active_hussars(
 ) -> None:
     if update.effective_chat is None:
         return
-    hussars: list[HussarRecord] = _db.find_all()
+    hussars = db.get_all_hussars()
 
     message = "No hussars in da club 😒"
 
@@ -391,7 +317,7 @@ async def show_active_hussars(
             )
 
             if chat_member.status == ChatMemberStatus.RESTRICTED:
-                restricted_hussars.append(hussar)
+                restricted_hussars.append(cast(HussarRecord, hussar))
 
         except BadRequest:
             logger.warning("can't get user %s, skip", hussar)
@@ -426,9 +352,9 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     result: Optional[Message] = None
     # check if hussar already exist or create new one
-    existing_user = _db.find(user_id=user.id)
+    existing_user = db.find_hussar(user_id=user.id)
     if existing_user is None:
-        _db.add(user=user)
+        db.add_hussar(user_id=user.id, user_meta=user.to_dict())
 
     is_shot, shots_remained = _shot(context)
     shot_result = "he is dead!" if is_shot else "miss!"
@@ -447,11 +373,11 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
 
         await mute_user_for_time(update, context, user, timedelta(minutes=mute_min))
-        _db.dead(user.id, mute_min)
+        db.hussar_dead(user.id, mute_min)
     else:
 
         # lucky one
-        _db.miss(user.id)
+        db.hussar_miss(user.id)
 
         result = await context.bot.send_message(
             update.effective_chat.id,
@@ -476,7 +402,7 @@ async def satisfy_GDPR(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if user is None:
         return
 
-    _db.remove(user.id)
+    db.remove_hussar(user.id)
     logger.info("%s was removed from DB", user.full_name)
     result = await update.message.reply_text("ok, boomer 😒", disable_notification=True)
 
@@ -493,7 +419,7 @@ async def satisfy_GDPR(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def wipe_hussars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message is None:
         return
-    _db.remove_all()
+    db.remove_all_hussars()
     logger.info("all hussars was removed from DB")
     result = await update.message.reply_text("👍", disable_notification=True)
 

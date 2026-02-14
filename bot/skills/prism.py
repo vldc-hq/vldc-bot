@@ -1,15 +1,13 @@
 import logging
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
-import pymongo
-from pymongo.collection import Collection
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import MessageHandler, ContextTypes, filters
 
 from tg_filters import group_chat_filter
-from db.mongo import get_db
+from db.sqlite import db
 from mode import cleanup_queue_update
 from handlers import ChatCommandHandler
 from typing_utils import App, get_job_queue
@@ -23,28 +21,6 @@ class WordRecord(TypedDict):
     word: str
     count: int
     last_use: datetime
-
-
-class DB:
-    def __init__(self, db_name: str):
-        self._coll: Collection[WordRecord] = get_db(db_name).words
-
-    def add_word(self, word: str):
-        self._coll.update_one(
-            {"word": word},
-            {"$inc": {"count": 1}, "$set": {"last_use": datetime.now()}},
-            upsert=True,
-        )
-
-    def add_words(self, words: list[str]) -> None:
-        for word in words:
-            self.add_word(word)
-
-    def find_all(self) -> list["WordRecord"]:
-        return list(self._coll.find({}).sort("count", pymongo.DESCENDING))
-
-
-_db = DB(db_name="words")
 
 
 def add_prism(app: App, handlers_group: int):
@@ -77,7 +53,8 @@ async def extract_words(update: Update, _: ContextTypes.DEFAULT_TYPE):
         return
     if text is None:
         return
-    _db.add_words(_normalize_words(_get_words(text)))
+    for word in _normalize_words(_get_words(text)):
+        db.add_prism_word(word)
 
 
 def _get_words(t: str) -> list[str]:
@@ -108,7 +85,7 @@ def _eval_filter(words: list["WordRecord"], pred: str) -> list["WordRecord"]:
 
 
 async def show_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    default_words = _db.find_all()
+    default_words = [cast(WordRecord, w) for w in db.get_all_prism_words()]
 
     try:
         words = _eval_filter(default_words, _get_pred(context))

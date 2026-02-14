@@ -3,22 +3,16 @@ from datetime import datetime
 from functools import reduce
 from typing import Dict, List, Any
 
-from pymongo import MongoClient
-from pymongo.collection import Collection
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from config import get_config
+from db.sqlite import db
 from mode import Mode
 from handlers import ChatCommandHandler
 from typing_utils import App
 
 conf = get_config()
-
-client: MongoClient[Any] = MongoClient(
-    f"mongodb://{conf['MONGO_USER']}:{conf['MONGO_PASS']}@mongo:27017"
-)
-topics_coll: Collection[dict[str, Any]] = client.since_mode.topics
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +39,9 @@ def add_since_mode(app: App, handlers_group: int):
 
 
 def _get_topic(t: str) -> Dict[str, Any]:
-    topic = topics_coll.find_one({"topic": t})
+    topic = db.get_since_topic(t)
     logger.info("topic from db for title %s is %s", t, topic)
-
-    return (
-        topic
-        if topic is not None
-        else {"topic": t.lower(), "since_datetime": datetime.now(), "count": 1}
-    )
+    return topic
 
 
 def _get_delta_days(t: datetime) -> str:
@@ -61,13 +50,7 @@ def _get_delta_days(t: datetime) -> str:
 
 
 def _update_topic(t: Dict[str, Any]) -> None:
-    if "_id" in t:
-        topics_coll.update_one(
-            {"topic": t["topic"]},
-            {"$inc": {"count": 1}, "$set": {"since_datetime": datetime.now()}},
-        )
-    else:
-        topics_coll.insert_one(t)
+    db.update_since_topic(t["topic"], t["since_datetime"], t["count"])
 
 
 async def since_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -106,7 +89,7 @@ async def since_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 def _get_all_topics(limit: int) -> List[Dict[str, Any]]:
-    return list(topics_coll.find({}).sort("-count").limit(limit))
+    return db.get_all_since_topics(limit)
 
 
 async def since_list_callback(
