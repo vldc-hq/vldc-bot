@@ -5,6 +5,7 @@ from random import choice
 from typing import Dict, Any, cast
 
 import openai
+from google import genai
 from telegram import Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import (
@@ -39,6 +40,10 @@ logger = logging.getLogger(__name__)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 OPENAI_ENABLED = bool(OPENAI_API_KEY)
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+genai_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+GEMINI_ENABLED = bool(GEMINI_API_KEY)
 
 
 def _clear_quarantine(_: App) -> None:
@@ -213,8 +218,8 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def is_worthy(text: str) -> bool:
     """check if reply is a valid bio as requested"""
-    if not OPENAI_ENABLED:
-        logger.info("openai disabled; skipping spam check")
+    if not GEMINI_ENABLED and not OPENAI_ENABLED:
+        logger.info("gemini and openai disabled; skipping spam check")
         return True
 
     # backdoor for testing
@@ -224,34 +229,50 @@ def is_worthy(text: str) -> bool:
     if len(text) < 15:
         return False
 
-    prompt = """You are a spam-fighting bot, guarding chat room from bad actors and advertisement.
+    prompt = """You are a spam-fighting bot, guarding software development related chat room from bad actors and advertisement.
 All users entering the chat are required to reply to the bot's message with a short bio.
 Sometimes bots can be tricky and answer with bio that is also a spam.
 For example: "я инвестор со стажем, могу дать информацию, ищу партнеров" is a spam.
+"я разработчик с 10 лет опыта, люблю Rust и open source" is a legit bio.
 Next message is the first message of the user in the chat. Can it be considered as a short bio?
 Answer with a single word: spam or legit."""
 
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": text},
-            ],
-            temperature=0.9,
-            max_tokens=150,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0.6,
-        )
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.warning("openai spam check failed: %s", exc)
+    verdict = None
+
+    # Try Gemini first
+    if GEMINI_ENABLED and genai_client is not None:
+        try:
+            gemini_resp = genai_client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=f"{prompt}\n\nUser message: {text}",
+            )
+            verdict = (gemini_resp.text or "").strip().lower()
+            logger.info("gemini spam check result for text '%s': %s", text, verdict)
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("gemini spam check failed: %s", exc)
+
+    # Fallback to OpenAI if Gemini failed or is disabled
+    if verdict is None and OPENAI_ENABLED:
+        try:
+            openai_resp = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": text},
+                ],
+            )
+            verdict = (openai_resp.choices[0].message.content or "").strip().lower()
+            logger.info("openai spam check result for text '%s': %s", text, verdict)
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("openai spam check failed: %s", exc)
+            return True
+
+    # If both failed, allow the user in
+    if verdict is None:
+        logger.warning("all AI providers failed; allowing user in")
         return True
 
-    verdict = response.choices[0].message.content
-    logger.info("text: %s is %s", text, verdict)
-
-    return verdict != "spam"
+    return "spam" not in verdict
 
 
 async def quarantine_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
