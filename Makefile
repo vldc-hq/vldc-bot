@@ -1,45 +1,42 @@
 SHELL = /bin/bash
 
 .DEFAULT_GOAL := help
-.PHONY: dev test lint start dev_build dev_start dev_test venv
+.PHONY: build test lint format run docker-build docker-up docker-down help
 
+## Go targets
 
-build:  ## Build all
-	docker-compose -f docker-compose-dev.yml build
+build:  ## Build the bot binary
+	go build -o bin/vldc-bot ./cmd/bot
 
-up:  ## Up All and show logs
-	docker-compose -f docker-compose-dev.yml up -d && docker-compose -f docker-compose-dev.yml logs -f --tail=10
+run:  ## Run the bot locally
+	go run ./cmd/bot
 
-update:  ## Restart bot after files changing
-	docker-compose -f docker-compose-dev.yml restart bot && make up
+test:  ## Run all tests
+	go test -race -count=1 ./...
 
-stop:  ## Stop all
-	docker-compose -f docker-compose-dev.yml stop
+test-cover:  ## Run tests with coverage report
+	go test -race -coverprofile=coverage.out -covermode=atomic ./...
+	go tool cover -html=coverage.out -o coverage.html
 
-down:  ## Down all
-	docker-compose -f docker-compose-dev.yml down
+lint:  ## Run golangci-lint
+	golangci-lint run ./...
 
-test:  ## Run tests locally
-	export PYTHONPATH=./bot && pytest bot/tests
+format:  ## Format code with goimports
+	goimports -w .
 
-test_docker:  ## Run tests in docker
-	docker-compose -f docker-compose-dev.yml run --rm bot pytest bot/tests
+tidy:  ## Run go mod tidy
+	go mod tidy
 
-lint:  ## Run linters (black, flake8, mypy, pylint)
-	black ./bot --check --diff
-	pylint ./bot --rcfile .pylintrc
-	flake8 ./bot --config .flake8 --count --show-source --statistics
-	mypy --config-file mypy.ini ./bot
-	pyright ./bot
+## Docker targets
 
-format:  ## Format code (black)
-	black ./bot
+docker-build:  ## Build Docker image
+	docker build -t vldc-bot .
 
-venv:  ## Create local .venv and install deps (uv)
-	python3 -m venv .venv
-	. .venv/bin/activate && python -m pip install -U pip
-	. .venv/bin/activate && python -m pip install -U uv
-	. .venv/bin/activate && uv sync --active --dev --no-install-project
+docker-up:  ## Run with docker-compose
+	docker-compose up -d && docker-compose logs -f --tail=10
+
+docker-down:  ## Stop docker-compose
+	docker-compose down
 
 ## Help
 

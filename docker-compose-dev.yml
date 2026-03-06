@@ -1,20 +1,18 @@
 services:
   bot:
-    build:
-      context: .
-      dockerfile: ./compose/dev/Dockerfile
-    ports:
-      - "5678:5678"
-    volumes:
-      - .:/app
-      - .:/opt/gcloud
+    build: .
+    restart: unless-stopped
     env_file:
       - ./.env
+    volumes:
+      - bot-data:/data
     environment:
-      - PYTHONPATH=./bot
-      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2
+      - SQLITE_DB_PATH=/data/bot.db
+      - DEBUG=true
     logging:
       options:
         max-size: "1M"
         max-file: "10"
+
+volumes:
+  bot-data:

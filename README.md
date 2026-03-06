@@ -1,125 +1,112 @@
 # VLDC nyan bot ^_^
 
-The official [VLDC](https://vldc.org) telegram group bot.
+The official [VLDC](https://vldc.org) telegram group bot. Written in Go.
 
 ![nyan](img/VLDC_nyan-tiger-in-anaglyph-glasses.png)
 
-[![Build Status](https://github.com/vldc-hq/vldc-bot/workflows/Nyan%20Bot/badge.svg)](https://github.com/vldc-hq/vldc-bot/actions?query=workflow%3A%22Nyan+Bot%22)
-[![Maintainability](https://api.codeclimate.com/v1/badges/5941349dbc55ce7096fb/maintainability)](https://codeclimate.com/github/vldc-hq/vldc-bot/maintainability)
-
+[![CI](https://github.com/vldc-hq/vldc-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/vldc-hq/vldc-bot/actions/workflows/ci.yml)
 
 ### Skills
-* 😼 core –  core
-* 😼 version –  show this message
-* 😻 still – do u remember it?
-* 😾 uwu –  don't uwu!
-* 🤭 mute –  mute user for N minutes
-* 🔫 roll –  life is so cruel... isn't it?
-* ⚔️ banme –  commit sudoku
-* 🔪 ban –  ban! ban! ban!
-* 🎄 tree –  advent of code time!
-* ⛔🤬 coc –  VLDC/GDG VL Code of Conduct
-* 🛠 more than 70k? –  try to hire!
-* 💻 got sk1lzz? –  put them to use!
-* 👁 smell like PRISM? nononono!
-* 💰 kozula Don't argue with kozula rate!
-* 🤫 buktopuha Let's play a game 🤡
+* core - core bot functionality
+* version - show bot version
+* still - do u remember it?
+* uwu - don't uwu!
+* mute - mute user for N minutes
+* roll - life is so cruel... isn't it?
+* banme - commit sudoku
+* ban - ban! ban! ban!
+* tree - Advent of Code time!
+* coc - VLDC/GDG VL Code of Conduct
+* 70k - try to hire!
+* pr - got sk1lzz? put them to use!
+* prism - smell like PRISM? nononono!
+* kozula - Don't argue with kozula rate!
+* buktopuha - Let's play a game
+* length - measure your instrument
+* nya - Simon says wat?
+* trusted - in god we trust
+* aoc - Advent of Code tracker
 
 ### Modes
-* 😼 smile mode –  allow only stickers in the chat
-* 🛠 since mode –  under construction
-* 🧼 towel mode –  anti bot
-* 🙃 fools mode –  what? not again!
-* 🤫 nastya mode –  stop. just stop
-* 🙃 chat mode - chatty Nyan
+* smile mode - allow only stickers in the chat
+* since mode - under construction
+* towel mode - anti bot
+* fools mode - what? not again!
+* nastya mode - stop. just stop
+* chat mode - chatty Nyan
 
-## Usage via VS Code (Easy Way)
-Clone repository locally and open it up via VS Code and click Open in Container. Create `.env` file as described below.
-Mongo will be available at `MONGO_HOST=localhost`. And you're done, you can run bot by clicking `F5` or `Run -> Launch Bot`.
+## Quick Start
 
-Other option is to use [Codespaces](https://github.com/vldc-hq/vldc-bot/codespaces) from GitHub itself.
+1. Copy `example.env` to `.env` and fill in your bot token and chat ID:
+```
+cp example.env .env
+```
+
+2. Run with Docker:
+```
+docker-compose -f docker-compose-dev.yml up
+```
+
+Or run locally:
+```
+make run
+```
 
 ## Usage
-Setup your env vars in `example.env` and rename it to `.env`. Don't push `.env` to public repos!
+
+### Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `TOKEN` | Yes | Telegram bot token |
+| `CHAT_ID` | Yes | Telegram group chat ID |
+| `SQLITE_DB_PATH` | No | Path to SQLite database (default: `bot.db`) |
+| `SENTRY_DSN` | No | Sentry DSN for error tracking |
+| `AOC_SESSION` | No | Advent of Code session cookie |
+| `GOOGLE_PROJECT_ID` | No | Google Cloud project ID (for translation) |
+| `GOOGLE_APPLICATION_CREDENTIALS` | No | Path to Google service account JSON |
+| `GEMINI_API_KEY` | No | Gemini API key (translation fallback) |
+| `OPENAI_API_KEY` | No | OpenAI API key |
+| `DEBUG` | No | Enable debug logging |
+
+### Make targets
 
 ```
-make up
+make build          Build the bot binary
+make run            Run the bot locally
+make test           Run all tests
+make test-cover     Run tests with coverage report
+make lint           Run golangci-lint
+make format         Format code with goimports
+make tidy           Run go mod tidy
+make docker-build   Build Docker image
+make docker-up      Run with docker-compose
+make docker-down    Stop docker-compose
 ```
 
-## Local venv (no Docker)
-Create a virtual environment and install dependencies locally:
+## Developing
 
-```
-make venv
-source .venv/bin/activate
-```
+Create a test Telegram bot via [@BotFather](https://t.me/BotFather), store the token and your chat ID in `.env`.
 
-Run the bot locally:
-```
-PYTHONPATH=./bot python bot/main.py
-```
-
-Then run linters/tests with:
+Run linters and tests before committing:
 ```
 make lint
 make test
 ```
 
-## Build local image
+## Project Structure
 
 ```
-make build
+cmd/bot/            - entry point
+internal/
+  bot/              - bot core, skill registration, middleware
+  config/           - configuration loading
+  db/               - SQLite database layer
+  mode/             - mode state management
+  skill/            - all bot skills (one file per skill)
+  util/             - shared utilities (cleanup, etc.)
+  ai/               - AI client helpers
 ```
-
-## Developing
-Create test Telegram bot, and store TOKEN and chat id, you will need it for developing.
-
-User `make` to up dev services:
-
-```shell script
-Usage: make [task]
-
-task                 help
-------               ----
-build                Build all
-up                   Up All and show logs
-update               Restart bot after files changing
-stop                 Stop all
-down                 Down all
-test                 Run tests
-lint                 Run linters (black, flake8, mypy, pylint)
-format               Format code (black)
-
-help                 Show help message
-```
-
-Don't forget run `make lint` and `make test` before commit! For code formatting we are use [black](https://github.com/psf/black), so, just run `make format` to fire it :3
-
-### Setting Up Debugger in VS Code
-
-Create `launch.json` under your `.vscode` directory in project, add the following content onto it:
-```
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Docker Python",
-            "type": "python",
-            "request": "attach",
-            "port": 5678,
-            "host": "localhost",
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/app"
-                }
-            ],
-        }
-    ]
-}
-```
-
-Also, put `DEBUGGER=True` into your `.env` file. After that you can do debugging with VS Code, by running containerized application and hitting `Run -> Start Debugging` or `F5` button.
 
 # Contributing
 Bug reports, bug fixes and new features are always welcome.

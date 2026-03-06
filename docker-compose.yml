@@ -1,14 +1,17 @@
 services:
   bot:
-    image: ghcr.io/vldc-hq/vldc-bot/bot:latest
+    build: .
+    restart: unless-stopped
     env_file:
       - ./.env
-    environment:
-      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION_VERSION=2
     volumes:
-      - ./:/opt/gcloud
+      - bot-data:/data
+    environment:
+      - SQLITE_DB_PATH=/data/bot.db
     logging:
       options:
         max-size: "1M"
         max-file: "10"
+
+volumes:
+  bot-data:
