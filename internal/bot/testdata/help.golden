@@ -1,0 +1,38 @@
+Available commands:
+/start
+/help
+/version (admin)
+/trust (admin, reply)
+/untrust (admin, reply)
+/since TOPIC
+/since_list
+/prism (admin)
+/ban (admin, reply)
+/mute N (admin, reply)
+/unmute (admin, reply)
+/length
+/longest
+/roll
+/hussars
+/wipe_hussars (admin)
+/gdpr_me
+/smile_mode_on (admin)
+/smile_mode_off (admin)
+/smile_mode
+/towel_mode_on (admin)
+/towel_mode_off (admin)
+/towel_mode
+/chat_mode_on (admin)
+/chat_mode_off (admin)
+/chat_mode
+/chat_now (admin)
+/fools_mode_on (admin)
+/fools_mode_off (admin)
+/fools_mode
+/nastya_mode_on (admin)
+/nastya_mode_off (admin)
+/nastya_mode
+/znatoki
+/buktopuha
+/aoc_status (admin)
+/aoc_refresh (admin)
