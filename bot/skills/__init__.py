@@ -9,6 +9,7 @@ from typing_utils import App, get_job_queue
 from skills.aoc_mode import add_aoc_mode
 from skills.at_least_70k import add_70k
 from skills.ban import add_ban
+from skills.fire import add_fire
 from skills.banme import add_banme
 from skills.coc import add_coc
 from skills.core import add_core
@@ -32,7 +33,7 @@ from skills.buktopuha import add_buktopuha
 from skills.chat import add_chat_mode
 
 logger = logging.getLogger(__name__)
-VERSION = "0.13.0"
+VERSION = "0.14.0"
 
 
 class Skill(TypedDict):
@@ -97,6 +98,7 @@ skills: List[Skill] = [
     _make_skill(add_pr, "💻 got sk1lzz?", " put them to use!"),
     _make_skill(add_prism, "👁 smell like PRISM?", " nononono!"),
     _make_skill(add_ban, "🔨 ban!", " ban! ban! ban!"),
+    _make_skill(add_fire, "🔥 fire!", " you're fired!"),
     _make_skill(add_nya, "😺 meow", " Simon says wat?"),
     _make_skill(add_kozula, "💰 kozula", " Don't argue with kozula rate!"),
     _make_skill(add_length, "🍆 length", " length of your instrument"),
@@ -124,6 +126,7 @@ commands_list: List[Tuple[str, str]] = [
     ("70k", "try to hire!"),
     ("coc", "VLDC/GDG VL Code of Conduct"),
     ("ban", "ban! ban! ban!"),
+    ("fire", "you're fired!"),
     ("roll", "life is so cruel... isn't it?"),
     ("tree", "advent of code time!"),
     ("kozula", "💰 kozula: Don't argue with kozula rate!"),
