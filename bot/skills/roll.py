@@ -33,6 +33,9 @@ MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
 HUSSARS_LIMIT_FOR_IMAGE = 25
 FONT = "firacode.ttf"
+REPEAT_ROLL_MUTE = timedelta(minutes=5)
+LAST_ROLLER_KEY = "last_roll_user_id"
+FALSE_STARTS_KEY = "roll_false_starts"
 
 
 MEME_REGEX = re.compile(r"\/[rрp][оo0][1lл]{2}", re.IGNORECASE)
@@ -90,6 +93,58 @@ def add_roll(app: App, handlers_group: int):
 
 
 barrel_lock = Lock()
+turn_lock = Lock()
+
+
+def _register_roll_attempt(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> int:
+    """Return zero for a valid turn, otherwise the current false-start count."""
+    with turn_lock:
+        chat_data = context.chat_data
+        if chat_data is None:
+            return 0
+        if chat_data.get(LAST_ROLLER_KEY) == user_id:
+            false_starts = int(chat_data.get(FALSE_STARTS_KEY, 0)) + 1
+            chat_data[FALSE_STARTS_KEY] = false_starts
+            return false_starts
+        chat_data[LAST_ROLLER_KEY] = user_id
+        chat_data[FALSE_STARTS_KEY] = 0
+        return 0
+
+
+async def _handle_false_start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    user: User,
+    false_starts: int,
+) -> None:
+    if update.message is None or update.effective_chat is None:
+        return
+    if false_starts == 1:
+        text = (
+            f"😾 {user.full_name}, дважды подряд стрелять нельзя. "
+            "Жди хода другого гусара. Это предупреждение — следующий "
+            "фальстарт закончится пятиминутным мутом."
+        )
+    else:
+        text = (
+            f"😾 {user.full_name}, это второй фальстарт. "
+            "Пять минут вне чата, без зачёта в клуб."
+        )
+    result = await context.bot.send_message(
+        update.effective_chat.id,
+        text,
+        reply_to_message_id=update.message.message_id,
+    )
+    if false_starts >= 2:
+        await mute_user_for_time(update, context, user, REPEAT_ROLL_MUTE)
+    cleanup_queue_update(
+        get_job_queue(context),
+        update.message,
+        result,
+        120,
+        remove_cmd=True,
+        remove_reply=False,
+    )
 
 
 def _reload(context: ContextTypes.DEFAULT_TYPE) -> List[bool]:
@@ -349,6 +404,10 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     user: User | None = update.effective_user
     if user is None:
+        return
+    false_starts = _register_roll_attempt(context, user.id)
+    if false_starts:
+        await _handle_false_start(update, context, user, false_starts)
         return
     result: Optional[Message] = None
     # check if hussar already exist or create new one
