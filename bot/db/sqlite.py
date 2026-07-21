@@ -2,7 +2,7 @@ import sqlite3
 import logging
 import json
 from datetime import datetime, timedelta
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Mapping, Optional
 from config import get_sqlite_db_path
 
 logger = logging.getLogger(__name__)
@@ -88,6 +88,18 @@ class BotDB:
                     total_time_in_club INTEGER DEFAULT 0,
                     first_shot DATETIME,
                     last_shot DATETIME
+                )
+            """)
+            # Admin rights temporarily revoked by the roll skill. Keeping this
+            # in SQLite lets the bot restore an admin after a restart.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS roll_admin_restorations (
+                    chat_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    rights TEXT NOT NULL,
+                    custom_title TEXT,
+                    restore_at DATETIME NOT NULL,
+                    PRIMARY KEY (chat_id, user_id)
                 )
             """)
             # Prism Words
@@ -313,6 +325,74 @@ class BotDB:
 
     def remove_all_hussars(self) -> None:
         self.execute("DELETE FROM roll_hussars")
+
+    # --- Roll Admin Restorations ---
+    def save_roll_admin_restoration(
+        self,
+        chat_id: int,
+        user_id: int,
+        *,
+        rights: Mapping[str, Any],
+        custom_title: Optional[str],
+        restore_at: datetime,
+    ) -> None:
+        self.execute(
+            """
+            INSERT OR REPLACE INTO roll_admin_restorations
+                (chat_id, user_id, rights, custom_title, restore_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (chat_id, user_id, json.dumps(rights), custom_title, restore_at),
+        )
+
+    def get_due_roll_admin_restorations(self, now: datetime) -> List[Dict[str, Any]]:
+        rows = self.fetchall(
+            """
+            SELECT * FROM roll_admin_restorations
+            WHERE restore_at <= ?
+            ORDER BY restore_at
+            """,
+            (now,),
+        )
+        restorations: List[Dict[str, Any]] = []
+        for row in rows:
+            restoration = dict(row)
+            restoration["rights"] = json.loads(restoration["rights"])
+            restorations.append(restoration)
+        return restorations
+
+    def get_all_roll_admin_restorations(self) -> List[Dict[str, Any]]:
+        rows = self.fetchall(
+            "SELECT * FROM roll_admin_restorations ORDER BY restore_at"
+        )
+        restorations: List[Dict[str, Any]] = []
+        for row in rows:
+            restoration = dict(row)
+            restoration["rights"] = json.loads(restoration["rights"])
+            restorations.append(restoration)
+        return restorations
+
+    def get_roll_admin_restoration(
+        self, chat_id: int, user_id: int
+    ) -> Optional[Dict[str, Any]]:
+        row = self.fetchone(
+            """
+            SELECT * FROM roll_admin_restorations
+            WHERE chat_id = ? AND user_id = ?
+            """,
+            (chat_id, user_id),
+        )
+        if row is None:
+            return None
+        restoration = dict(row)
+        restoration["rights"] = json.loads(restoration["rights"])
+        return restoration
+
+    def delete_roll_admin_restoration(self, chat_id: int, user_id: int) -> None:
+        self.execute(
+            "DELETE FROM roll_admin_restorations WHERE chat_id = ? AND user_id = ?",
+            (chat_id, user_id),
+        )
 
     # --- Prism Words ---
     def add_prism_word(self, word: str) -> None:
