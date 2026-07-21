@@ -53,9 +53,9 @@ async def mute_user_for_time(
     context: ContextTypes.DEFAULT_TYPE,
     user: User,
     mute_duration: timedelta,
-):
+) -> bool:
     if update.message is None or update.effective_chat is None:
-        return
+        return False
     message = update.message
     mute_duration = max(mute_duration, MIN_MUTE_TIME)
     mute_duration = min(mute_duration, MAX_MUTE_TIME)
@@ -81,9 +81,11 @@ async def mute_user_for_time(
         await context.bot.restrict_chat_member(
             update.effective_chat.id, user.id, mute_perm, until
         )
+        return True
     except TelegramError as err:
         logger.error("can't mute user %s: %s", user, err)
         await message.reply_text(f"😿 не вышло, потому что: \n\n{err}")
+        return False
 
 
 async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):

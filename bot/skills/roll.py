@@ -9,9 +9,9 @@ from typing import List, Optional, Tuple, Mapping, Any, IO, TypedDict, cast
 from uuid import uuid4
 
 from PIL import Image, ImageDraw, ImageFont
-from telegram import Update, User, Message
+from telegram import ChatMemberAdministrator, Update, User, Message
 from telegram.constants import ChatMemberStatus
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
 from telegram.ext import (
     CommandHandler,
     MessageHandler,
@@ -25,7 +25,7 @@ from handlers import ChatCommandHandler
 from mode import cleanup_queue_update
 from skills.mute import mute_user_for_time
 from permissions import is_admin
-from typing_utils import App, get_job_queue
+from typing_utils import App, JobQueueT, get_job_queue
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,28 @@ MUTE_MINUTES = 16 * 60  # 16h
 NUM_BULLETS = 6
 HUSSARS_LIMIT_FOR_IMAGE = 25
 FONT = "firacode.ttf"
+ADMIN_RESTORE_RETRY_DELAY = 60
+
+# Every administrator flag supported by python-telegram-bot 22.6. All of them
+# must be explicitly set to False when demoting an administrator.
+ADMIN_RIGHT_FIELDS = (
+    "is_anonymous",
+    "can_manage_chat",
+    "can_delete_messages",
+    "can_manage_video_chats",
+    "can_restrict_members",
+    "can_promote_members",
+    "can_change_info",
+    "can_invite_users",
+    "can_post_stories",
+    "can_edit_stories",
+    "can_delete_stories",
+    "can_post_messages",
+    "can_edit_messages",
+    "can_pin_messages",
+    "can_manage_topics",
+    "can_manage_direct_messages",
+)
 
 
 MEME_REGEX = re.compile(r"\/[rрp][оo0][1lл]{2}", re.IGNORECASE)
@@ -49,6 +71,25 @@ class HussarRecord(TypedDict):
     last_shot: datetime
 
 
+class AdminRights(TypedDict):
+    is_anonymous: bool
+    can_manage_chat: bool
+    can_delete_messages: bool
+    can_manage_video_chats: bool
+    can_restrict_members: bool
+    can_promote_members: bool
+    can_change_info: bool
+    can_invite_users: bool
+    can_post_stories: bool
+    can_edit_stories: bool
+    can_delete_stories: bool
+    can_post_messages: bool
+    can_edit_messages: bool
+    can_pin_messages: bool
+    can_manage_topics: bool
+    can_manage_direct_messages: bool
+
+
 def add_roll(app: App, handlers_group: int):
     logger.info("registering roll handlers")
     app.add_handler(MessageHandler(filters.Dice.ALL, roll), group=handlers_group)
@@ -56,6 +97,11 @@ def add_roll(app: App, handlers_group: int):
         MessageHandler(filters.Regex(MEME_REGEX), roll, block=False),
         group=handlers_group,
     )
+    if app.job_queue is not None:
+        for restoration in db.get_all_roll_admin_restorations():
+            _schedule_admin_restore(app.job_queue, restoration)
+    else:
+        logger.warning("job queue is missing; roll admin restoration is disabled")
     app.add_handler(
         ChatCommandHandler(
             "gdpr_me",
@@ -115,6 +161,167 @@ def get_miss_string(shots_remain: int) -> str:
 
 def get_mute_minutes(shots_remain: int) -> int:
     return MUTE_MINUTES * (NUM_BULLETS - shots_remain)
+
+
+def _get_admin_rights(member: ChatMemberAdministrator) -> AdminRights:
+    """Take a serializable snapshot accepted by Bot.promote_chat_member."""
+    return cast(
+        AdminRights,
+        {field: bool(getattr(member, field, False)) for field in ADMIN_RIGHT_FIELDS},
+    )
+
+
+async def _restore_admin(
+    context: ContextTypes.DEFAULT_TYPE, restoration: Mapping[str, Any]
+) -> bool:
+    chat_id = int(restoration["chat_id"])
+    user_id = int(restoration["user_id"])
+    raw_rights = restoration["rights"]
+    if not isinstance(raw_rights, dict):
+        logger.error("invalid saved admin rights for user %d", user_id)
+        return False
+    rights = cast(AdminRights, raw_rights)
+
+    try:
+        await context.bot.promote_chat_member(chat_id, user_id, **rights)
+        custom_title = restoration.get("custom_title")
+        if isinstance(custom_title, str):
+            await context.bot.set_chat_administrator_custom_title(
+                chat_id, user_id, custom_title
+            )
+    except Exception as err:  # pylint: disable=broad-except
+        # Keep the row in SQLite: the repeating job will try again.
+        logger.error("can't restore admin role for user %d: %s", user_id, err)
+        return False
+
+    db.delete_roll_admin_restoration(chat_id, user_id)
+    logger.info("admin role restored for user %d", user_id)
+    return True
+
+
+def _schedule_admin_restore(
+    queue: JobQueueT, restoration: Mapping[str, Any], *, retry: bool = False
+) -> None:
+    chat_id = int(restoration["chat_id"])
+    user_id = int(restoration["user_id"])
+    restore_at = restoration["restore_at"]
+    if not isinstance(restore_at, datetime):
+        logger.error("invalid restore time for admin %d", user_id)
+        return
+    delay = (
+        ADMIN_RESTORE_RETRY_DELAY
+        if retry
+        else max(0.0, (restore_at - datetime.now()).total_seconds())
+    )
+    queue.run_once(
+        restore_admin_job,
+        when=delay,
+        data={"chat_id": chat_id, "user_id": user_id},
+        name=f"restore-roll-admin-{chat_id}-{user_id}",
+    )
+
+
+async def restore_admin_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Restore one admin at its deadline and retry transient API failures."""
+    raw_job_data: Any = getattr(context.job, "data", None)
+    if not isinstance(raw_job_data, dict):
+        logger.error("roll admin restoration job has invalid data")
+        return
+    job_data = cast(dict[str, Any], raw_job_data)
+    chat_id = job_data.get("chat_id")
+    user_id = job_data.get("user_id")
+    if not isinstance(chat_id, int) or not isinstance(user_id, int):
+        logger.error("roll admin restoration job has invalid user or chat id")
+        return
+
+    restoration = db.get_roll_admin_restoration(chat_id, user_id)
+    if restoration is None:
+        return
+    restore_at = restoration["restore_at"]
+    queue = get_job_queue(context)
+    if isinstance(restore_at, datetime) and restore_at > datetime.now():
+        if queue is not None:
+            _schedule_admin_restore(queue, restoration)
+        return
+
+    restored = await _restore_admin(context, restoration)
+    if not restored and queue is not None:
+        _schedule_admin_restore(queue, restoration, retry=True)
+
+
+async def _demote_admin_for_roll(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    user: User,
+    mute_duration: timedelta,
+) -> bool | None:
+    """Demote an editable admin, or return None for a regular member.
+
+    False means that the user is an owner or an administrator the bot cannot
+    edit, so Telegram will not allow this roll result to be enforced.
+    """
+    queue = get_job_queue(context)
+    if update.effective_chat is None or queue is None:
+        logger.error("can't safely demote admin %d without a job queue", user.id)
+        return False
+    chat_id = update.effective_chat.id
+    member = await context.bot.get_chat_member(chat_id, user.id)
+    if not isinstance(member, ChatMemberAdministrator):
+        if member.status == ChatMemberStatus.OWNER:
+            return False
+        return None
+    if not member.can_be_edited:
+        return False
+
+    rights = _get_admin_rights(member)
+    restore_at = datetime.now() + mute_duration
+    db.save_roll_admin_restoration(
+        chat_id,
+        user.id,
+        rights=rights,
+        custom_title=member.custom_title,
+        restore_at=restore_at,
+    )
+    try:
+        empty_rights = cast(AdminRights, {field: False for field in ADMIN_RIGHT_FIELDS})
+        await context.bot.promote_chat_member(chat_id, user.id, **empty_rights)
+    except TelegramError as err:
+        db.delete_roll_admin_restoration(chat_id, user.id)
+        logger.error("can't demote admin %d for roll: %s", user.id, err)
+        return False
+    _schedule_admin_restore(
+        queue,
+        {
+            "chat_id": chat_id,
+            "user_id": user.id,
+            "rights": rights,
+            "custom_title": member.custom_title,
+            "restore_at": restore_at,
+        },
+    )
+    return True
+
+
+async def _restore_admin_after_failed_mute(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, user: User
+) -> None:
+    if update.effective_chat is None:
+        return
+    restoration = db.get_roll_admin_restoration(update.effective_chat.id, user.id)
+    if restoration is None:
+        return
+
+    db.save_roll_admin_restoration(
+        restoration["chat_id"],
+        restoration["user_id"],
+        rights=restoration["rights"],
+        custom_title=restoration["custom_title"],
+        restore_at=datetime.now(),
+    )
+    restored = await _restore_admin(context, restoration)
+    queue = get_job_queue(context)
+    if not restored and queue is not None:
+        _schedule_admin_restore(queue, restoration, retry=True)
 
 
 def _shot(context: ContextTypes.DEFAULT_TYPE) -> Tuple[bool, int]:
@@ -367,12 +574,27 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         #  if bot can't restrict user, user should be passed into towel-mode like state
 
         mute_min = get_mute_minutes(shots_remained)
+        mute_duration = timedelta(minutes=mute_min)
         result = await context.bot.send_message(
             update.effective_chat.id,
             f"💥 boom! {user.full_name} 😵 [{mute_min // 60}h mute]",
         )
 
-        await mute_user_for_time(update, context, user, timedelta(minutes=mute_min))
+        admin_demoted = await _demote_admin_for_roll(
+            update, context, user, mute_duration
+        )
+        if admin_demoted is False:
+            await context.bot.send_message(
+                update.effective_chat.id,
+                f"🛡 {user.full_name} survived: the bot can't revoke this admin role",
+            )
+        else:
+            muted = await mute_user_for_time(update, context, user, mute_duration)
+            if admin_demoted and not muted:
+                # The demotion succeeded but the restriction did not. Restore
+                # immediately instead of leaving an unmuted user without a
+                # badge until the original deadline.
+                await _restore_admin_after_failed_mute(update, context, user)
         db.hussar_dead(user.id, mute_min)
     else:
 

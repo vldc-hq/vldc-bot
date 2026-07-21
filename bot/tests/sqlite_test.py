@@ -129,6 +129,38 @@ class TestBotDB(unittest.TestCase):
         hussars: List[Dict[str, Any]] = self.db.get_all_hussars()
         self.assertEqual(len(hussars), 1)
 
+    def test_roll_admin_restoration(self):
+        chat_id = -100123
+        user_id = 42
+        restore_at = datetime.now()
+        rights = {
+            "can_manage_chat": True,
+            "can_delete_messages": False,
+        }
+
+        self.db.save_roll_admin_restoration(
+            chat_id,
+            user_id,
+            rights=rights,
+            custom_title="aoc winner",
+            restore_at=restore_at,
+        )
+
+        pending = self.db.get_due_roll_admin_restorations(restore_at)
+        self.assertEqual(len(pending), 1)
+        self.assertEqual(pending[0]["chat_id"], chat_id)
+        self.assertEqual(pending[0]["user_id"], user_id)
+        self.assertEqual(pending[0]["rights"], rights)
+        self.assertEqual(pending[0]["custom_title"], "aoc winner")
+        self.assertEqual(
+            self.db.get_roll_admin_restoration(chat_id, user_id), pending[0]
+        )
+        self.assertEqual(self.db.get_all_roll_admin_restorations(), pending)
+
+        self.db.delete_roll_admin_restoration(chat_id, user_id)
+        self.assertIsNone(self.db.get_roll_admin_restoration(chat_id, user_id))
+        self.assertEqual(self.db.get_due_roll_admin_restorations(datetime.max), [])
+
     def test_prism_words(self):
         word = "hello"
         self.db.add_prism_word(word)
