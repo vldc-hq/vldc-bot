@@ -33,7 +33,7 @@ from skills.buktopuha import add_buktopuha
 from skills.chat import add_chat_mode
 
 logger = logging.getLogger(__name__)
-VERSION = "0.14.0"
+VERSION = "0.15.0"
 
 
 class Skill(TypedDict):
