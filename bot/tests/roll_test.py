@@ -59,13 +59,15 @@ class RepeatRollTest(IsolatedAsyncioTestCase):
         ):
             await _handle_false_start(update, context, user, 1)
             mute.assert_not_awaited()
-            self.assertIn("Это предупреждение", bot.send_message.await_args.args[1])
+            self.assertIn("Придержи лапу", bot.send_message.await_args.args[1])
 
             await _handle_false_start(update, context, user, 2)
 
         mute.assert_awaited_once_with(update, context, user, REPEAT_ROLL_MUTE)
         self.assertEqual(REPEAT_ROLL_MUTE.total_seconds(), 5 * 60)
-        self.assertIn("без зачёта в клуб", bot.send_message.await_args.args[1])
+        self.assertIn(
+            "без почестей и гусарских дней", bot.send_message.await_args.args[1]
+        )
         self.assertEqual(cleanup.call_count, 2)
         for cleanup_call in cleanup.call_args_list:
             self.assertEqual(cleanup_call.args[0], context.job_queue)
