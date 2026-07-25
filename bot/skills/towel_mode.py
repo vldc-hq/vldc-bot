@@ -117,20 +117,31 @@ async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAUL
     markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]]
     )
+    challenge = (
+        f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
+        "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
+        "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
+        f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
+        "Ничего личного, просто боты одолели.\n"
+    )
+
+    if not user.is_bot:
+        await context.bot.send_message(
+            chat_id,
+            challenge,
+            reply_markup=markup,
+            api_kwargs={"receiver_user_id": user.id},
+        )
+        return
 
     message_id = (
         await context.bot.send_message(
             chat_id,
-            f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
-            "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
-            "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
-            f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
-            "Ничего личного, просто боты одолели.\n",
+            challenge,
             reply_markup=markup,
         )
     ).message_id
 
-    # messages from `rel_message` will be deleted after greeting or ban
     sqlite_db.add_quarantine_rel_message(
         user.id,
         message_id,
@@ -174,46 +185,27 @@ async def catch_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user is None:
         return
 
-    # Check if the message is a reply to the bot
-    if (
-        update.effective_message.reply_to_message is not None
-        and update.effective_message.reply_to_message.from_user is not None
-        and update.effective_message.reply_to_message.from_user.id
-        == (await context.bot.get_me()).id
-    ):
-        # Check reply length
+    if "ephemeral_message_id" in update.effective_message.api_kwargs:
         text = update.effective_message.text or ""
         if len(text) < 15:
-            # Delete the short reply
-            await context.bot.delete_message(
-                update.effective_chat.id, update.effective_message.message_id
-            )
-            # Send feedback message
-            feedback_msg = await context.bot.send_message(
+            await context.bot.send_message(
                 update.effective_chat.id,
                 f"{update.effective_user.name}, твой ответ слишком короткий. "
                 "Я верю, что ты можешь написать больше о себе!",
+                api_kwargs={"receiver_user_id": user_id},
             )
-            # Add feedback message to related messages for cleanup
-            sqlite_db.add_quarantine_rel_message(user_id, feedback_msg.message_id)
         elif is_worthy(text):
-            # Valid reply - welcome the user
             await _delete_user_rel_messages(update.effective_chat.id, user_id, context)
             sqlite_db.delete_quarantine_user(user_id=cast(int, user["_id"]))
-            if update.message is not None:
-                await update.message.reply_text("Добро пожаловать в VLDC!")
-        else:
-            # Reply doesn't pass OpenAI check - delete it
-            await context.bot.delete_message(
-                chat_id=update.effective_chat.id,
-                message_id=update.effective_message.message_id,
+            await context.bot.send_message(
+                update.effective_chat.id, "Добро пожаловать в VLDC!"
             )
-    else:
-        # Not a reply to bot - delete it
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=update.effective_message.message_id,
-        )
+        return
+
+    await context.bot.delete_message(
+        chat_id=update.effective_chat.id,
+        message_id=update.effective_message.message_id,
+    )
 
 
 def is_worthy(text: str) -> bool:
