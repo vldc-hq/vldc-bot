@@ -117,20 +117,31 @@ async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAUL
     markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton(choice(I_AM_BOT), callback_data=MAGIC_NUMBER)]]
     )
+    challenge = (
+        f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
+        "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
+        "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
+        f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
+        "Ничего личного, просто боты одолели.\n"
+    )
+
+    if not user.is_bot:
+        await context.bot.send_message(
+            chat_id,
+            challenge,
+            reply_markup=markup,
+            api_kwargs={"receiver_user_id": user.id},
+        )
+        return
 
     message_id = (
         await context.bot.send_message(
             chat_id,
-            f"{user.name} НЕ нажимай на кнопку ниже, чтобы доказать, что ты не бот.\n"
-            "Просто ответь (reply) на это сообщение, кратко написав о себе (у нас так принято).\n"
-            "Я буду удалять твои сообщения, пока ты не сделаешь это.\n"
-            f"А коли не сделаешь, через {QUARANTINE_TIME} минут выкину из чата.\n"
-            "Ничего личного, просто боты одолели.\n",
+            challenge,
             reply_markup=markup,
         )
     ).message_id
 
-    # messages from `rel_message` will be deleted after greeting or ban
     sqlite_db.add_quarantine_rel_message(
         user.id,
         message_id,
