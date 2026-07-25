@@ -66,6 +66,7 @@ from unittest.mock import AsyncMock, patch
 from telegram import User
 
 os.environ.setdefault("TOKEN", "test-token")
+os.environ.setdefault("GEMINI_API_KEY", "test-key")
 
 from skills.towel_mode import (  # noqa: E402  # pylint: disable=wrong-import-position
     QUARANTINE_TIME,
@@ -103,7 +104,7 @@ class TowelChallengeTest(IsolatedAsyncioTestCase):
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py::TowelChallengeTest::test_human_gets_ephemeral_challenge -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py::TowelChallengeTest::test_human_gets_ephemeral_challenge -q
 ```
 
 Expected: FAIL because `send_message` has no `api_kwargs` entry and
@@ -170,7 +171,7 @@ async def quarantine_user(user: User, chat_id: int, context: ContextTypes.DEFAUL
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py::TowelChallengeTest::test_human_gets_ephemeral_challenge -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py::TowelChallengeTest::test_human_gets_ephemeral_challenge -q
 ```
 
 Expected: `1 passed`.
@@ -200,7 +201,7 @@ Append to `TowelChallengeTest`:
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py::TowelChallengeTest -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py::TowelChallengeTest -q
 ```
 
 Expected: `2 passed`.
@@ -278,7 +279,7 @@ class TowelReplyTest(IsolatedAsyncioTestCase):
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py::TowelReplyTest::test_short_ephemeral_reply_gets_private_feedback -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py::TowelReplyTest::test_short_ephemeral_reply_gets_private_feedback -q
 ```
 
 Expected: FAIL because the current handler calls regular `delete_message` with
@@ -306,7 +307,7 @@ After the quarantine lookup and `user is None` return in `catch_reply`, add:
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py::TowelReplyTest::test_short_ephemeral_reply_gets_private_feedback -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py::TowelReplyTest::test_short_ephemeral_reply_gets_private_feedback -q
 ```
 
 Expected: `1 passed`.
@@ -355,7 +356,7 @@ Append to `TowelReplyTest`:
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py::TowelReplyTest::test_valid_ephemeral_reply_gets_public_welcome -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py::TowelReplyTest::test_valid_ephemeral_reply_gets_public_welcome -q
 ```
 
 Expected: FAIL because the current handler treats the ephemeral message as a
@@ -433,7 +434,7 @@ Replace the conditional block after the quarantine lookup in `catch_reply` with:
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py -q
 ```
 
 Expected: `5 passed`.
@@ -468,7 +469,7 @@ git commit -m "Handle ephemeral towel replies"
 Run:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py -q
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py -q
 ```
 
 Expected: `5 passed`.

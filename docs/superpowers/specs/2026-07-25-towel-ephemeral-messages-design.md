@@ -119,7 +119,7 @@ Run the focused towel tests first, then the full test and lint commands used by
 CI:
 
 ```bash
-uv run pytest bot/tests/towel_mode_test.py
+PYTHONPATH=./bot uv run pytest bot/tests/towel_mode_test.py
 uv run make test
 uv run make lint
 ```
