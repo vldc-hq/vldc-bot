@@ -10,7 +10,7 @@ from requests.exceptions import RequestException
 TOKEN = os.environ["TOKEN"]
 
 LANG = "ru-RU"
-SAMPLE_RATE_HERTZ = 48000
+SAMPLE_RATE_HERTZ = 44100
 ENCODING_TYPE = "LINEAR16"
 CHANNEL_COUNT = 1
 ENABLE_AUTOMATIC_PUNCTUATION = True
