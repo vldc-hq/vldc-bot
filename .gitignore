@@ -83,6 +83,9 @@ celerybeat-schedule
 
 # Environments
 .env
+
+# Isolated local bot databases and test artifacts
+.local-test/
 .venv
 env/
 venv/

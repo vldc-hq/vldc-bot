@@ -46,7 +46,45 @@ Setup your env vars in `example.env` and rename it to `.env`. Don't push `.env` 
 make up
 ```
 
+## Daily cat encounter: `/kiskis`
+
+Call the cat once per 24 hours. A call can give 24 hours of hussar time,
+mute the caller for a day or five minutes (without hussar credit), offer a
+choice of wet/dry food, or just produce a cat scene. Bonus time uses the
+existing leaderboard; it does not increment shots, misses, or deaths.
+
+There is also a one-minute chat cooldown. Hitting that cooldown does not
+consume the caller's daily attempt. Personal cooldowns apply across chats.
+The third consecutive call from the same user in a chat causes a five-minute
+mute without hussar credit, including calls rejected by the personal cooldown.
+Calls rejected by the shared chat pause also count toward this streak.
+The second
+call warns about this. Another caller or 24 hours without calls resets the
+streak; restarting the bot does not. Further calls in that streak also hiss.
+Cooldowns and pending food choices survive restarts in the configured SQLite
+database. Gifts go to another previous `/kiskis` player in the same chat.
+Food must be chosen by the caller within two minutes, once only.
+Messages are cleaned up after two minutes (food results get two minutes
+after resolution). The bot needs permission to restrict members and delete
+messages; Telegram owners/admins are not demoted by this game.
+
+Initial outcome weights: scratch 5, lick 10, gift 5, sleep 10, food 10,
+harmless scenes 60. Gift is excluded when there are no other players.
+Each food type is preferred with equal probability. Weights and phrases
+live in `bot/skills/kiskis.py`.
+
+For local Telegram testing use a separate bot/group and database. With Docker,
+create `.local-test/` and set `SQLITE_DB_PATH=/app/.local-test/kiskis.db` in
+the ignored `.env`, alongside `TOKEN` and `CHAT_ID`. Then run
+`docker compose -f docker-compose-dev.yml up -d --build`.
+Normal 24-hour/one-minute cooldowns apply in the live test too.
+
+Automated coverage exercises every outcome, reward accounting, concurrent
+claims, food callbacks, restart recovery and cleanup scheduling:
+`PYTHONPATH=./bot SQLITE_DB_PATH=:memory: uv run pytest bot/tests/kiskis_test.py`.
+
 ## Local venv (no Docker)
+
 Create a virtual environment and install dependencies locally:
 
 ```
