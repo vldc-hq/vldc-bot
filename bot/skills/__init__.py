@@ -16,6 +16,7 @@ from skills.core import add_core
 from skills.fools import add_fools_mode
 from skills.kozula import add_kozula
 from skills.length import add_length
+from skills.kiskis import add_kiskis
 from skills.mute import add_mute
 from skills.nastya_mode import add_nastya_mode
 from skills.nya import add_nya
@@ -33,7 +34,7 @@ from skills.buktopuha import add_buktopuha
 from skills.chat import add_chat_mode
 
 logger = logging.getLogger(__name__)
-VERSION = "0.15.0"
+VERSION = "0.16.0"
 
 
 class Skill(TypedDict):
@@ -91,6 +92,7 @@ skills: List[Skill] = [
     _make_skill(add_uwu, "😾 uwu", " don't uwu!"),
     _make_skill(add_mute, "🤭 mute", " mute user for N minutes"),
     _make_skill(add_roll, "🔫 roll", " life is so cruel... isn't it?"),
+    _make_skill(add_kiskis, "🐈 kiskis", " позвать няна раз в сутки"),
     _make_skill(add_banme, "⚔️ banme", " commit sudoku"),
     _make_skill(add_tree, "🎄 tree", " advent of code time!"),
     _make_skill(add_coc, "⛔🤬 coc", " VLDC/GDG VL Code of Conduct"),
@@ -128,6 +130,7 @@ commands_list: List[Tuple[str, str]] = [
     ("ban", "ban! ban! ban!"),
     ("fire", "you're fired!"),
     ("roll", "life is so cruel... isn't it?"),
+    ("kiskis", "🐈 позвать няна раз в сутки"),
     ("tree", "advent of code time!"),
     ("kozula", "💰 kozula: Don't argue with kozula rate!"),
     ("still", "do u remember it?"),
