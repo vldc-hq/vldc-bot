@@ -2,7 +2,6 @@
 import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,8 +15,7 @@ from telegram.error import BadRequest, TimedOut
 os.environ.setdefault("TOKEN", "test-token")
 os.environ.setdefault("GEMINI_API_KEY", "test-key")
 
-from db.sqlite import BotDB  # noqa: E402
-from db.kiskis import KiskisStore, DAY  # noqa: E402
+from db.sqlite import BotDB, KISKIS_DAY as DAY  # noqa: E402
 from skills.kiskis import (  # noqa: E402  # pylint: disable=wrong-import-position
     kiskis,
     feed,
@@ -33,57 +31,49 @@ BOB = User(2, "Bob", False)
 
 
 @pytest.fixture(name="store")
-def game_store(tmp_path: Path) -> KiskisStore:
-    path = str(tmp_path / "game.db")
-    BotDB(path)
-    return KiskisStore(path)
+def game_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> BotDB:
+    store = BotDB(str(tmp_path / "game.db"))
+    monkeypatch.setattr("skills.kiskis.db", store)
+    return store
 
 
-def balance(store: KiskisStore, user_id: int = 1) -> Any:
-    with closing(store.connect()) as conn:
-        row = conn.execute(
-            "SELECT * FROM roll_hussars WHERE user_id=?", (user_id,)
-        ).fetchone()
-        return dict(row) if row else None
+def balance(store: BotDB, user_id: int = 1) -> Any:
+    return store.find_hussar(user_id)
 
 
-def make_context(store: KiskisStore) -> Any:
-    return cast(
-        Any,
-        SimpleNamespace(
-            bot_data={"kiskis_store": store},
-            bot=AsyncMock(),
-            job_queue=SimpleNamespace(run_once=Mock()),
-        ),
+def make_context() -> Any:
+    return SimpleNamespace(
+        bot=AsyncMock(),
+        job_queue=SimpleNamespace(run_once=Mock()),
     )
 
 
-def test_persistent_personal_and_chat_cooldowns(store: KiskisStore):
-    assert store.claim(-1, ALICE.to_dict(), NOW)[0] == "ok"
-    assert store.claim(-1, BOB.to_dict(), NOW + 59)[0] == "chat"
-    assert store.claim(-1, BOB.to_dict(), NOW + 60)[0] == "ok"
-    reopened = KiskisStore(store.path)
-    assert reopened.claim(-2, ALICE.to_dict(), NOW + 3600)[0] == "personal"
-    assert reopened.claim(-1, ALICE.to_dict(), NOW + DAY)[0] == "ok"
-    with closing(store.connect()) as conn:
-        assert conn.execute("SELECT COUNT(*) FROM kiskis_users").fetchone()[0] == 2
+def test_persistent_personal_and_chat_cooldowns(store: BotDB):
+    assert store.kiskis_claim(-1, ALICE.to_dict(), NOW)[0] == "ok"
+    assert store.kiskis_claim(-1, BOB.to_dict(), NOW + 59)[0] == "chat"
+    assert store.kiskis_claim(-1, BOB.to_dict(), NOW + 60)[0] == "ok"
+    reopened = BotDB(store.db_path)
+    assert reopened.kiskis_claim(-2, ALICE.to_dict(), NOW + 3600)[0] == "personal"
+    assert reopened.kiskis_claim(-1, ALICE.to_dict(), NOW + DAY)[0] == "ok"
+    row = store.fetchone("SELECT COUNT(*) FROM kiskis_users")
+    assert row and row[0] == 2
 
 
-def test_streak_persistence_reset_and_chat_isolation(store: KiskisStore):
-    assert store.register_attempt(-1, 1, NOW) == 1
-    assert store.register_attempt(-1, 1, NOW + 1) == 2
-    reopened = KiskisStore(store.path)
-    assert reopened.register_attempt(-1, 1, NOW + 2) == 3
-    assert reopened.register_attempt(-1, 1, NOW + 3) == 3
-    assert reopened.register_attempt(-2, 1, NOW + 4) == 1
-    assert reopened.register_attempt(-1, 2, NOW + 5) == 1
-    assert reopened.register_attempt(-1, 1, NOW + 6) == 1
-    assert reopened.register_attempt(-1, 1, NOW + 6 + DAY) == 1
+def test_streak_persistence_reset_and_chat_isolation(store: BotDB):
+    assert store.kiskis_register_attempt(-1, 1, NOW) == 1
+    assert store.kiskis_register_attempt(-1, 1, NOW + 1) == 2
+    reopened = BotDB(store.db_path)
+    assert reopened.kiskis_register_attempt(-1, 1, NOW + 2) == 3
+    assert reopened.kiskis_register_attempt(-1, 1, NOW + 3) == 3
+    assert reopened.kiskis_register_attempt(-2, 1, NOW + 4) == 1
+    assert reopened.kiskis_register_attempt(-1, 2, NOW + 5) == 1
+    assert reopened.kiskis_register_attempt(-1, 1, NOW + 6) == 1
+    assert reopened.kiskis_register_attempt(-1, 1, NOW + 6 + DAY) == 1
 
 
-def test_shared_pause_preserves_attempt_but_not_spam_immunity(store: KiskisStore):
-    store.claim(-1, BOB.to_dict(), NOW)
-    context = make_context(store)
+def test_shared_pause_preserves_attempt_but_not_spam_immunity(store: BotDB):
+    store.kiskis_claim(-1, BOB.to_dict(), NOW)
+    context = make_context()
     context.bot.get_chat_member.return_value = SimpleNamespace(status="member")
     command = SimpleNamespace(message_id=10, sender_chat=None, reply_text=AsyncMock())
     update = cast(
@@ -105,11 +95,11 @@ def test_shared_pause_preserves_attempt_but_not_spam_immunity(store: KiskisStore
         asyncio.run(kiskis(update, context))
         assert "Ш-ш-ш" in command.reply_text.await_args.args[0]
     context.bot.restrict_chat_member.assert_awaited_once()
-    assert store.claim(-1, ALICE.to_dict(), NOW + 60)[0] == "ok"
+    assert store.kiskis_claim(-1, ALICE.to_dict(), NOW + 60)[0] == "ok"
 
 
-def test_third_call_hisses_without_reward_or_daily_claim(store: KiskisStore):
-    context = make_context(store)
+def test_third_call_hisses_without_reward_or_daily_claim(store: BotDB):
+    context = make_context()
     context.bot.get_chat_member.return_value = SimpleNamespace(
         status="member", user=BOB
     )
@@ -139,19 +129,15 @@ def test_third_call_hisses_without_reward_or_daily_claim(store: KiskisStore):
         == NOW + 300
     )
     assert balance(store) is None
-    with closing(store.connect()) as conn:
-        assert (
-            conn.execute(
-                "SELECT last_call FROM kiskis_users WHERE user_id=1"
-            ).fetchone()[0]
-            == NOW
-        )
+    row = store.fetchone("SELECT last_call FROM kiskis_users WHERE user_id=1")
+    assert row and row[0] == NOW
 
 
-def test_reward_adds_seconds_without_fake_rolls(store: KiskisStore):
+def test_reward_adds_seconds_without_fake_rolls(store: BotDB):
     for instant in (NOW, NOW + DAY):
         assert (
-            store.claim(-1, ALICE.to_dict(), instant, reward=ALICE.to_dict())[0] == "ok"
+            store.kiskis_claim(-1, ALICE.to_dict(), instant, reward=ALICE.to_dict())[0]
+            == "ok"
         )
     result = balance(store)
     assert result["total_time_in_club"] == 2 * DAY
@@ -161,15 +147,17 @@ def test_reward_adds_seconds_without_fake_rolls(store: KiskisStore):
         0,
     )
     assert (
-        store.claim(-1, ALICE.to_dict(), NOW + DAY + 1, reward=ALICE.to_dict())[0]
+        store.kiskis_claim(-1, ALICE.to_dict(), NOW + DAY + 1, reward=ALICE.to_dict())[
+            0
+        ]
         == "personal"
     )
     assert balance(store)["total_time_in_club"] == 2 * DAY
 
 
-def test_simultaneous_claims_only_reward_once(store: KiskisStore):
+def test_simultaneous_claims_only_reward_once(store: BotDB):
     def claim(_: int):
-        return store.claim(-1, ALICE.to_dict(), NOW, reward=ALICE.to_dict())[0]
+        return store.kiskis_claim(-1, ALICE.to_dict(), NOW, reward=ALICE.to_dict())[0]
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         results = list(pool.map(claim, range(8)))
@@ -177,26 +165,31 @@ def test_simultaneous_claims_only_reward_once(store: KiskisStore):
     assert balance(store)["total_time_in_club"] == DAY
 
 
-def prepare_food(store: KiskisStore):
-    store.claim(
+def prepare_food(store: BotDB):
+    store.kiskis_claim(
         -1,
         ALICE.to_dict(),
         NOW,
         food={"token": "a" * 32, "preferred": "wet", "command_id": 10},
     )
-    store.bind_food("a" * 32, 11)
+    store.kiskis_bind_food("a" * 32, 11)
 
 
-def test_food_survives_restart_and_rejects_foreign_clicks(store: KiskisStore):
+def test_food_survives_restart_and_rejects_foreign_clicks(store: BotDB):
     prepare_food(store)
-    reopened = KiskisStore(store.path)
-    assert len(reopened.pending_food()) == 1
+    reopened = BotDB(store.db_path)
+    assert len(reopened.kiskis_pending_food()) == 1
     args: dict[str, Any] = {"chat_id": -1, "message_id": 11, "selected": "wet"}
-    assert reopened.finish_food("a" * 32, NOW + 1, user_id=2, **args)[0] == "foreign"
-    assert reopened.finish_food("a" * 32, NOW + 2, user_id=1, **args)[0] == "fed"
-    assert reopened.finish_food("a" * 32, NOW + 3, user_id=1, **args)[0] == "done"
+    assert (
+        reopened.kiskis_finish_food("a" * 32, NOW + 1, user_id=2, **args)[0]
+        == "foreign"
+    )
+    assert reopened.kiskis_finish_food("a" * 32, NOW + 2, user_id=1, **args)[0] == "fed"
+    assert (
+        reopened.kiskis_finish_food("a" * 32, NOW + 3, user_id=1, **args)[0] == "done"
+    )
     assert balance(store)["total_time_in_club"] == DAY
-    assert not reopened.pending_food()
+    assert not reopened.kiskis_pending_food()
 
 
 @pytest.mark.parametrize(
@@ -209,18 +202,21 @@ def test_food_survives_restart_and_rejects_foreign_clicks(store: KiskisStore):
     ],
 )
 def test_food_deadline_and_wrong_answer(
-    store: KiskisStore, elapsed: int, selected: str | None, expected: str
+    store: BotDB, elapsed: int, selected: str | None, expected: str
 ):
     prepare_food(store)
-    assert store.finish_food("a" * 32, NOW + elapsed, selected=selected)[0] == expected
+    assert (
+        store.kiskis_finish_food("a" * 32, NOW + elapsed, selected=selected)[0]
+        == expected
+    )
     assert balance(store) is None
 
 
 @pytest.mark.parametrize("outcome", list(WEIGHTS))
-def test_command_outcomes_and_cleanup(store: KiskisStore, outcome: str):
+def test_command_outcomes_and_cleanup(store: BotDB, outcome: str):
     if outcome == "other":
-        store.claim(-1, BOB.to_dict(), NOW - 61)
-    context = make_context(store)
+        store.kiskis_claim(-1, BOB.to_dict(), NOW - 61)
+    context = make_context()
     context.bot.get_chat_member.return_value = SimpleNamespace(
         status="member", user=BOB
     )
@@ -245,7 +241,7 @@ def test_command_outcomes_and_cleanup(store: KiskisStore, outcome: str):
         assert ALICE.mention_html() in reply.args[0]
         assert BOB.mention_html() in reply.args[0]
     if outcome == "food":
-        assert store.pending_food()[0]["message_id"] == 11
+        assert store.kiskis_pending_food()[0]["message_id"] == 11
         context.job_queue.run_once.assert_called_once()
         cleanup.assert_not_called()
     else:
@@ -265,9 +261,9 @@ def test_command_outcomes_and_cleanup(store: KiskisStore, outcome: str):
         assert balance(store) is None
 
 
-def test_callback_edits_and_rewards_once(store: KiskisStore):
+def test_callback_edits_and_rewards_once(store: BotDB):
     prepare_food(store)
-    context = make_context(store)
+    context = make_context()
     query = SimpleNamespace(
         data="kiskis:" + "a" * 32 + ":wet",
         from_user=ALICE,
@@ -282,33 +278,30 @@ def test_callback_edits_and_rewards_once(store: KiskisStore):
     assert context.job_queue.run_once.call_args.args[1] == 120
 
 
-def test_expiration_job_and_startup_recovery(store: KiskisStore):
+def test_expiration_job_and_startup_recovery(store: BotDB):
     prepare_food(store)
-    context = make_context(store)
+    context = make_context()
     context.add_handler = Mock()
-    with (
-        patch("skills.kiskis.db", db_path=store.path),
-        patch("skills.kiskis.time.time", return_value=NOW + 10),
-    ):
+    with patch("skills.kiskis.time.time", return_value=NOW + 10):
         add_kiskis(context, 1)
     assert context.job_queue.run_once.call_args.args[1] == 110
     context.job = SimpleNamespace(data="a" * 32)
     with patch("skills.kiskis.time.time", return_value=NOW + 120):
         asyncio.run(expire_food(context))
-    assert not store.pending_food()
+    assert not store.kiskis_pending_food()
     assert balance(store) is None
     assert "поел у соседей" in context.bot.edit_message_text.await_args.args[0]
 
 
-def test_mute_failure_does_not_create_hussar(store: KiskisStore):
-    context = make_context(store)
+def test_mute_failure_does_not_create_hussar(store: BotDB):
+    context = make_context()
     context.bot.get_chat_member.side_effect = BadRequest("not enough rights")
     assert not asyncio.run(restrict(context, -1, 1, 300))
     assert balance(store) is None
 
 
-def test_short_mute_does_not_shorten_existing_restriction(store: KiskisStore):
-    context = make_context(store)
+def test_short_mute_does_not_shorten_existing_restriction(store: BotDB):
+    context = make_context()
     for until in (0, NOW + DAY):
         context.bot.get_chat_member.return_value = SimpleNamespace(
             status="restricted", until_date=datetime.fromtimestamp(until, timezone.utc)
@@ -318,8 +311,26 @@ def test_short_mute_does_not_shorten_existing_restriction(store: KiskisStore):
     context.bot.restrict_chat_member.assert_not_awaited()
 
 
-def test_timeout_retries_once_with_same_deadline(store: KiskisStore):
-    context = make_context(store)
+def test_partial_restriction_is_only_replaced_when_cat_mute_covers_it():
+    context = make_context()
+    for deadline in (NOW + 3600, 0, NOW + 120):
+        context.bot.get_chat_member.return_value = SimpleNamespace(
+            status="restricted",
+            can_send_photos=True,
+            until_date=datetime.fromtimestamp(deadline, timezone.utc),
+        )
+        with patch("skills.kiskis.time.time", return_value=NOW):
+            result = asyncio.run(restrict(context, -1, 1, 300))
+        if deadline != NOW + 120:
+            assert isinstance(result, str) and "другое ограничение" in result
+            context.bot.restrict_chat_member.assert_not_awaited()
+        else:
+            assert result is True
+            context.bot.restrict_chat_member.assert_awaited_once()
+
+
+def test_timeout_retries_once_with_same_deadline(store: BotDB):
+    context = make_context()
     context.bot.get_chat_member.return_value = SimpleNamespace(status="member")
     context.bot.restrict_chat_member.side_effect = [TimedOut(), True]
     with (
@@ -335,8 +346,8 @@ def test_timeout_retries_once_with_same_deadline(store: KiskisStore):
     assert balance(store) is None
 
 
-def test_two_timeouts_return_unknown_even_if_notice_fails(store: KiskisStore):
-    context = make_context(store)
+def test_two_timeouts_return_unknown_even_if_notice_fails(store: BotDB):
+    context = make_context()
     context.bot.get_chat_member.side_effect = TimedOut()
     context.bot.send_message.side_effect = TimedOut()
     assert asyncio.run(restrict(context, -1, 1, 300)) is None
@@ -346,12 +357,10 @@ def test_two_timeouts_return_unknown_even_if_notice_fails(store: KiskisStore):
 @pytest.mark.parametrize(
     "role,reason", [("administrator", "админов"), ("creator", "владельца")]
 )
-def test_hiss_precedes_separate_admin_explanation(
-    store: KiskisStore, role: str, reason: str
-):
-    store.register_attempt(-1, ALICE.id, NOW)
-    store.register_attempt(-1, ALICE.id, NOW)
-    context = make_context(store)
+def test_hiss_precedes_separate_admin_explanation(store: BotDB, role: str, reason: str):
+    store.kiskis_register_attempt(-1, ALICE.id, NOW)
+    store.kiskis_register_attempt(-1, ALICE.id, NOW)
+    context = make_context()
     context.bot.get_chat_member.return_value = SimpleNamespace(status=role)
     command = SimpleNamespace(message_id=10, sender_chat=None, reply_text=AsyncMock())
     update = cast(
@@ -378,8 +387,8 @@ def test_hiss_precedes_separate_admin_explanation(
     assert all(call.args[-1] == 120 for call in cleanup.call_args_list)
 
 
-def test_retry_detects_mute_applied_before_timeout(store: KiskisStore):
-    context = make_context(store)
+def test_retry_detects_mute_applied_before_timeout(store: BotDB):
+    context = make_context()
     context.bot.get_chat_member.side_effect = [
         SimpleNamespace(status="member"),
         SimpleNamespace(

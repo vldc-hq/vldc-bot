@@ -20,8 +20,7 @@ from telegram import (
 from telegram.error import TelegramError, TimedOut
 from telegram.ext import ContextTypes, CallbackQueryHandler, filters
 
-from db.sqlite import db
-from db.kiskis import KiskisStore, FOOD_TIMEOUT
+from db.sqlite import KISKIS_FOOD_TIMEOUT, db
 from handlers import ChatCommandHandler
 from mode import cleanup_queue_update
 from typing_utils import App, get_job_queue
@@ -72,12 +71,7 @@ TEXTS = {
 }
 
 
-def get_store(context: ContextTypes.DEFAULT_TYPE) -> KiskisStore:
-    return context.bot_data["kiskis_store"]
-
-
 def add_kiskis(app: App, handlers_group: int) -> None:
-    app.bot_data["kiskis_store"] = KiskisStore(db.db_path)
     app.add_handler(
         ChatCommandHandler(
             "kiskis", kiskis, filters=filters.ChatType.GROUPS, block=True
@@ -89,9 +83,12 @@ def add_kiskis(app: App, handlers_group: int) -> None:
         group=handlers_group,
     )
     if app.job_queue is not None:
-        for food in app.bot_data["kiskis_store"].pending_food():
+        for food in db.kiskis_pending_food():
             app.job_queue.run_once(
-                expire_food, max(0, food["expires"] - time.time()), data=food["token"]
+                expire_food,
+                max(0, food["expires"] - time.time()),
+                data=food["token"],
+                job_kwargs={"misfire_grace_time": None},
             )
 
 
@@ -105,26 +102,34 @@ async def restrict(
 ) -> bool | str | None:
     # Keep the same deadline on retry: a lost response may hide a successful mute.
     until = int(time.time() + seconds)
+    permissions = ChatPermissions.no_permissions()
     for attempt in range(2):
         try:
             member = await context.bot.get_chat_member(chat_id, user_id)
-            if member.status == "creator":
-                return (
-                    "😿 Лапа не дотянулась: владельца чата Telegram не даёт поцарапать."
-                )
-            if member.status == "administrator":
-                return "😿 Лапа не дотянулась: админов Telegram не даёт поцарапать."
-            # Never shorten an existing (or permanent) restriction.
+            if member.status in ("creator", "administrator"):
+                role = "владельца чата" if member.status == "creator" else "админов"
+                return f"😿 Лапа не дотянулась: {role} Telegram не даёт поцарапать."
+            # Telegram has one permission set and deadline per member.
             if member.status == "restricted":
                 previous = getattr(member, "until_date", None)
-                if previous is not None and (
-                    previous.timestamp() == 0 or previous.timestamp() >= until
-                ):
-                    return True
+                deadline = previous.timestamp() if previous is not None else -1
+                if deadline == 0 or deadline >= until:
+                    can_send = any(
+                        getattr(member, flag, False)
+                        for flag in permissions.to_dict()
+                        if flag.startswith("can_send_")
+                    )
+                    if not can_send:
+                        return True
+                    if deadline != until:
+                        return (
+                            "😿 Лапа не дотянулась: на тебе уже другое ограничение, "
+                            "Нян его не трогает."
+                        )
             await context.bot.restrict_chat_member(
                 chat_id,
                 user_id,
-                ChatPermissions.no_permissions(),
+                permissions,
                 until_date=datetime.fromtimestamp(until, timezone.utc),
             )
             return True
@@ -182,14 +187,13 @@ async def kiskis(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     if command.sender_chat is not None:
         return
-    store = get_store(context)
-    attempts = store.register_attempt(chat.id, user.id, time.time())
+    attempts = db.kiskis_register_attempt(chat.id, user.id, time.time())
     if attempts >= 3:
         result = await command.reply_text(outcome_text(user, "hiss"), parse_mode="HTML")
         cleanup_queue_update(get_job_queue(context), command, result, CLEANUP_SECONDS)
         await apply_outcome(context, chat.id, user, "hiss")
         return
-    players = store.players(chat.id, user.id)
+    players = db.kiskis_players(chat.id, user.id)
     # Only previous /kiskis players in this chat are eligible for a gift.
     outcomes = [key for key in WEIGHTS if key != "other" or players]
     outcome = random.choices(outcomes, weights=[WEIGHTS[key] for key in outcomes])[0]
@@ -217,10 +221,11 @@ async def kiskis(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if outcome == "food"
         else None
     )
-    status, remaining = store.claim(
+    now = time.time()
+    status, remaining = db.kiskis_claim(
         chat.id,
         user.to_dict(),
-        time.time(),
+        now,
         reward=user.to_dict() if outcome == "lick" else recipient,
         food=food,
     )
@@ -261,12 +266,17 @@ async def kiskis(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             )
     if attempts == 2:
         text += "\n😼 Ещё раз подряд позовёшь — зашиплю. И пять минут посидишь молча."
-    result = await command.reply_text(text, reply_markup=markup, parse_mode="HTML")
     queue = get_job_queue(context)
+    if status == "ok" and food and queue is not None:
+        queue.run_once(
+            expire_food,
+            max(0, now + KISKIS_FOOD_TIMEOUT - time.time()),
+            data=token,
+            job_kwargs={"misfire_grace_time": None},
+        )
+    result = await command.reply_text(text, reply_markup=markup, parse_mode="HTML")
     if status == "ok" and food:
-        store.bind_food(token, result.message_id)
-        if queue is not None:
-            queue.run_once(expire_food, FOOD_TIMEOUT, data=token)
+        db.kiskis_bind_food(token, result.message_id)
     else:
         cleanup_queue_update(queue, command, result, CLEANUP_SECONDS)
     if status == "ok":
@@ -310,7 +320,7 @@ async def delete_food_messages(context: ContextTypes.DEFAULT_TYPE) -> None:
 async def expire_food(context: ContextTypes.DEFAULT_TYPE) -> None:
     if context.job is None:
         return
-    status, food = get_store(context).finish_food(str(context.job.data), time.time())
+    status, food = db.kiskis_finish_food(str(context.job.data), time.time())
     if food:
         await present_food(context, status, food)
 
@@ -324,7 +334,7 @@ async def feed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await query.answer("Миску уже унесли.")
         return
     _, token, selected = query.data.split(":")
-    status, food = get_store(context).finish_food(
+    status, food = db.kiskis_finish_food(
         token,
         time.time(),
         user_id=query.from_user.id,

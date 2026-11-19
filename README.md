@@ -67,6 +67,8 @@ Food must be chosen by the caller within two minutes, once only.
 Messages are cleaned up after two minutes (food results get two minutes
 after resolution). The bot needs permission to restrict members and delete
 messages; Telegram owners/admins are not demoted by this game.
+An existing partial restriction that outlasts the cat mute is kept in place,
+and Nyan reports that the cat mute was skipped.
 
 Initial outcome weights: scratch 5, lick 10, gift 5, sleep 10, food 10,
 harmless scenes 60. Gift is excluded when there are no other players.
